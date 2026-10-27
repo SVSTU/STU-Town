@@ -80,14 +80,18 @@
     let players = {};
     let targetPosition = null;
     let cursors;
-    let sceneRef = null; // Lưu tham chiếu scene an toàn
+    let sceneRef = null;
 
     const config = {
         type: Phaser.AUTO,
         width: 800,
         height: 600,
         backgroundColor: '#2d2d2d',
-        scene: { preload: preload, create: create, update: update }
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
     };
 
     const game = new Phaser.Game(config);
@@ -98,19 +102,12 @@
         sceneRef = this;
         console.log("SCENE CREATED SUCCESSFULLY!");
 
-        // Chỉ dùng phím mũi tên
+        // Khởi tạo phím mũi tên điều khiển
         cursors = sceneRef.input.keyboard.createCursorKeys();
 
         sceneRef.input.on('pointerdown', (pointer) => {
             targetPosition = { x: pointer.x, y: pointer.y };
         });
-
-        socket.off('connect');
-        socket.off('currentPlayers');
-        socket.off('newPlayer');
-        socket.off('playerMoved');
-        socket.off('playerDisconnected');
-        socket.off('chatMessage');
 
         socket.on('connect', () => {
             console.log("Connected to server, my socket ID:", socket.id);
@@ -251,4 +248,36 @@
         else if (cursors.right.isDown) { p.x += speed; keyActive = true; }
 
         if (cursors.up.isDown) { p.y -= speed; keyActive = true; }
-        else if (cursors.down.isDown) { p.y += speed; keyActive
+        else if (cursors.down.isDown) { p.y += speed; keyActive = true; }
+
+        if (keyActive) {
+            targetPosition = null;
+            isMoved = true;
+        } 
+        else if (targetPosition !== null) {
+            let dx = targetPosition.x - p.x;
+            let dy = targetPosition.y - p.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > speed) {
+                let angle = Math.atan2(dy, dx);
+                p.x += Math.cos(angle) * speed;
+                p.y += Math.sin(angle) * speed;
+                isMoved = true;
+            } else {
+                p.x = targetPosition.x;
+                p.y = targetPosition.y;
+                targetPosition = null;
+                isMoved = true;
+            }
+        }
+
+        updateLabels(p);
+
+        if (isMoved) {
+            socket.emit('playerMovement', { x: p.x, y: p.y });
+        }
+    }
+</script>
+</body>
+</html>
