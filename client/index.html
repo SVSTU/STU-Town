@@ -102,7 +102,6 @@
         sceneRef = this;
         console.log("SCENE CREATED SUCCESSFULLY!");
 
-        // Khởi tạo phím mũi tên điều khiển
         cursors = sceneRef.input.keyboard.createCursorKeys();
 
         sceneRef.input.on('pointerdown', (pointer) => {
@@ -145,12 +144,13 @@
             }
         });
 
+        // Xử lý hiển thị tin nhắn kèm thời gian [HH:MM:SS] và ID đầy đủ thu gọn
         socket.on('chatMessage', (data) => {
             const isMe = (data.id === socket.id);
             const shortId = data.id.substring(0, 4);
             const senderName = isMe ? "Bạn" : `Khách (${shortId})`;
-            
-            / Lấy thời gian thực hiện tại theo định dạng HH:MM:SS
+
+            // Lấy thời gian thực hiện tại theo định dạng HH:MM:SS
             const now = new Date();
             const timeString = now.toTimeString().split(' ')[0]; // Lấy phần giờ:phút:giây (HH:MM:SS)
             
@@ -193,7 +193,6 @@
 
         circle.textLabel = text;
         players[id] = circle;
-        console.log(`Đã tạo nhân vật [${labelText}] cho ID:`, id);
     }
 
     function updateLabels(p) {
