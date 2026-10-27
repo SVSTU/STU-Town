@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 app.use(express.static(path.join(__dirname, '..', 'client')));
-const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500,https://stu-town-server.onrender.com')
+const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500,https://stu-town-server.onrender.com,https://stu-town.pages.dev')
   .split(',').map((origin) => origin.trim()).filter(Boolean));
 const io = new Server(server, {
   maxHttpBufferSize: 3 * 1024 * 1024,
