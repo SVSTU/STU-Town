@@ -79,7 +79,7 @@
 
     let players = {};
     let targetPosition = null;
-    let cursors, wasd;
+    let cursors; // Chỉ dùng phím mũi tên
 
     const config = {
         type: Phaser.AUTO,
@@ -97,13 +97,8 @@
         const scene = this;
         console.log("SCENE CREATED SUCCESSFULLY!");
 
+        // CHỈ KHỞI TẠO PHÍM MŨI TÊN (Đã bỏ WASD)
         cursors = scene.input.keyboard.createCursorKeys();
-        wasd = scene.input.keyboard.addKeys({
-            up: Phaser.Input.Keyboard.KeyCodes.W,
-            down: Phaser.Input.Keyboard.KeyCodes.S,
-            left: Phaser.Input.Keyboard.KeyCodes.A,
-            right: Phaser.Input.Keyboard.KeyCodes.D
-        });
 
         scene.input.on('pointerdown', (pointer) => {
             targetPosition = { x: pointer.x, y: pointer.y };
@@ -152,10 +147,9 @@
             }
         });
 
-        // Nhận tin nhắn chat và định danh rõ ràng theo ID người gửi
         socket.on('chatMessage', (data) => {
             const isMe = (data.id === socket.id);
-            const shortId = data.id.substring(0, 4); // Lấy 4 ký tự đầu của ID làm tên hiển thị độc lập
+            const shortId = data.id.substring(0, 4);
             const senderName = isMe ? "Bạn" : `Khách (${shortId})`;
             
             const chatMessages = document.getElementById('chat-messages');
@@ -215,74 +209,4 @@
 
         const bubble = scene.add.text(playerObj.x, playerObj.y - 50, message, {
             font: '12px Arial',
-            fill: '#000',
-            backgroundColor: '#ffffff',
-            padding: { x: 6, y: 4 },
-            align: 'center'
-        }).setOrigin(0.5);
-
-        playerObj.chatBubble = bubble;
-
-        scene.time.delayedCall(4000, () => {
-            if (playerObj.chatBubble === bubble) {
-                bubble.destroy();
-                playerObj.chatBubble = null;
-            }
-        });
-    }
-
-    function sendChat(event) {
-        event.preventDefault();
-        const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if (text !== "") {
-            socket.emit('sendChatMessage', text); // Gửi tin nhắn lên server
-            input.value = "";
-        }
-    }
-
-    function update() {
-        if (!socket.id || !players[socket.id]) return;
-
-        const p = players[socket.id];
-        let speed = 4;
-        let isMoved = false;
-
-        let keyActive = false;
-        if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyActive = true; }
-        else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyActive = true; }
-
-        if (cursors.up.isDown || wasd.up.isDown) { p.y -= speed; keyActive = true; }
-        else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyActive = true; }
-
-        if (keyActive) {
-            targetPosition = null;
-            isMoved = true;
-        } 
-        else if (targetPosition !== null) {
-            let dx = targetPosition.x - p.x;
-            let dy = targetPosition.y - p.y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance > speed) {
-                let angle = Math.atan2(dy, dx);
-                p.x += Math.cos(angle) * speed;
-                p.y += Math.sin(angle) * speed;
-                isMoved = true;
-            } else {
-                p.x = targetPosition.x;
-                p.y = targetPosition.y;
-                targetPosition = null;
-                isMoved = true;
-            }
-        }
-
-        updateLabels(p);
-
-        if (isMoved) {
-            socket.emit('playerMovement', { x: p.x, y: p.y });
-        }
-    }
-</script>
-</body>
-</html>
+            fill: '#0
