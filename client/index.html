@@ -104,6 +104,15 @@
 
         cursors = sceneRef.input.keyboard.createCursorKeys();
 
+        // Ngăn chặn Phaser bắt sự kiện bàn phím khi người dùng đang bấm vào ô nhập chat
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('focus', () => {
+            sceneRef.input.keyboard.enabled = false;
+        });
+        chatInput.addEventListener('blur', () => {
+            sceneRef.input.keyboard.enabled = true;
+        });
+
         sceneRef.input.on('pointerdown', (pointer) => {
             targetPosition = { x: pointer.x, y: pointer.y };
         });
@@ -144,20 +153,17 @@
             }
         });
 
-        // Xử lý hiển thị tin nhắn kèm thời gian [HH:MM:SS] và ID đầy đủ thu gọn
         socket.on('chatMessage', (data) => {
             const isMe = (data.id === socket.id);
             const shortId = data.id.substring(0, 4);
             const senderName = isMe ? "Bạn" : `Khách (${shortId})`;
 
-            // Lấy thời gian thực hiện tại theo định dạng HH:MM:SS
             const now = new Date();
-            const timeString = now.toTimeString().split(' ')[0]; // Lấy phần giờ:phút:giây (HH:MM:SS)
+            const timeString = now.toTimeString().split(' ')[0];
             
             const chatMessages = document.getElementById('chat-messages');
             const line = document.createElement('div');
             line.className = 'chat-line';
-            // Định dạng hiển thị: [HH:MM:SS] Tên: Nội dung
             line.innerHTML = `<span style="color: #aaa; font-size: 11px;">[${timeString}]</span> <b>${senderName}:</b> ${data.message}`;
             chatMessages.appendChild(line);
             chatMessages.scrollTop = chatMessages.scrollHeight;
