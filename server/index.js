@@ -21,11 +21,18 @@ io.on('connection', (socket) => {
   socket.emit('currentPlayers', players);
   socket.broadcast.emit('newPlayer', { id: socket.id, x: players[socket.id].x, y: players[socket.id].y });
 
-  socket.on('playerInput', (data) => {
+  // ĐÃ SỬA: 'playerInput' -> 'playerMovement' để khớp với client
+  socket.on('playerMovement', (data) => {
     if (players[socket.id]) {
       players[socket.id].x = data.x;
       players[socket.id].y = data.y;
-      socket.broadcast.emit('playerMoved', { id: socket.id, x: data.x, y: data.y });
+      
+      // Phát tọa độ kèm theo id đầy đủ sang các máy khác
+      socket.broadcast.emit('playerMoved', { 
+        id: socket.id, 
+        x: data.x, 
+        y: data.y 
+      });
     }
   });
 
