@@ -45,20 +45,27 @@ canvas {
     min-height: 26px;
 }
 
-#chat-toggle, #emoji-toggle {
+#chat-header-actions {
+    display: flex;
+    gap: 5px;
+}
+
+#chat-toggle, #settings-toggle, #emoji-toggle {
     border: 0;
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
 }
 
-#chat-toggle {
+#chat-toggle, #settings-toggle {
     width: 28px;
     height: 26px;
     color: #fff;
     background: #444;
-    font-size: 18px;
 }
+
+#chat-toggle { font-size: 18px; }
+#settings-toggle { font-size: 16px; }
 
 #chat-content {
     display: flex;
@@ -89,6 +96,9 @@ canvas {
     font-size: 12px;
     gap: 5px;
 }
+
+#settings-panel { display: none; }
+#settings-panel.is-open { display: block; }
 
 #nickname-input {
     width: 100%;

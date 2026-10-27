@@ -183,6 +183,7 @@ function create() {
     });
 
     document.getElementById('chat-toggle').addEventListener('click', toggleChat);
+    document.getElementById('settings-toggle').addEventListener('click', toggleSettings);
     document.getElementById('emoji-toggle').addEventListener('click', () => {
         document.getElementById('emoji-picker').classList.toggle('is-open');
     });
@@ -319,6 +320,7 @@ function saveProfile(event) {
             updatePlayerName(player, profile.nickname, socket.id);
             if (profile.avatar) updatePlayerAvatar(sceneRef, player, profile.avatar);
         }
+        setSettingsOpen(false);
         console.log('Đã lưu hồ sơ cá nhân.');
     };
 
@@ -358,6 +360,19 @@ function toggleChat() {
     toggle.textContent = collapsed ? '+' : '−';
     toggle.setAttribute('aria-label', collapsed ? 'Mở rộng khung chat' : 'Thu nhỏ khung chat');
     toggle.setAttribute('aria-expanded', String(!collapsed));
+}
+
+function setSettingsOpen(isOpen) {
+    const panel = document.getElementById('settings-panel');
+    const toggle = document.getElementById('settings-toggle');
+    panel.classList.toggle('is-open', isOpen);
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Đóng cài đặt hồ sơ' : 'Mở cài đặt hồ sơ');
+}
+
+function toggleSettings() {
+    const panel = document.getElementById('settings-panel');
+    setSettingsOpen(!panel.classList.contains('is-open'));
 }
 
 function showChatBubble(scene, playerContainer, message) {

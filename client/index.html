@@ -15,15 +15,21 @@
     <div id="chat-container">
         <div id="chat-header">
             <strong>STU-Town</strong>
-            <button id="chat-toggle" type="button" aria-label="Thu nhỏ khung chat" aria-expanded="true">−</button>
+            <div id="chat-header-actions">
+                <button id="settings-toggle" type="button" aria-label="Mở cài đặt hồ sơ" aria-expanded="false">⚙</button>
+                <button id="chat-toggle" type="button" aria-label="Thu nhỏ khung chat" aria-expanded="true">−</button>
+            </div>
         </div>
 
         <div id="chat-content">
-        <form id="profile-form" onsubmit="saveProfile(event)">
-            <input type="text" id="nickname-input" maxlength="24" placeholder="Nickname" aria-label="Nickname">
-            <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
-            <button type="submit" id="profile-submit">Lưu hồ sơ</button>
-        </form>
+        <section id="settings-panel" aria-label="Cài đặt hồ sơ">
+            <form id="profile-form" onsubmit="saveProfile(event)">
+                <strong>Thông tin cá nhân</strong>
+                <input type="text" id="nickname-input" maxlength="24" placeholder="Nickname" aria-label="Nickname">
+                <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
+                <button type="submit" id="profile-submit">Lưu hồ sơ</button>
+            </form>
+        </section>
         <div id="chat-messages"></div>
         <div id="emoji-picker" aria-label="Chọn emoji">
             <button type="button" data-emoji="😀">😀</button>
