@@ -232,6 +232,7 @@
 
         const container = scene.add.container(info.x, info.y);
 
+        // Vòng tròn nền dự phòng
         const bgCircle = scene.add.circle(0, 0, radius, isMe ? 0x00ff55 : 0xff5500);
         container.add(bgCircle);
 
@@ -253,51 +254,36 @@
         players[id] = container;
     }
 
-    // Hàm nén ảnh và vẽ trực tiếp bằng Canvas 2D thuần túy để tránh lỗi texture của Phaser
+    // Xử lý nạp ảnh trực tiếp vào texture của Phaser một cách chính xác
     function setAvatarToContainer(scene, container, base64Str, radius) {
+        const textureKey = 'avatar_' + Math.random();
         const img = new Image();
         img.src = base64Str;
         img.onload = function() {
-            // Tạo một thẻ canvas ẩn để nén và cắt ảnh về kích thước nhỏ (ví dụ 60x60 pixels)
-            const canvas = document.createElement('canvas');
-            const size = radius * 2;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-
-            // Vẽ ảnh đã nén/crop vào khung hình tròn nhỏ gọn
-            ctx.drawImage(img, 0, 0, size, size);
-            const compressedDataUrl = canvas.toDataURL('image/png');
-
-            const textureKey = 'avatar_compressed_' + Math.random();
             if (scene.textures.exists(textureKey)) {
                 scene.textures.remove(textureKey);
             }
+            scene.textures.addImage(textureKey, img);
 
-            const compressedImg = new Image();
-            compressedImg.src = compressedDataUrl;
-            compressedImg.onload = function() {
-                scene.textures.addImage(textureKey, compressedImg);
+            if (container.avatarSprite) {
+                container.avatarSprite.destroy();
+            }
 
-                if (container.avatarSprite) {
-                    container.avatarSprite.destroy();
-                }
+            const avatarSprite = scene.add.image(0, 0, textureKey);
+            avatarSprite.setDisplaySize(radius * 2, radius * 2);
 
-                const avatarSprite = scene.add.image(0, 0, textureKey);
-                
-                // Tạo mặt nạ bo tròn hoàn hảo cho chấm tròn
-                const maskShape = scene.make.graphics();
-                maskShape.fillStyle(0xffffff);
-                maskShape.beginPath();
-                maskShape.arc(0, 0, radius, 0, Math.PI * 2);
-                maskShape.fillPath();
+            // Tạo khung mặt nạ tròn bọc lấy ảnh
+            const maskShape = scene.make.graphics();
+            maskShape.fillStyle(0xffffff);
+            maskShape.beginPath();
+            maskShape.arc(0, 0, radius, 0, Math.PI * 2);
+            maskShape.fillPath();
 
-                const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
-                avatarSprite.setMask(mask);
+            const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
+            avatarSprite.setMask(mask);
 
-                container.add(avatarSprite);
-                container.avatarSprite = avatarSprite;
-            };
+            container.add(avatarSprite);
+            container.avatarSprite = avatarSprite;
         };
     }
 
@@ -306,7 +292,6 @@
         setAvatarToContainer(scene, container, base64Str, radius);
     }
 
-    // Khi bấm nút "Áp dụng": Nén ảnh nhẹ lại trước khi gửi đi
     function applyAvatar() {
         const fileInput = document.getElementById('avatar-input');
         const file = fileInput.files[0];
@@ -320,22 +305,21 @@
             const img = new Image();
             img.src = e.target.result;
             img.onload = function() {
-                // Tự động thu nhỏ ảnh ngay từ trình duyệt xuống 60x60 pixels (vừa khít chấm tròn)
+                // Nén ảnh gọn về kích thước 60x60 pixels
                 const canvas = document.createElement('canvas');
                 canvas.width = 60;
                 canvas.height = 60;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, 60, 60);
                 
-                // Chuyển thành chuỗi dữ liệu siêu nhẹ dạng PNG nhỏ gọn
                 const compressedBase64 = canvas.toDataURL('image/png');
 
-                // Cập nhật ngay lập tức cho nhân vật của mình
+                // Cập nhật cho chính mình
                 if (sceneRef && players[socket.id]) {
                     updatePlayerAvatar(sceneRef, players[socket.id], compressedBase64, socket.id);
                 }
 
-                // Gửi qua socket để đồng bộ sang các máy khác
+                // Gửi lên server để đồng bộ sang người khác
                 socket.emit('updateAvatar', compressedBase64);
                 console.log("Đã nén và áp dụng Avatar thành công!");
             };
