@@ -1,6 +1,5 @@
 console.log("GAME STARTING...");
 
-// 1. Kết nối Socket.io chạy độc lập ngay từ đầu, không phụ thuộc vào Phaser preload
 const socket = io("https://stu-town-server.onrender.com");
 
 let players = {};
@@ -23,7 +22,7 @@ const config = {
 const game = new Phaser.Game(config);
 
 function preload() {
-    // Tải sẵn ảnh stu.png, nếu không tìm thấy vẫn không làm chết game
+    // Tải ảnh mặc định stu.png
     this.load.image('default_stu', 'stu.png');
 }
 
@@ -52,7 +51,6 @@ function create() {
         targetPosition = { x: pointer.x, y: pointer.y };
     });
 
-    // 2. Các sự kiện Socket được lắng nghe ngay khi scene tạo xong
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
     });
@@ -121,11 +119,11 @@ function createPlayer(scene, info, id) {
 
     const isMe = (id === socket.id);
     const radius = isMe ? 18 : 15;
-    const borderColor = isMe ? 0x00ff55 : 0xff5500; // Bạn: Viền xanh lá, Khách: Viền cam
+    const borderColor = isMe ? 0x00ff55 : 0xff5500; // Xanh lá cho bạn, Cam cho khách
 
     const container = scene.add.container(info.x, info.y);
 
-    // 1. Nhãn tên hiển thị trên đầu
+    // 1. Nhãn tên trên đầu
     const shortId = id.substring(0, 4);
     const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
     const textLabel = scene.add.text(0, -28, labelText, {
@@ -137,13 +135,18 @@ function createPlayer(scene, info, id) {
     container.add(textLabel);
     container.textLabel = textLabel;
 
-    // 2. Hiển thị Avatar: Nếu có ảnh base64 thì dùng, nếu chưa có thì dùng ảnh mặc định 'default_stu' hoặc vẽ vòng tròn dự phòng nếu chưa load kịp
+    // 2. Lưu thông tin radius và borderColor vào container để dùng khi đổi ảnh
+    container.playerRadius = radius;
+    container.borderColor = borderColor;
+
+    // 3. Hiển thị Avatar (Ưu tiên ảnh base64 nếu có, ngược lại dùng ảnh mặc định 'default_stu')
     if (info.avatar && info.avatar.startsWith('data:image')) {
-        setAvatarFromBase64(scene, container, info.avatar, radius, borderColor);
+        setAvatarImage(scene, container, info.avatar);
     } else if (scene.textures.exists('default_stu')) {
-        setAvatarFromTexture(scene, container, 'default_stu', radius, borderColor);
+        // Lấy texture mặc định vẽ trực tiếp vào container
+        setAvatarFromTextureKey(scene, container, 'default_stu');
     } else {
-        // Dự phòng bằng hình tròn nếu ảnh stu.png chưa tải xong
+        // Fallback vẽ hình tròn nếu chưa load kịp
         const bgCircle = scene.add.circle(0, 0, radius, borderColor);
         container.add(bgCircle);
         container.bgCircle = bgCircle;
@@ -153,17 +156,20 @@ function createPlayer(scene, info, id) {
     players[id] = container;
 }
 
-function setAvatarFromTexture(scene, container, textureKey, radius, borderColor) {
-    if (container.bgCircle) {
-        container.bgCircle.destroy();
-    }
-    if (container.avatarSprite) {
-        container.avatarSprite.destroy();
-    }
+// Hàm gán ảnh từ Texture key có sẵn
+function setAvatarFromTextureKey(scene, container, textureKey) {
+    if (container.bgCircle) container.bgCircle.destroy();
+    if (container.avatarSprite) container.avatarSprite.destroy();
+    if (container.borderRing) container.borderRing.destroy();
 
+    const radius = container.playerRadius;
+    const borderColor = container.borderColor;
+
+    // Tạo sprite ảnh và chỉnh kích thước vừa khít vòng tròn
     const avatarSprite = scene.add.image(0, 0, textureKey);
     avatarSprite.setDisplaySize(radius * 2, radius * 2);
 
+    // Tạo mặt nạ bo tròn (Mask)
     const maskShape = scene.make.graphics();
     maskShape.fillStyle(0xffffff);
     maskShape.beginPath();
@@ -172,12 +178,10 @@ function setAvatarFromTexture(scene, container, textureKey, radius, borderColor)
 
     const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
     avatarSprite.setMask(mask);
-
     container.add(avatarSprite);
+    container.avatarSprite = avatarSprite;
 
-    if (container.borderRing) {
-        container.borderRing.destroy();
-    }
+    // Tạo viền màu bao quanh
     const borderRing = scene.add.circle(0, 0, radius);
     borderRing.setStrokeStyle(2, borderColor);
     container.add(borderRing);
@@ -186,27 +190,24 @@ function setAvatarFromTexture(scene, container, textureKey, radius, borderColor)
     if (container.textLabel) {
         container.bringToTop(container.textLabel);
     }
-    container.avatarSprite = avatarSprite;
 }
 
-function setAvatarFromBase64(scene, container, base64Str, radius, borderColor) {
+// Hàm xử lý ảnh tải lên dạng Base64
+function setAvatarImage(scene, container, base64Str) {
     const img = new Image();
     img.src = base64Str;
     img.onload = function() {
-        const textureKey = 'avatar_custom_' + Math.random();
+        const textureKey = 'custom_avatar_' + Math.random();
         if (scene.textures.exists(textureKey)) {
             scene.textures.remove(textureKey);
         }
         scene.textures.addImage(textureKey, img);
-        setAvatarFromTexture(scene, container, textureKey, radius, borderColor);
+        setAvatarFromTextureKey(scene, container, textureKey);
     };
 }
 
 function updatePlayerAvatar(scene, container, base64Str, id) {
-    const isMe = (id === socket.id);
-    const radius = isMe ? 18 : 15;
-    const borderColor = isMe ? 0x00ff55 : 0xff5500;
-    setAvatarFromBase64(scene, container, base64Str, radius, borderColor);
+    setAvatarImage(scene, container, base64Str);
 }
 
 function applyAvatar() {
