@@ -18,9 +18,8 @@
 
     let players = {};
     let myId = null;
-    let clickTarget = null;
+    let targetPosition = null;
     let cursors, wasd;
-    let sceneRef = null;
 
     const config = {
         type: Phaser.AUTO,
@@ -35,19 +34,20 @@
     function preload() {}
 
     function create() {
-        sceneRef = this;
+        const scene = this;
         console.log("SCENE CREATED SUCCESSFULLY!");
 
-        cursors = sceneRef.input.keyboard.createCursorKeys();
-        wasd = sceneRef.input.keyboard.addKeys({
+        cursors = scene.input.keyboard.createCursorKeys();
+        wasd = scene.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
             down: Phaser.Input.Keyboard.KeyCodes.S,
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        sceneRef.input.on('pointerdown', (pointer) => {
-            clickTarget = { x: pointer.x, y: pointer.y };
+        // Bắt sự kiện click chuột trên toàn khung game
+        scene.input.on('pointerdown', (pointer) => {
+            targetPosition = { x: pointer.x, y: pointer.y };
         });
 
         socket.on('connect', () => {
@@ -58,25 +58,26 @@
         socket.on('currentPlayers', (serverPlayers) => {
             Object.keys(serverPlayers).forEach((id) => {
                 if (!players[id]) {
-                    createPlayer(sceneRef, serverPlayers[id], id);
+                    createPlayer(scene, serverPlayers[id], id);
                 }
             });
         });
 
         socket.on('newPlayer', (playerInfo) => {
             if (!players[playerInfo.id]) {
-                createPlayer(sceneRef, playerInfo, playerInfo.id);
+                createPlayer(scene, playerInfo, playerInfo.id);
             }
         });
 
-        // Đồng bộ vị trí của người chơi khác
+        // Lắng nghe người chơi khác di chuyển từ server
         socket.on('playerMoved', (playerInfo) => {
-            if (players[playerInfo.id]) {
-                players[playerInfo.id].x = playerInfo.x;
-                players[playerInfo.id].y = playerInfo.y;
-                if (players[playerInfo.id].textLabel) {
-                    players[playerInfo.id].textLabel.x = playerInfo.x;
-                    players[playerInfo.id].textLabel.y = playerInfo.y - 25;
+            if (players[playerInfo.id] && playerInfo.id !== socket.id) {
+                const p = players[playerInfo.id];
+                p.x = playerInfo.x;
+                p.y = playerInfo.y;
+                if (p.textLabel) {
+                    p.textLabel.x = playerInfo.x;
+                    p.textLabel.y = playerInfo.y - 25;
                 }
             }
         });
@@ -107,58 +108,58 @@
 
         circle.textLabel = text;
         players[id] = circle;
-        console.log(`Đã tạo nhân vật [${labelText}] cho ID:`, id);
     }
 
     function update() {
-        if (!myId || !players[myId]) {
-            if (socket.id && players[socket.id]) {
-                myId = socket.id;
-            }
-            return;
+        // Đảm bảo lấy đúng ID hiện tại của chính mình
+        if (!myId && socket.id) {
+            myId = socket.id;
         }
+        if (!myId || !players[myId]) return;
 
         const p = players[myId];
         let speed = 4;
-        let moved = false;
+        let isMoved = false;
 
-        let keyMoved = false;
-        if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyMoved = true; }
-        else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyMoved = true; }
+        // 1. Điều khiển bằng bàn phím (WASD / Mũi tên)
+        let keyActive = false;
+        if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyActive = true; }
+        else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyActive = true; }
 
-        if (cursors.up.isDown || wasd.up.isDown) { p.y -= speed; keyMoved = true; }
-        else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyMoved = true; }
+        if (cursors.up.isDown || wasd.up.isDown) { p.y -= speed; keyActive = true; }
+        else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyActive = true; }
 
-        if (keyMoved) {
-            clickTarget = null; // Hủy lệnh click nếu bấm phím
-            moved = true;
+        if (keyActive) {
+            targetPosition = null; // Hủy điểm click nếu đang dùng phím
+            isMoved = true;
         } 
-        else if (clickTarget !== null) {
-            let dx = clickTarget.x - p.x;
-            let dy = clickTarget.y - p.y;
-            let dist = Math.sqrt(dx * dx + dy * dy);
+        // 2. Điều khiển bằng Click chuột / Chạm màn hình (Tự động trượt mượt mà)
+        else if (targetPosition !== null) {
+            let dx = targetPosition.x - p.x;
+            let dy = targetPosition.y - p.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > speed) {
+            if (distance > speed) {
                 let angle = Math.atan2(dy, dx);
                 p.x += Math.cos(angle) * speed;
                 p.y += Math.sin(angle) * speed;
-                moved = true; // Đánh dấu đang trượt chuột từng bước
+                isMoved = true;
             } else {
-                p.x = clickTarget.x;
-                p.y = clickTarget.y;
-                clickTarget = null; // Đã đến đích
-                moved = true;
+                p.x = targetPosition.x;
+                p.y = targetPosition.y;
+                targetPosition = null; // Đã đến đích
+                isMoved = true;
             }
         }
 
-        // Cập nhật vị trí chữ "Bạn" theo hình tròn
+        // Cập nhật vị trí nhãn tên "Bạn"
         if (p.textLabel) {
             p.textLabel.x = p.x;
             p.textLabel.y = p.y - 25;
         }
 
-        // QUAN TRỌNG: Gửi tọa độ liên tục lên server trong mỗi khung hình khi đang di chuyển (cả phím lẫn chuột)
-        if (moved) {
+        // Bắn tọa độ liên tục lên server khi nhân vật thay đổi vị trí
+        if (isMoved) {
             socket.emit('playerMovement', { x: p.x, y: p.y });
         }
     }
