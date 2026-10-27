@@ -18,8 +18,7 @@
 
     let players = {};
     let myId = null;
-    let targetX = null;
-    let targetY = null;
+    let clickTarget = null; // Lưu đối tượng tọa độ đích {x, y}
     let cursors, wasd;
 
     const config = {
@@ -48,9 +47,8 @@
 
         // Bắt sự kiện click chuột
         scene.input.on('pointerdown', (pointer) => {
-            targetX = pointer.x;
-            targetY = pointer.y;
-            console.log("Clicked at:", targetX, targetY);
+            clickTarget = { x: pointer.x, y: pointer.y };
+            console.log("Đã click tới tọa độ:", clickTarget.x, clickTarget.y);
         });
 
         socket.on('connect', () => {
@@ -60,12 +58,12 @@
 
         socket.on('currentPlayers', (serverPlayers) => {
             Object.keys(serverPlayers).forEach((id) => {
-                if (!players[id]) createPlayer(scene, serverPlayers[id]);
+                if (!players[id]) createPlayer(scene, serverPlayers[id], id);
             });
         });
 
         socket.on('newPlayer', (playerInfo) => {
-            if (!players[playerInfo.id]) createPlayer(scene, playerInfo);
+            if (!players[playerInfo.id]) createPlayer(scene, playerInfo, playerInfo.id);
         });
 
         socket.on('playerMoved', (playerInfo) => {
@@ -83,10 +81,10 @@
         });
     }
 
-    function createPlayer(scene, info) {
+    function createPlayer(scene, info, id) {
         const circle = scene.add.circle(info.x, info.y, 12, 0xff5500);
-        players[info.id] = circle;
-        console.log("Created player circle for:", info.id);
+        players[id] = circle;
+        console.log("Đã tạo nhân vật cho ID:", id);
     }
 
     function update() {
@@ -104,12 +102,12 @@
         else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyMoved = true; }
 
         if (keyMoved) {
-            targetX = null;
-            targetY = null;
+            clickTarget = null; // Hủy điểm click nếu dùng bàn phím
             moved = true;
-        } else if (targetX !== null && targetY !== null) {
-            let dx = targetX - p.x;
-            let dy = targetY - p.y;
+        } 
+        else if (clickTarget !== null) {
+            let dx = clickTarget.x - p.x;
+            let dy = clickTarget.y - p.y;
             let dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist > speed) {
@@ -118,10 +116,9 @@
                 p.y += Math.sin(angle) * speed;
                 moved = true;
             } else {
-                p.x = targetX;
-                p.y = targetY;
-                targetX = null;
-                targetY = null;
+                p.x = clickTarget.x;
+                p.y = clickTarget.y;
+                clickTarget = null; // Đến nơi thì dừng
                 moved = true;
             }
         }
