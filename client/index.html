@@ -75,7 +75,6 @@
 
 <script>
     console.log("GAME STARTING...");
-    // Khởi tạo socket duy nhất toàn cục
     const socket = io("https://stu-town-server.onrender.com");
 
     let players = {};
@@ -110,7 +109,6 @@
             targetPosition = { x: pointer.x, y: pointer.y };
         });
 
-        // Xóa sạch lắng nghe cũ để tránh trùng lặp sự kiện
         socket.off('connect');
         socket.off('currentPlayers');
         socket.off('newPlayer');
@@ -154,9 +152,11 @@
             }
         });
 
-        // Lắng nghe tin nhắn chat từ server
+        // Nhận tin nhắn chat và định danh rõ ràng theo ID người gửi
         socket.on('chatMessage', (data) => {
-            const senderName = (data.id === socket.id) ? "Bạn" : "Khách";
+            const isMe = (data.id === socket.id);
+            const shortId = data.id.substring(0, 4); // Lấy 4 ký tự đầu của ID làm tên hiển thị độc lập
+            const senderName = isMe ? "Bạn" : `Khách (${shortId})`;
             
             const chatMessages = document.getElementById('chat-messages');
             const line = document.createElement('div');
@@ -184,7 +184,8 @@
 
         const circle = scene.add.circle(info.x, info.y, radius, color);
         
-        const labelText = isMe ? "Bạn" : "Khách";
+        const shortId = id.substring(0, 4);
+        const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
         const text = scene.add.text(info.x, info.y - 25, labelText, {
             font: '14px Arial',
             fill: '#ffffff',
@@ -230,13 +231,12 @@
         });
     }
 
-    // Hàm gửi tin nhắn qua socket
     function sendChat(event) {
         event.preventDefault();
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (text !== "") {
-            socket.emit('sendChatMessage', text);
+            socket.emit('sendChatMessage', text); // Gửi tin nhắn lên server
             input.value = "";
         }
     }

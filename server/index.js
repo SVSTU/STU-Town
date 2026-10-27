@@ -21,29 +21,29 @@ io.on('connection', (socket) => {
   socket.emit('currentPlayers', players);
   socket.broadcast.emit('newPlayer', { id: socket.id, x: players[socket.id].x, y: players[socket.id].y });
 
-  // ĐÃ SỬA: 'playerInput' -> 'playerMovement' để khớp với client
+  // 1. Lắng nghe di chuyển của người chơi
   socket.on('playerMovement', (data) => {
     if (players[socket.id]) {
       players[socket.id].x = data.x;
       players[socket.id].y = data.y;
       
-      // Phát tọa độ kèm theo id đầy đủ sang các máy khác
       socket.broadcast.emit('playerMoved', { 
         id: socket.id, 
         x: data.x, 
         y: data.y 
       });
     }
-  // Lắng nghe tin nhắn chat từ client gửi lên
+  });
+
+  // 2. Lắng nghe tin nhắn chat (Đã tách ra đúng cấp độ trong connection)
   socket.on('sendChatMessage', (message) => {
-    // Gửi nội dung tin nhắn kèm theo ID (hoặc tên) của người gửi tới tất cả mọi người
     io.emit('chatMessage', {
-      id: socket.id,
+      id: socket.id,       
       message: message
     });
   });
-  });
 
+  // 3. Xử lý khi người chơi thoát game
   socket.on('disconnect', () => {
     console.log('Người chơi thoát:', socket.id);
     delete players[socket.id];
