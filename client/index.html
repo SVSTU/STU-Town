@@ -79,7 +79,8 @@
 
     let players = {};
     let targetPosition = null;
-    let cursors; // Chỉ dùng phím mũi tên
+    let cursors;
+    let sceneRef = null; // Lưu tham chiếu scene an toàn
 
     const config = {
         type: Phaser.AUTO,
@@ -94,13 +95,13 @@
     function preload() {}
 
     function create() {
-        const scene = this;
+        sceneRef = this;
         console.log("SCENE CREATED SUCCESSFULLY!");
 
-        // CHỈ KHỞI TẠO PHÍM MŨI TÊN (Đã bỏ WASD)
-        cursors = scene.input.keyboard.createCursorKeys();
+        // Chỉ dùng phím mũi tên
+        cursors = sceneRef.input.keyboard.createCursorKeys();
 
-        scene.input.on('pointerdown', (pointer) => {
+        sceneRef.input.on('pointerdown', (pointer) => {
             targetPosition = { x: pointer.x, y: pointer.y };
         });
 
@@ -118,14 +119,14 @@
         socket.on('currentPlayers', (serverPlayers) => {
             Object.keys(serverPlayers).forEach((id) => {
                 if (!players[id]) {
-                    createPlayer(scene, serverPlayers[id], id);
+                    createPlayer(sceneRef, serverPlayers[id], id);
                 }
             });
         });
 
         socket.on('newPlayer', (playerInfo) => {
             if (!players[playerInfo.id]) {
-                createPlayer(scene, playerInfo, playerInfo.id);
+                createPlayer(sceneRef, playerInfo, playerInfo.id);
             }
         });
 
@@ -160,12 +161,13 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             if (players[data.id]) {
-                showChatBubble(scene, players[data.id], data.message);
+                showChatBubble(sceneRef, players[data.id], data.message);
             }
         });
     }
 
     function createPlayer(scene, info, id) {
+        if (!scene) return;
         if (players[id]) {
             if (players[id].textLabel) players[id].textLabel.destroy();
             if (players[id].chatBubble) players[id].chatBubble.destroy();
@@ -189,6 +191,7 @@
 
         circle.textLabel = text;
         players[id] = circle;
+        console.log(`Đã tạo nhân vật [${labelText}] cho ID:`, id);
     }
 
     function updateLabels(p) {
@@ -203,10 +206,49 @@
     }
 
     function showChatBubble(scene, playerObj, message) {
+        if (!scene) return;
         if (playerObj.chatBubble) {
             playerObj.chatBubble.destroy();
         }
 
         const bubble = scene.add.text(playerObj.x, playerObj.y - 50, message, {
             font: '12px Arial',
-            fill: '#0
+            fill: '#000',
+            backgroundColor: '#ffffff',
+            padding: { x: 6, y: 4 },
+            align: 'center'
+        }).setOrigin(0.5);
+
+        playerObj.chatBubble = bubble;
+
+        scene.time.delayedCall(4000, () => {
+            if (playerObj.chatBubble === bubble) {
+                bubble.destroy();
+                playerObj.chatBubble = null;
+            }
+        });
+    }
+
+    function sendChat(event) {
+        event.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (text !== "") {
+            socket.emit('sendChatMessage', text);
+            input.value = "";
+        }
+    }
+
+    function update() {
+        if (!socket.id || !players[socket.id]) return;
+
+        const p = players[socket.id];
+        let speed = 4;
+        let isMoved = false;
+
+        let keyActive = false;
+        if (cursors.left.isDown) { p.x -= speed; keyActive = true; }
+        else if (cursors.right.isDown) { p.x += speed; keyActive = true; }
+
+        if (cursors.up.isDown) { p.y -= speed; keyActive = true; }
+        else if (cursors.down.isDown) { p.y += speed; keyActive
