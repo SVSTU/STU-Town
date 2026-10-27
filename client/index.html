@@ -179,7 +179,6 @@
                 const p = players[playerInfo.id];
                 p.x = playerInfo.x;
                 p.y = playerInfo.y;
-                updateLabels(p);
             }
         });
 
@@ -191,8 +190,6 @@
 
         socket.on('playerDisconnected', (id) => {
             if (players[id]) {
-                if (players[id].textLabel) players[id].textLabel.destroy();
-                if (players[id].chatBubble) players[id].chatBubble.destroy();
                 players[id].destroy();
                 delete players[id];
             }
@@ -222,68 +219,87 @@
     function createPlayer(scene, info, id) {
         if (!scene) return;
         if (players[id]) {
-            if (players[id].textLabel) players[id].textLabel.destroy();
-            if (players[id].chatBubble) players[id].chatBubble.destroy();
             players[id].destroy();
         }
 
         const isMe = (id === socket.id);
         const radius = isMe ? 18 : 15;
 
+        // Tạo container gom nhóm nhân vật, nhãn tên và bong bóng chat lại với nhau
         const container = scene.add.container(info.x, info.y);
 
-        // Vòng tròn nền dự phòng
+        // 1. Vòng tròn nền màu mặc định
         const bgCircle = scene.add.circle(0, 0, radius, isMe ? 0x00ff55 : 0xff5500);
         container.add(bgCircle);
+        container.bgCircle = bgCircle;
 
-        if (info.avatar) {
-            setAvatarToContainer(scene, container, info.avatar, radius);
-        }
-
+        // 2. Nhãn tên hiển thị phía trên đầu nhân vật ("Bạn" hoặc "Khách (xxxx)")
         const shortId = id.substring(0, 4);
         const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
-        const text = scene.add.text(0, -28, labelText, {
+        const textLabel = scene.add.text(0, -28, labelText, {
             font: '13px Arial',
             fill: '#ffffff',
             backgroundColor: '#00000088',
             padding: { x: 4, y: 2 }
         }).setOrigin(0.5);
+        container.add(textLabel);
+        container.textLabel = textLabel;
 
-        container.textLabel = text;
+        // 3. Nếu server đã lưu sẵn avatar từ trước, load lên ngay
+        if (info.avatar) {
+            setAvatarToContainer(scene, container, info.avatar, radius);
+        }
+
         scene.add.existing(container);
         players[id] = container;
     }
 
-    // Xử lý nạp ảnh trực tiếp vào texture của Phaser một cách chính xác
+    // Hàm render ảnh lên container và bo tròn gọn gàng
     function setAvatarToContainer(scene, container, base64Str, radius) {
-        const textureKey = 'avatar_' + Math.random();
         const img = new Image();
         img.src = base64Str;
         img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const size = radius * 2;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, size, size);
+            const compressedDataUrl = canvas.toDataURL('image/png');
+
+            const textureKey = 'avatar_' + Math.random();
             if (scene.textures.exists(textureKey)) {
                 scene.textures.remove(textureKey);
             }
-            scene.textures.addImage(textureKey, img);
 
-            if (container.avatarSprite) {
-                container.avatarSprite.destroy();
-            }
+            const compressedImg = new Image();
+            compressedImg.src = compressedDataUrl;
+            compressedImg.onload = function() {
+                scene.textures.addImage(textureKey, compressedImg);
 
-            const avatarSprite = scene.add.image(0, 0, textureKey);
-            avatarSprite.setDisplaySize(radius * 2, radius * 2);
+                if (container.avatarSprite) {
+                    container.avatarSprite.destroy();
+                }
 
-            // Tạo khung mặt nạ tròn bọc lấy ảnh
-            const maskShape = scene.make.graphics();
-            maskShape.fillStyle(0xffffff);
-            maskShape.beginPath();
-            maskShape.arc(0, 0, radius, 0, Math.PI * 2);
-            maskShape.fillPath();
+                const avatarSprite = scene.add.image(0, 0, textureKey);
+                
+                // Tạo mặt nạ bo tròn bọc khít vòng tròn
+                const maskShape = scene.make.graphics();
+                maskShape.fillStyle(0xffffff);
+                maskShape.beginPath();
+                maskShape.arc(0, 0, radius, 0, Math.PI * 2);
+                maskShape.fillPath();
 
-            const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
-            avatarSprite.setMask(mask);
+                const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
+                avatarSprite.setMask(mask);
 
-            container.add(avatarSprite);
-            container.avatarSprite = avatarSprite;
+                container.add(avatarSprite);
+                // Đưa nhãn tên lên trên cùng để không bị ảnh che khuất
+                if (container.textLabel) {
+                    container.bringToTop(container.textLabel);
+                }
+                container.avatarSprite = avatarSprite;
+            };
         };
     }
 
@@ -305,7 +321,6 @@
             const img = new Image();
             img.src = e.target.result;
             img.onload = function() {
-                // Nén ảnh gọn về kích thước 60x60 pixels
                 const canvas = document.createElement('canvas');
                 canvas.width = 60;
                 canvas.height = 60;
@@ -314,12 +329,10 @@
                 
                 const compressedBase64 = canvas.toDataURL('image/png');
 
-                // Cập nhật cho chính mình
                 if (sceneRef && players[socket.id]) {
                     updatePlayerAvatar(sceneRef, players[socket.id], compressedBase64, socket.id);
                 }
 
-                // Gửi lên server để đồng bộ sang người khác
                 socket.emit('updateAvatar', compressedBase64);
                 console.log("Đã nén và áp dụng Avatar thành công!");
             };
@@ -327,24 +340,13 @@
         reader.readAsDataURL(file);
     }
 
-    function updateLabels(p) {
-        if (p.textLabel) {
-            p.textLabel.x = 0;
-            p.textLabel.y = -28;
-        }
-        if (p.chatBubble) {
-            p.chatBubble.x = 0;
-            p.chatBubble.y = -55;
-        }
-    }
-
-    function showChatBubble(scene, playerObj, message) {
-        if (!scene) return;
-        if (playerObj.chatBubble) {
-            playerObj.chatBubble.destroy();
+    function showChatBubble(scene, playerContainer, message) {
+        if (!scene || !playerContainer) return;
+        if (playerContainer.chatBubble) {
+            playerContainer.chatBubble.destroy();
         }
 
-        const bubble = scene.add.text(0, -55, message, {
+        const bubble = scene.add.text(0, -50, message, {
             font: '12px Arial',
             fill: '#000',
             backgroundColor: '#ffffff',
@@ -352,13 +354,16 @@
             align: 'center'
         }).setOrigin(0.5);
 
-        playerObj.chatBubble = bubble;
-        playerObj.add(bubble);
+        playerContainer.chatBubble = bubble;
+        playerContainer.add(bubble);
+        if (playerContainer.textLabel) {
+            playerContainer.bringToTop(playerContainer.textLabel);
+        }
 
         scene.time.delayedCall(4000, () => {
-            if (playerObj.chatBubble === bubble) {
+            if (playerContainer.chatBubble === bubble) {
                 bubble.destroy();
-                playerObj.chatBubble = null;
+                playerContainer.chatBubble = null;
             }
         });
     }
@@ -412,6 +417,14 @@
         if (isMoved) {
             socket.emit('playerMovement', { x: p.x, y: p.y });
         }
+
+        // Cập nhật vị trí của các người chơi khác theo dữ liệu server nhận được
+        socket.on('playerMoved', (playerInfo) => {
+            if (players[playerInfo.id] && playerInfo.id !== socket.id) {
+                players[playerInfo.id].x = playerInfo.x;
+                players[playerInfo.id].y = playerInfo.y;
+            }
+        });
     }
 </script>
 </body>
