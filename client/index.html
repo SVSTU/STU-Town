@@ -64,17 +64,17 @@
             if (!players[playerInfo.id]) createPlayer(scene, playerInfo, playerInfo.id);
         });
 
+        // Đồng bộ vị trí khi người chơi khác di chuyển
         socket.on('playerMoved', (playerInfo) => {
-            if (players[playerInfo.id]) {
-                // Cập nhật vị trí hình tròn và cả chữ tên đi kèm
-                players[playerInfo.id].container.x = playerInfo.x;
-                players[playerInfo.id].container.y = playerInfo.y;
+            if (players[playerInfo.id] && playerInfo.id !== myId) {
+                players[playerInfo.id].x = playerInfo.x;
+                players[playerInfo.id].y = playerInfo.y;
             }
         });
 
         socket.on('playerDisconnected', (id) => {
             if (players[id]) {
-                players[id].container.destroy();
+                players[id].destroy();
                 delete players[id];
             }
         });
@@ -83,75 +83,71 @@
     function createPlayer(scene, info, id) {
         const isMe = (id === myId);
 
-        // Phân biệt màu sắc và kích thước:
-        // - Của bạn: Màu Xanh lá (0x00ff55), bán kính 15
-        // - Người khác: Màu Cam (0xff5500), bán kính 12
+        // Phân biệt: Bản thân màu Xanh lá (to hơn), Khách màu Cam
         const color = isMe ? 0x00ff55 : 0xff5500;
         const radius = isMe ? 15 : 12;
 
-        const circle = scene.add.circle(0, 0, radius, color);
+        const circle = scene.add.circle(info.x, info.y, radius, color);
         
-        // Thêm chữ hiển thị (Bạn / Khách)
+        // Nhãn tên trên đầu
         const labelText = isMe ? "Bạn" : "Khách";
-        const text = scene.add.text(0, -25, labelText, {
+        const text = scene.add.text(info.x, info.y - 25, labelText, {
             font: '14px Arial',
             fill: '#ffffff',
             backgroundColor: '#00000088',
             padding: { x: 4, y: 2 }
         }).setOrigin(0.5);
 
-        // Gom hình tròn và chữ vào chung một Container để dịch chuyển cùng nhau
-        const container = scene.add.container(info.x, info.y, [circle, text]);
-
-        players[id] = {
-            container: container,
-            isMe: isMe
-        };
+        // Lưu gom chung vào một đối tượng hiển thị tọa độ trực tiếp
+        players[id] = circle;
+        players[id].textLabel = text;
     }
 
     function update() {
         if (!myId || !players[myId]) return;
 
-        // Nếu lúc đầu kết nối chưa gán đúng myId cho container của mình, cập nhật lại tại đây
-        if (!players[myId].isMe) {
-            // Tự động làm mới nếu tìm thấy container của chính mình
-        }
-
-        const myContainer = players[myId].container;
+        const p = players[myId];
         let speed = 4;
         let moved = false;
 
         let keyMoved = false;
-        if (cursors.left.isDown || wasd.left.isDown) { myContainer.x -= speed; keyMoved = true; }
-        else if (cursors.right.isDown || wasd.right.isDown) { myContainer.x += speed; keyMoved = true; }
+        if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyMoved = true; }
+        else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyMoved = true; }
 
-        if (cursors.up.isDown || wasd.up.isDown) { myContainer.y -= speed; keyMoved = true; }
-        else if (cursors.down.isDown || wasd.down.isDown) { myContainer.y += speed; keyMoved = true; }
+        if (cursors.up.isDown || wasd.up.isDown) { p.y -= speed; keyMoved = true; }
+        else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyMoved = true; }
 
         if (keyMoved) {
             clickTarget = null;
             moved = true;
         } 
         else if (clickTarget !== null) {
-            let dx = clickTarget.x - myContainer.x;
-            let dy = clickTarget.y - myContainer.y;
+            let dx = clickTarget.x - p.x;
+            let dy = clickTarget.y - p.y;
             let dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist > speed) {
                 let angle = Math.atan2(dy, dx);
-                myContainer.x += Math.cos(angle) * speed;
-                myContainer.y += Math.sin(angle) * speed;
+                p.x += Math.cos(angle) * speed;
+                p.y += Math.sin(angle) * speed;
                 moved = true;
             } else {
-                myContainer.x = clickTarget.x;
-                myContainer.y = clickTarget.y;
+                p.x = clickTarget.x;
+                p.y = clickTarget.y;
                 clickTarget = null;
                 moved = true;
             }
         }
 
+        // Cập nhật vị trí chữ "Bạn" đi theo hình tròn xanh lá
+        if (p.textLabel) {
+            p.textLabel.x = p.x;
+            p.textLabel.y = p.y - 25;
+        }
+
+        // Gửi tọa độ mới lên server để đồng bộ sang máy người chơi khác
         if (moved) {
-            socket.emit('playerMovement', { x: myContainer.x, y: myContainer.y });
+            socket.emit('playerMovement', { x: p.x, y: p.y });
         }
     }
 </script>
