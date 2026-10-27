@@ -150,10 +150,15 @@
             const shortId = data.id.substring(0, 4);
             const senderName = isMe ? "Bạn" : `Khách (${shortId})`;
             
+            / Lấy thời gian thực hiện tại theo định dạng HH:MM:SS
+            const now = new Date();
+            const timeString = now.toTimeString().split(' ')[0]; // Lấy phần giờ:phút:giây (HH:MM:SS)
+            
             const chatMessages = document.getElementById('chat-messages');
             const line = document.createElement('div');
             line.className = 'chat-line';
-            line.innerHTML = `<b>${senderName}:</b> ${data.message}`;
+            // Định dạng hiển thị: [HH:MM:SS] Tên: Nội dung
+            line.innerHTML = `<span style="color: #aaa; font-size: 11px;">[${timeString}]</span> <b>${senderName}:</b> ${data.message}`;
             chatMessages.appendChild(line);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
