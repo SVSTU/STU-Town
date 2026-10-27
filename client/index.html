@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STU-Town - Chat</title>
+    <title>STU-Town - Avatar & Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
@@ -24,8 +24,23 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             z-index: 10;
         }
+        #avatar-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #fff;
+        }
+        #avatar-input {
+            font-size: 11px;
+            color: #fff;
+            width: 100%;
+        }
         #chat-messages {
-            height: 120px;
+            height: 100px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -66,6 +81,12 @@
 <body>
 
     <div id="chat-container">
+        <!-- Nút chọn ảnh đại diện -->
+        <div id="avatar-section">
+            <label for="avatar-input">Đổi Avatar:</label>
+            <input type="file" id="avatar-input" accept="image/*" onchange="handleAvatarUpload(event)">
+        </div>
+
         <div id="chat-messages"></div>
         <form id="chat-form" onsubmit="sendChat(event)">
             <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
@@ -81,6 +102,7 @@
     let targetPosition = null;
     let cursors;
     let sceneRef = null;
+    let myCustomAvatar = null; // Lưu trữ chuỗi Base64 của ảnh đại diện cá nhân
 
     const config = {
         type: Phaser.AUTO,
@@ -104,22 +126,17 @@
 
         cursors = sceneRef.input.keyboard.createCursorKeys();
 
-        // CHẶN HOÀN TOÀN PHASER BẮT PHÍM KHI ĐANG GÕ CHAT
         const chatInput = document.getElementById('chat-input');
-        
         chatInput.addEventListener('focus', () => {
             if (sceneRef && sceneRef.input && sceneRef.input.keyboard) {
                 sceneRef.input.keyboard.enabled = false;
             }
         });
-
         chatInput.addEventListener('blur', () => {
             if (sceneRef && sceneRef.input && sceneRef.input.keyboard) {
                 sceneRef.input.keyboard.enabled = true;
             }
         });
-
-        // Ngăn sự kiện phím lan truyền từ ô input ra ngoài canvas game
         chatInput.addEventListener('keydown', (e) => {
             e.stopPropagation();
         });
@@ -152,6 +169,13 @@
                 p.x = playerInfo.x;
                 p.y = playerInfo.y;
                 updateLabels(p);
+            }
+        });
+
+        // Lắng nghe sự kiện người chơi đổi avatar
+        socket.on('playerAvatarUpdated', (data) => {
+            if (players[data.id]) {
+                updatePlayerAvatar(sceneRef, players[data.id], data.avatar, data.id);
             }
         });
 
@@ -194,32 +218,96 @@
         }
 
         const isMe = (id === socket.id);
-        const color = isMe ? 0x00ff55 : 0xff5500;
-        const radius = isMe ? 15 : 12;
+        const radius = isMe ? 18 : 15;
 
-        const circle = scene.add.circle(info.x, info.y, radius, color);
-        
+        // Tạo container chứa nhân vật
+        const container = scene.add.container(info.x, info.y);
+
+        // Hình nền tròn cho avatar
+        const bgCircle = scene.add.circle(0, 0, radius, isMe ? 0x00ff55 : 0xff5500);
+        container.add(bgCircle);
+
+        // Nếu người chơi có avatar riêng, hiển thị ảnh lên
+        if (info.avatar) {
+            loadAvatarImage(scene, container, info.avatar, radius);
+        }
+
         const shortId = id.substring(0, 4);
         const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
-        const text = scene.add.text(info.x, info.y - 25, labelText, {
-            font: '14px Arial',
+        const text = scene.add.text(0, -28, labelText, {
+            font: '13px Arial',
             fill: '#ffffff',
             backgroundColor: '#00000088',
             padding: { x: 4, y: 2 }
         }).setOrigin(0.5);
 
-        circle.textLabel = text;
-        players[id] = circle;
+        container.textLabel = text;
+        scene.add.existing(container); // Đảm bảo container hiện lên scene
+        players[id] = container;
+    }
+
+    // Hàm load ảnh đại diện vào container
+    function loadAvatarImage(scene, container, base64Str, radius) {
+        const imgKey = 'avatar_' + Math.random();
+        scene.load.image(imgKey, base64Str);
+        scene.load.once('complete', () => {
+            if (scene.textures.exists(imgKey)) {
+                // Xóa avatar cũ bên trong container nếu có
+                if (container.avatarSprite) container.avatarSprite.destroy();
+
+                const avatarSprite = scene.add.image(0, 0, imgKey);
+                avatarSprite.setDisplaySize(radius * 2, radius * 2);
+                
+                // Tạo mặt nạ hình tròn (circle mask) để bo tròn ảnh avatar
+                const maskShape = scene.make.graphics();
+                maskShape.fillStyle(0xffffff);
+                maskShape.beginPath();
+                maskShape.arc(container.x, container.y, radius, 0, Math.PI * 2);
+                maskShape.fillPath();
+                
+                const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
+                avatarSprite.setMask(mask);
+
+                container.add(avatarSprite);
+                container.avatarSprite = avatarSprite;
+            }
+        });
+        scene.load.start();
+    }
+
+    function updatePlayerAvatar(scene, container, base64Str, id) {
+        const radius = (id === socket.id) ? 18 : 15;
+        loadAvatarImage(scene, container, base64Str, radius);
+    }
+
+    // Xử lý khi người dùng chọn file ảnh từ máy
+    function handleAvatarUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            myCustomAvatar = e.target.result; // Dữ liệu ảnh dạng Base64
+            
+            // Cập nhật ngay cho nhân vật của mình trên màn hình
+            if (sceneRef && players[socket.id]) {
+                updatePlayerAvatar(sceneRef, players[socket.id], myCustomAvatar, socket.id);
+            }
+
+            // Gửi ảnh đại diện lên server để đồng bộ cho các tab/người chơi khác
+            socket.emit('updateAvatar', myCustomAvatar);
+        };
+        reader.readAsDataURL(file);
     }
 
     function updateLabels(p) {
         if (p.textLabel) {
-            p.textLabel.x = p.x;
-            p.textLabel.y = p.y - 25;
+            p.textLabel.x = 0;
+            p.textLabel.y = -28;
         }
         if (p.chatBubble) {
-            p.chatBubble.x = p.x;
-            p.chatBubble.y = p.y - 50;
+            p.chatBubble.x = 0;
+            p.chatBubble.y = -55;
         }
     }
 
@@ -229,7 +317,7 @@
             playerObj.chatBubble.destroy();
         }
 
-        const bubble = scene.add.text(playerObj.x, playerObj.y - 50, message, {
+        const bubble = scene.add.text(0, -55, message, {
             font: '12px Arial',
             fill: '#000',
             backgroundColor: '#ffffff',
@@ -238,6 +326,7 @@
         }).setOrigin(0.5);
 
         playerObj.chatBubble = bubble;
+        playerObj.add(bubble);
 
         scene.time.delayedCall(4000, () => {
             if (playerObj.chatBubble === bubble) {
@@ -292,8 +381,6 @@
                 isMoved = true;
             }
         }
-
-        updateLabels(p);
 
         if (isMoved) {
             socket.emit('playerMovement', { x: p.x, y: p.y });

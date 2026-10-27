@@ -13,13 +13,21 @@ const players = {};
 io.on('connection', (socket) => {
   console.log('Người chơi kết nối:', socket.id);
 
+  // Khởi tạo thông tin người chơi MỘT LẦN DUY NHẤT (gồm tọa độ và avatar mặc định)
   players[socket.id] = {
     x: Math.floor(Math.random() * 400) + 100,
-    y: Math.floor(Math.random() * 400) + 100
+    y: Math.floor(Math.random() * 400) + 100,
+    avatar: null
   };
 
+  // Gửi danh sách hiện tại và thông báo người mới
   socket.emit('currentPlayers', players);
-  socket.broadcast.emit('newPlayer', { id: socket.id, x: players[socket.id].x, y: players[socket.id].y });
+  socket.broadcast.emit('newPlayer', { 
+    id: socket.id, 
+    x: players[socket.id].x, 
+    y: players[socket.id].y,
+    avatar: players[socket.id].avatar 
+  });
 
   // 1. Lắng nghe di chuyển của người chơi
   socket.on('playerMovement', (data) => {
@@ -35,7 +43,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 2. Lắng nghe tin nhắn chat (Đã tách ra đúng cấp độ trong connection)
+  // 2. Lắng nghe tin nhắn chat
   socket.on('sendChatMessage', (message) => {
     io.emit('chatMessage', {
       id: socket.id,       
@@ -43,7 +51,19 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Xử lý khi người chơi thoát game
+  // 3. Lắng nghe sự kiện thay đổi avatar
+  socket.on('updateAvatar', (avatarData) => {
+    if (players[socket.id]) {
+      players[socket.id].avatar = avatarData;
+      // Phát tán ảnh avatar mới đến tất cả người chơi khác
+      socket.broadcast.emit('playerAvatarUpdated', {
+        id: socket.id,
+        avatar: avatarData
+      });
+    }
+  });
+
+  // 4. Xử lý khi người chơi thoát game
   socket.on('disconnect', () => {
     console.log('Người chơi thoát:', socket.id);
     delete players[socket.id];
