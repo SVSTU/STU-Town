@@ -22,7 +22,8 @@ const config = {
 const game = new Phaser.Game(config);
 
 function preload() {
-    // Không ép buộc tải ảnh bên ngoài để tránh làm treo game nếu thiếu file
+    // Tải sẵn ảnh mặc định stu.png
+    this.load.image('default_stu', 'stu.png');
 }
 
 function create() {
@@ -124,12 +125,7 @@ function createPlayer(scene, info, id) {
     container.playerRadius = radius;
     container.borderColor = borderColor;
 
-    // 1. Vòng tròn nền dự phòng hiển thị ngay lập tức để không bao giờ bị mất nhân vật
-    const bgCircle = scene.add.circle(0, 0, radius, borderColor);
-    container.add(bgCircle);
-    container.bgCircle = bgCircle;
-
-    // 2. Nhãn tên hiển thị trên đầu
+    // 1. Nhãn tên hiển thị trên đầu
     const shortId = id.substring(0, 4);
     const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
     const textLabel = scene.add.text(0, -28, labelText, {
@@ -141,16 +137,60 @@ function createPlayer(scene, info, id) {
     container.add(textLabel);
     container.textLabel = textLabel;
 
-    // 3. Nếu người chơi có tải ảnh đại diện lên trước đó, tiến hành nạp ảnh đè lên
+    // 2. Hiển thị Avatar: Ưu tiên ảnh base64 cá nhân, nếu không có thì dùng ảnh mặc định 'default_stu' (stu.png)
     if (info.avatar && info.avatar.startsWith('data:image')) {
         setAvatarFromBase64(scene, container, info.avatar);
+    } else if (scene.textures.exists('default_stu')) {
+        setAvatarFromTextureKey(scene, container, 'default_stu');
+    } else {
+        // Nếu ảnh stu.png chưa tải kịp, vẽ vòng viền trống với màu nền tối
+        const bgCircle = scene.add.circle(0, 0, radius, 0x2d2d2d, 1);
+        bgCircle.setStrokeStyle(2, borderColor);
+        container.add(bgCircle);
+        container.bgCircle = bgCircle;
     }
 
     scene.add.existing(container);
     players[id] = container;
 }
 
-// Hàm nạp và hiển thị ảnh đại diện từ chuỗi Base64
+// Hàm gán ảnh từ Texture key (dùng cho stu.png hoặc ảnh custom) với viền màu bao quanh
+function setAvatarFromTextureKey(scene, container, textureKey) {
+    if (container.bgCircle) container.bgCircle.destroy();
+    if (container.avatarSprite) container.avatarSprite.destroy();
+    if (container.borderRing) container.borderRing.destroy();
+
+    const radius = container.playerRadius;
+    const borderColor = container.borderColor;
+
+    // Tạo sprite ảnh bên trong
+    const avatarSprite = scene.add.image(0, 0, textureKey);
+    avatarSprite.setDisplaySize(radius * 2, radius * 2);
+
+    // Tạo mặt nạ bo tròn (Mask)
+    const maskShape = scene.make.graphics();
+    maskShape.fillStyle(0xffffff);
+    maskShape.beginPath();
+    maskShape.arc(0, 0, radius, 0, Math.PI * 2);
+    maskShape.fillPath();
+
+    const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
+    avatarSprite.setMask(mask);
+    container.add(avatarSprite);
+    container.avatarSprite = avatarSprite;
+
+    // Tạo vòng viền màu bọc bên ngoài (Viền xanh lá / cam)
+    const borderRing = scene.add.circle(0, 0, radius);
+    borderRing.setStrokeStyle(2, borderColor); // Chỉ tạo viền nét stroke, không tô đặc nền
+    container.add(borderRing);
+    container.borderRing = borderRing;
+
+    if (container.textLabel) {
+        container.bringToTop(container.textLabel);
+    }
+}
+
+// Hàm xử lý ảnh tải lên dạng Base64
 function setAvatarFromBase64(scene, container, base64Str) {
     const img = new Image();
     img.src = base64Str;
@@ -160,38 +200,7 @@ function setAvatarFromBase64(scene, container, base64Str) {
             scene.textures.remove(textureKey);
         }
         scene.textures.addImage(textureKey, img);
-
-        const radius = container.playerRadius;
-        const borderColor = container.borderColor;
-
-        if (container.avatarSprite) container.avatarSprite.destroy();
-
-        const avatarSprite = scene.add.image(0, 0, textureKey);
-        avatarSprite.setDisplaySize(radius * 2, radius * 2);
-
-        // Tạo mặt nạ bo tròn bọc khít ảnh
-        const maskShape = scene.make.graphics();
-        maskShape.fillStyle(0xffffff);
-        maskShape.beginPath();
-        maskShape.arc(0, 0, radius, 0, Math.PI * 2);
-        maskShape.fillPath();
-
-        const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
-        avatarSprite.setMask(mask);
-        container.add(avatarSprite);
-        container.avatarSprite = avatarSprite;
-
-        // Tạo viền màu bo quanh (Xanh lá / Cam)
-        if (container.borderRing) container.borderRing.destroy();
-        const borderRing = scene.add.circle(0, 0, radius);
-        borderRing.setStrokeStyle(2, borderColor);
-        container.add(borderRing);
-        container.borderRing = borderRing;
-
-        // Đưa nhãn tên lên trên cùng
-        if (container.textLabel) {
-            container.bringToTop(container.textLabel);
-        }
+        setAvatarFromTextureKey(scene, container, textureKey);
     };
 }
 
