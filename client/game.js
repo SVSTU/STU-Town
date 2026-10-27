@@ -1,6 +1,9 @@
 console.log("GAME STARTING...");
 
-const socket = io("https://stu-town-server.onrender.com");
+const serverUrl = ['localhost', '127.0.0.1'].includes(location.hostname)
+    ? `${location.protocol}//${location.hostname}:3000`
+    : "https://stu-town-server.onrender.com";
+const socket = io(serverUrl, { autoConnect: false });
 
 let players = {};
 let targetPosition = null;
@@ -21,12 +24,11 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-function preload() {
-    // Không dùng lệnh load ảnh ở đây để tránh bị treo game nếu thiếu file
-}
+function preload() { this.load.image('avatar-default-source', 'stu.png'); }
 
 function create() {
     sceneRef = this;
+    createCircularTexture(sceneRef, 'avatar-default', sceneRef.textures.get('avatar-default-source').getSourceImage());
     console.log("SCENE CREATED SUCCESSFULLY!");
 
     cursors = sceneRef.input.keyboard.createCursorKeys();
@@ -100,7 +102,14 @@ function create() {
         const chatMessages = document.getElementById('chat-messages');
         const line = document.createElement('div');
         line.className = 'chat-line';
-        line.innerHTML = `<span style="color: #aaa; font-size: 11px;">[${timeString}]</span> <b>${senderName}:</b> ${data.message}`;
+        const time = document.createElement('span');
+        time.className = 'chat-time';
+        time.textContent = `[${timeString}] `;
+        const sender = document.createElement('b');
+        sender.textContent = `${senderName}: `;
+        const messageText = document.createElement('span');
+        messageText.textContent = String(data.message).slice(0, 300);
+        line.append(time, sender, messageText);
         chatMessages.appendChild(line);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -108,6 +117,9 @@ function create() {
             showChatBubble(sceneRef, players[data.id], data.message);
         }
     });
+
+    // Đăng ký toàn bộ listener trước khi kết nối để không bỏ lỡ currentPlayers.
+    socket.connect();
 }
 
 function createPlayer(scene, info, id) {
@@ -142,9 +154,13 @@ function createPlayer(scene, info, id) {
     container.add(borderRing);
     container.borderRing = borderRing;
 
-    // 3. Nếu người chơi đã đổi ảnh, load ảnh đè vào bên trong
-    if (info.avatar && info.avatar.startsWith('data:image')) {
+    container.playerId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    // 3. Avatar tùy chỉnh hoặc ảnh mặc định
+    if (info.avatar && typeof info.avatar === 'string' && info.avatar.startsWith('data:image/')) {
         setAvatarFromBase64(scene, container, info.avatar);
+    } else {
+        container.avatarSprite = scene.add.image(0, 0, 'avatar-default').setDisplaySize(radius * 2, radius * 2);
+        container.addAt(container.avatarSprite, 1);
     }
 
     scene.add.existing(container);
@@ -152,41 +168,35 @@ function createPlayer(scene, info, id) {
 }
 
 // Hàm gán ảnh tải lên dạng Base64 vào nhân vật
+function createCircularTexture(scene, textureKey, image) {
+    if (!scene || !image || !image.width || !image.height) return false;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const context = canvas.getContext('2d');
+    const side = Math.min(image.width, image.height);
+    context.beginPath();
+    context.arc(64, 64, 64, 0, Math.PI * 2);
+    context.clip();
+    context.drawImage(image, (image.width - side) / 2, (image.height - side) / 2, side, side, 0, 0, 128, 128);
+    if (scene.textures.exists(textureKey)) scene.textures.remove(textureKey);
+    scene.textures.addCanvas(textureKey, canvas);
+    return true;
+}
+
 function setAvatarFromBase64(scene, container, base64Str) {
+    if (!scene || !container || typeof base64Str !== 'string' || !base64Str.startsWith('data:image/')) return;
+    const textureKey = `avatar-${container.playerId}`;
+    const player = container;
     const img = new Image();
-    img.src = base64Str;
     img.onload = function() {
-        const textureKey = 'avatar_custom_' + Math.random();
-        if (scene.textures.exists(textureKey)) {
-            scene.textures.remove(textureKey);
-        }
-        scene.textures.addImage(textureKey, img);
-
-        const radius = container.playerRadius;
-
-        if (container.avatarSprite) container.avatarSprite.destroy();
-
-        const avatarSprite = scene.add.image(0, 0, textureKey);
-        avatarSprite.setDisplaySize(radius * 2, radius * 2);
-
-        // Tạo mặt nạ bo tròn bọc khít ảnh
-        const maskShape = scene.make.graphics();
-        maskShape.fillStyle(0xffffff);
-        maskShape.beginPath();
-        maskShape.arc(0, 0, radius, 0, Math.PI * 2);
-        maskShape.fillPath();
-
-        const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
-        avatarSprite.setMask(mask);
-        
-        // Chèn ảnh vào trước viền để viền luôn nằm trên cùng
-        container.addAt(avatarSprite, 1);
-        container.avatarSprite = avatarSprite;
-
-        if (container.textLabel) {
-            container.bringToTop(container.textLabel);
-        }
+        if (!player.scene || !createCircularTexture(scene, textureKey, img)) return;
+        if (player.avatarSprite) player.avatarSprite.destroy();
+        player.avatarSprite = scene.add.image(0, 0, textureKey).setDisplaySize(player.playerRadius * 2, player.playerRadius * 2);
+        player.addAt(player.avatarSprite, 1);
+        if (player.textLabel) player.bringToTop(player.textLabel);
     };
+    img.onerror = () => console.warn('Không thể đọc ảnh avatar.');
+    img.src = base64Str;
 }
 
 function updatePlayerAvatar(scene, container, base64Str) {

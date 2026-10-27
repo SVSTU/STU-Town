@@ -77,6 +77,8 @@ canvas {
     word-break: break-word;
 }
 
+.chat-time { color: #aaa; font-size: 11px; }
+
 #chat-form {
     display: flex;
     gap: 5px;

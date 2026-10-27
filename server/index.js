@@ -1,11 +1,16 @@
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+app.use(express.static(path.join(__dirname, '..', 'client')));
+const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5500,http://127.0.0.1:5500,https://stu-town-server.onrender.com')
+  .split(',').map((origin) => origin.trim()).filter(Boolean));
 const io = new Server(server, {
-  cors: { origin: "*" }
+  maxHttpBufferSize: 3 * 1024 * 1024,
+  cors: { origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }
 });
 
 const players = {};
@@ -33,20 +38,25 @@ io.on('connection', (socket) => {
 
   // 2. Lắng nghe di chuyển của người chơi
   socket.on('playerMovement', (data) => {
-    if (players[socket.id]) {
-      players[socket.id].x = data.x;
-      players[socket.id].y = data.y;
+    if (players[socket.id] && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
+      const x = Math.max(15, Math.min(785, data.x));
+      const y = Math.max(15, Math.min(585, data.y));
+      players[socket.id].x = x;
+      players[socket.id].y = y;
       
       socket.broadcast.emit('playerMoved', { 
         id: socket.id, 
-        x: data.x, 
-        y: data.y 
+        x,
+        y
       });
     }
   });
 
   // 3. Lắng nghe tin nhắn chat
   socket.on('sendChatMessage', (message) => {
+    if (typeof message !== 'string') return;
+    message = message.trim().slice(0, 300);
+    if (!message) return;
     io.emit('chatMessage', {
       id: socket.id,       
       message: message
@@ -55,6 +65,8 @@ io.on('connection', (socket) => {
 
   // 4. Lắng nghe sự kiện thay đổi avatar của người chơi
   socket.on('updateAvatar', (avatarData) => {
+    if (typeof avatarData !== 'string' || avatarData.length > 2_800_000 ||
+        !/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(avatarData)) return;
     if (players[socket.id]) {
       players[socket.id].avatar = avatarData;
       // Phát tán ảnh avatar mới đến tất cả người chơi khác để cập nhật giao diện
