@@ -3,15 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STU-Town</title>
+    <title>STU-Town - Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: Arial, sans-serif; }
         canvas { border: 2px solid #555; border-radius: 8px; cursor: pointer; }
+        
+        /* Giao diện khung chat chồng lên canvas */
+        #chat-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        #chat-messages {
+            height: 120px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: #fff;
+            padding-right: 5px;
+        }
+        .chat-line {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            word-break: break-word;
+        }
+        #chat-form {
+            display: flex;
+            gap: 5px;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            outline: none;
+            font-size: 13px;
+        }
+        #chat-submit {
+            padding: 6px 12px;
+            background: #00ff55;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #chat-submit:hover { background: #00cc44; }
     </style>
 </head>
 <body>
+
+    <!-- Khung HTML Chat hiển thị ở góc màn hình -->
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <form id="chat-form" onsubmit="sendChat(event)">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button type="submit" id="chat-submit">Gửi</button>
+        </form>
+    </div>
+
 <script>
     console.log("GAME STARTING...");
     const socket = io("https://stu-town-server.onrender.com");
@@ -48,12 +111,12 @@
             targetPosition = { x: pointer.x, y: pointer.y };
         });
 
-        // Xóa sạch listener cũ để tránh tràn bộ nhớ và xung đột sự kiện
         socket.off('connect');
         socket.off('currentPlayers');
         socket.off('newPlayer');
         socket.off('playerMoved');
         socket.off('playerDisconnected');
+        socket.off('chatMessage');
 
         socket.on('connect', () => {
             console.log("Connected to server, my socket ID:", socket.id);
@@ -73,33 +136,47 @@
             }
         });
 
-        // Lắng nghe người chơi khác di chuyển từ server
         socket.on('playerMoved', (playerInfo) => {
-            // Cập nhật cho mọi ID khác với socket.id hiện tại
             if (players[playerInfo.id] && playerInfo.id !== socket.id) {
                 const p = players[playerInfo.id];
                 p.x = playerInfo.x;
                 p.y = playerInfo.y;
-                if (p.textLabel) {
-                    p.textLabel.x = playerInfo.x;
-                    p.textLabel.y = playerInfo.y - 25;
-                }
+                updateLabels(p);
             }
         });
 
         socket.on('playerDisconnected', (id) => {
             if (players[id]) {
                 if (players[id].textLabel) players[id].textLabel.destroy();
+                if (players[id].chatBubble) players[id].chatBubble.destroy();
                 players[id].destroy();
                 delete players[id];
+            }
+        });
+
+        // Lắng nghe tin nhắn chat từ server trả về để hiển thị bong bóng chat trên đầu nhân vật
+        socket.on('chatMessage', (data) => {
+            const senderName = (data.id === socket.id) ? "Bạn" : "Khách";
+            
+            // 1. Thêm vào khung log chat góc trái
+            const chatMessages = document.getElementById('chat-messages');
+            const line = document.createElement('div');
+            line.className = 'chat-line';
+            line.innerHTML = `<b>${senderName}:</b> ${data.message}`;
+            chatMessages.appendChild(line);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Tự động cuộn xuống dưới cùng
+
+            // 2. Hiển thị bong bóng chat trên đầu nhân vật tương ứng
+            if (players[data.id]) {
+                showChatBubble(scene, players[data.id], data.message);
             }
         });
     }
 
     function createPlayer(scene, info, id) {
-        // Nếu đã tồn tại hình tròn của ID này trước đó thì xóa đi để làm mới
         if (players[id]) {
             if (players[id].textLabel) players[id].textLabel.destroy();
+            if (players[id].chatBubble) players[id].chatBubble.destroy();
             players[id].destroy();
         }
 
@@ -119,7 +196,53 @@
 
         circle.textLabel = text;
         players[id] = circle;
-        console.log(`Đã tạo nhân vật [${labelText}] cho ID:`, id);
+    }
+
+    function updateLabels(p) {
+        if (p.textLabel) {
+            p.textLabel.x = p.x;
+            p.textLabel.y = p.y - 25;
+        }
+        if (p.chatBubble) {
+            p.chatBubble.x = p.x;
+            p.chatBubble.y = p.y - 50; // Nằm phía trên nhãn tên một chút
+        }
+    }
+
+    // Hàm hiển thị bong bóng chat tồn tại trong 4 giây rồi tự biến mất
+    function showChatBubble(scene, playerObj, message) {
+        if (playerObj.chatBubble) {
+            playerObj.chatBubble.destroy(); // Xóa bong bóng cũ nếu có
+        }
+
+        const bubble = scene.add.text(playerObj.x, playerObj.y - 50, message, {
+            font: '12px Arial',
+            fill: '#000',
+            backgroundColor: '#ffffff',
+            padding: { x: 6, y: 4 },
+            align: 'center'
+        }).setOrigin(0.5);
+
+        playerObj.chatBubble = bubble;
+
+        // Tự động hủy sau 4 giây
+        scene.time.delayedCall(4000, () => {
+            if (playerObj.chatBubble === bubble) {
+                bubble.destroy();
+                playerObj.chatBubble = null;
+            }
+        });
+    }
+
+    // Hàm gửi tin nhắn khi người dùng bấm nút Gửi hoặc Enter
+    function sendChat(event) {
+        event.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (text !== "") {
+            socket.emit('sendChatMessage', text);
+            input.value = ""; // Xóa ô nhập sau khi gửi
+        }
     }
 
     function update() {
@@ -129,7 +252,6 @@
         let speed = 4;
         let isMoved = false;
 
-        // 1. Điều khiển bằng bàn phím
         let keyActive = false;
         if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyActive = true; }
         else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyActive = true; }
@@ -141,7 +263,6 @@
             targetPosition = null;
             isMoved = true;
         } 
-        // 2. Điều khiển bằng Click chuột / Chạm màn hình
         else if (targetPosition !== null) {
             let dx = targetPosition.x - p.x;
             let dy = targetPosition.y - p.y;
@@ -160,13 +281,299 @@
             }
         }
 
-        // Cập nhật vị trí nhãn tên "Bạn"
+        updateLabels(p);
+
+        if (isMoved) {
+            socket.emit('playerMovement', { x: p.x, y: p.y });
+        }
+    }
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STU-Town - Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: Arial, sans-serif; }
+        canvas { border: 2px solid #555; border-radius: 8px; cursor: pointer; }
+        
+        /* Giao diện khung chat chồng lên canvas */
+        #chat-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        #chat-messages {
+            height: 120px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: #fff;
+            padding-right: 5px;
+        }
+        .chat-line {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            word-break: break-word;
+        }
+        #chat-form {
+            display: flex;
+            gap: 5px;
+        }
+        #chat-input {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            outline: none;
+            font-size: 13px;
+        }
+        #chat-submit {
+            padding: 6px 12px;
+            background: #00ff55;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #chat-submit:hover { background: #00cc44; }
+    </style>
+</head>
+<body>
+
+    <!-- Khung HTML Chat hiển thị ở góc màn hình -->
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <form id="chat-form" onsubmit="sendChat(event)">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button type="submit" id="chat-submit">Gửi</button>
+        </form>
+    </div>
+
+<script>
+    console.log("GAME STARTING...");
+    const socket = io("https://stu-town-server.onrender.com");
+
+    let players = {};
+    let targetPosition = null;
+    let cursors, wasd;
+
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        backgroundColor: '#2d2d2d',
+        scene: { preload: preload, create: create, update: update }
+    };
+
+    const game = new Phaser.Game(config);
+
+    function preload() {}
+
+    function create() {
+        const scene = this;
+        console.log("SCENE CREATED SUCCESSFULLY!");
+
+        cursors = scene.input.keyboard.createCursorKeys();
+        wasd = scene.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
+        });
+
+        scene.input.on('pointerdown', (pointer) => {
+            targetPosition = { x: pointer.x, y: pointer.y };
+        });
+
+        socket.off('connect');
+        socket.off('currentPlayers');
+        socket.off('newPlayer');
+        socket.off('playerMoved');
+        socket.off('playerDisconnected');
+        socket.off('chatMessage');
+
+        socket.on('connect', () => {
+            console.log("Connected to server, my socket ID:", socket.id);
+        });
+
+        socket.on('currentPlayers', (serverPlayers) => {
+            Object.keys(serverPlayers).forEach((id) => {
+                if (!players[id]) {
+                    createPlayer(scene, serverPlayers[id], id);
+                }
+            });
+        });
+
+        socket.on('newPlayer', (playerInfo) => {
+            if (!players[playerInfo.id]) {
+                createPlayer(scene, playerInfo, playerInfo.id);
+            }
+        });
+
+        socket.on('playerMoved', (playerInfo) => {
+            if (players[playerInfo.id] && playerInfo.id !== socket.id) {
+                const p = players[playerInfo.id];
+                p.x = playerInfo.x;
+                p.y = playerInfo.y;
+                updateLabels(p);
+            }
+        });
+
+        socket.on('playerDisconnected', (id) => {
+            if (players[id]) {
+                if (players[id].textLabel) players[id].textLabel.destroy();
+                if (players[id].chatBubble) players[id].chatBubble.destroy();
+                players[id].destroy();
+                delete players[id];
+            }
+        });
+
+        // Lắng nghe tin nhắn chat từ server trả về để hiển thị bong bóng chat trên đầu nhân vật
+        socket.on('chatMessage', (data) => {
+            const senderName = (data.id === socket.id) ? "Bạn" : "Khách";
+            
+            // 1. Thêm vào khung log chat góc trái
+            const chatMessages = document.getElementById('chat-messages');
+            const line = document.createElement('div');
+            line.className = 'chat-line';
+            line.innerHTML = `<b>${senderName}:</b> ${data.message}`;
+            chatMessages.appendChild(line);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Tự động cuộn xuống dưới cùng
+
+            // 2. Hiển thị bong bóng chat trên đầu nhân vật tương ứng
+            if (players[data.id]) {
+                showChatBubble(scene, players[data.id], data.message);
+            }
+        });
+    }
+
+    function createPlayer(scene, info, id) {
+        if (players[id]) {
+            if (players[id].textLabel) players[id].textLabel.destroy();
+            if (players[id].chatBubble) players[id].chatBubble.destroy();
+            players[id].destroy();
+        }
+
+        const isMe = (id === socket.id);
+        const color = isMe ? 0x00ff55 : 0xff5500;
+        const radius = isMe ? 15 : 12;
+
+        const circle = scene.add.circle(info.x, info.y, radius, color);
+        
+        const labelText = isMe ? "Bạn" : "Khách";
+        const text = scene.add.text(info.x, info.y - 25, labelText, {
+            font: '14px Arial',
+            fill: '#ffffff',
+            backgroundColor: '#00000088',
+            padding: { x: 4, y: 2 }
+        }).setOrigin(0.5);
+
+        circle.textLabel = text;
+        players[id] = circle;
+    }
+
+    function updateLabels(p) {
         if (p.textLabel) {
             p.textLabel.x = p.x;
             p.textLabel.y = p.y - 25;
         }
+        if (p.chatBubble) {
+            p.chatBubble.x = p.x;
+            p.chatBubble.y = p.y - 50; // Nằm phía trên nhãn tên một chút
+        }
+    }
 
-        // Gửi tọa độ lên server
+    // Hàm hiển thị bong bóng chat tồn tại trong 4 giây rồi tự biến mất
+    function showChatBubble(scene, playerObj, message) {
+        if (playerObj.chatBubble) {
+            playerObj.chatBubble.destroy(); // Xóa bong bóng cũ nếu có
+        }
+
+        const bubble = scene.add.text(playerObj.x, playerObj.y - 50, message, {
+            font: '12px Arial',
+            fill: '#000',
+            backgroundColor: '#ffffff',
+            padding: { x: 6, y: 4 },
+            align: 'center'
+        }).setOrigin(0.5);
+
+        playerObj.chatBubble = bubble;
+
+        // Tự động hủy sau 4 giây
+        scene.time.delayedCall(4000, () => {
+            if (playerObj.chatBubble === bubble) {
+                bubble.destroy();
+                playerObj.chatBubble = null;
+            }
+        });
+    }
+
+    // Hàm gửi tin nhắn khi người dùng bấm nút Gửi hoặc Enter
+    function sendChat(event) {
+        event.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (text !== "") {
+            socket.emit('sendChatMessage', text);
+            input.value = ""; // Xóa ô nhập sau khi gửi
+        }
+    }
+
+    function update() {
+        if (!socket.id || !players[socket.id]) return;
+
+        const p = players[socket.id];
+        let speed = 4;
+        let isMoved = false;
+
+        let keyActive = false;
+        if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyActive = true; }
+        else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyActive = true; }
+
+        if (cursors.up.isDown || wasd.up.isDown) { p.y -= speed; keyActive = true; }
+        else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyActive = true; }
+
+        if (keyActive) {
+            targetPosition = null;
+            isMoved = true;
+        } 
+        else if (targetPosition !== null) {
+            let dx = targetPosition.x - p.x;
+            let dy = targetPosition.y - p.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > speed) {
+                let angle = Math.atan2(dy, dx);
+                p.x += Math.cos(angle) * speed;
+                p.y += Math.sin(angle) * speed;
+                isMoved = true;
+            } else {
+                p.x = targetPosition.x;
+                p.y = targetPosition.y;
+                targetPosition = null;
+                isMoved = true;
+            }
+        }
+
+        updateLabels(p);
+
         if (isMoved) {
             socket.emit('playerMovement', { x: p.x, y: p.y });
         }

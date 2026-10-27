@@ -34,6 +34,14 @@ io.on('connection', (socket) => {
         y: data.y 
       });
     }
+  // Lắng nghe tin nhắn chat từ client gửi lên
+  socket.on('sendChatMessage', (message) => {
+    // Gửi nội dung tin nhắn kèm theo ID (hoặc tên) của người gửi tới tất cả mọi người
+    io.emit('chatMessage', {
+      id: socket.id,
+      message: message
+    });
+  });
   });
 
   socket.on('disconnect', () => {
