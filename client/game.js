@@ -120,15 +120,23 @@ function create() {
         content.append(sender, messageText);
         const reactions = document.createElement('div');
         reactions.className = 'chat-reactions';
+        const addReaction = document.createElement('button');
+        addReaction.type = 'button';
+        addReaction.className = 'reaction-add';
+        addReaction.setAttribute('aria-label', 'Chọn reaction');
+        addReaction.textContent = '+';
+        const reactionPicker = document.createElement('div');
+        reactionPicker.className = 'reaction-picker';
         REACTION_EMOJIS.forEach((emoji) => {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'reaction-button';
+            button.className = 'reaction-choice';
             button.dataset.emoji = emoji;
-            button.setAttribute('aria-label', `Thả reaction ${emoji}`);
+            button.setAttribute('aria-label', `Chọn reaction ${emoji}`);
             button.textContent = emoji;
-            reactions.appendChild(button);
+            reactionPicker.appendChild(button);
         });
+        reactions.append(addReaction, reactionPicker);
         line.append(time, content, reactions);
         chatMessages.appendChild(line);
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -142,16 +150,33 @@ function create() {
         const line = [...document.querySelectorAll('.chat-line')]
             .find((item) => item.dataset.messageId === data.messageId);
         if (!line) return;
-        const button = line.querySelector(`[data-emoji="${CSS.escape(data.emoji)}"]`);
-        if (!button) return;
+        const reactions = line.querySelector('.chat-reactions');
+        let button = reactions.querySelector(`.reaction-button[data-emoji="${CSS.escape(data.emoji)}"]`);
+        if (!data.count) {
+            button?.remove();
+            return;
+        }
+        if (!button) {
+            button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'reaction-button';
+            button.dataset.emoji = data.emoji;
+            button.setAttribute('aria-label', `Reaction ${data.emoji}`);
+            reactions.insertBefore(button, reactions.querySelector('.reaction-add'));
+        }
         button.classList.toggle('is-active', data.reactedBy.includes(socket.id));
-        button.dataset.count = String(data.count);
-        button.textContent = data.count ? `${data.emoji} ${data.count}` : data.emoji;
+        button.textContent = `${data.emoji} ${data.count}`;
+        line.querySelector('.reaction-picker').classList.remove('is-open');
     });
 
     document.getElementById('chat-messages').addEventListener('click', (event) => {
-        const button = event.target.closest('.reaction-button');
-        const line = button?.closest('.chat-line');
+        const addButton = event.target.closest('.reaction-add');
+        const line = event.target.closest('.chat-line');
+        if (addButton && line) {
+            line.querySelector('.reaction-picker').classList.toggle('is-open');
+            return;
+        }
+        const button = event.target.closest('.reaction-choice, .reaction-button');
         if (button && line?.dataset.messageId) {
             socket.emit('reactToMessage', { messageId: line.dataset.messageId, emoji: button.dataset.emoji });
         }
