@@ -119,12 +119,12 @@ function createPlayer(scene, info, id) {
 
     const container = scene.add.container(info.x, info.y);
 
-    // 1. Vòng tròn nền (nếu chưa có ảnh, nó sẽ hiển thị màu nền viền này)
+    // 1. Vòng tròn nền dự phòng
     const bgCircle = scene.add.circle(0, 0, radius, borderColor);
     container.add(bgCircle);
     container.bgCircle = bgCircle;
 
-    // 2. Nhãn tên hiển thị phía trên đầu nhân vật
+    // 2. Nhãn tên hiển thị trên đầu
     const shortId = id.substring(0, 4);
     const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
     const textLabel = scene.add.text(0, -28, labelText, {
@@ -136,70 +136,61 @@ function createPlayer(scene, info, id) {
     container.add(textLabel);
     container.textLabel = textLabel;
 
-    // 3. Nếu có avatar, load ảnh đè lên hình tròn
+    // 3. Nếu có avatar, nạp ảnh vào container trực tiếp từ đối tượng Image
     if (info.avatar) {
-        setAvatarToContainer(scene, container, info.avatar, radius, borderColor);
+        setAvatarFromImage(scene, container, info.avatar, radius, borderColor);
     }
 
     scene.add.existing(container);
     players[id] = container;
 }
 
-function setAvatarToContainer(scene, container, base64Str, radius, borderColor) {
+// Xử lý nạp ảnh trực tiếp qua thẻ Image chuẩn xác
+function setAvatarFromImage(scene, container, base64Str, radius, borderColor) {
     const img = new Image();
     img.src = base64Str;
     img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const size = radius * 2;
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, size, size);
-        const compressedDataUrl = canvas.toDataURL('image/png');
-
-        const textureKey = 'avatar_' + Math.random();
+        const textureKey = 'avatar_img_' + Math.random();
         if (scene.textures.exists(textureKey)) {
             scene.textures.remove(textureKey);
         }
+        
+        // Đưa trực tiếp đối tượng ảnh vào bộ nhớ texture của Phaser
+        scene.textures.addImage(textureKey, img);
 
-        const compressedImg = new Image();
-        compressedImg.src = compressedDataUrl;
-        compressedImg.onload = function() {
-            scene.textures.addImage(textureKey, compressedImg);
+        if (container.avatarSprite) {
+            container.avatarSprite.destroy();
+        }
 
-            if (container.avatarSprite) {
-                container.avatarSprite.destroy();
-            }
+        const avatarSprite = scene.add.image(0, 0, textureKey);
+        avatarSprite.setDisplaySize(radius * 2, radius * 2);
 
-            const avatarSprite = scene.add.image(0, 0, textureKey);
-            
-            // Tạo mặt nạ bo tròn bọc khít vòng tròn avatar
-            const maskShape = scene.make.graphics();
-            maskShape.fillStyle(0xffffff);
-            maskShape.beginPath();
-            maskShape.arc(0, 0, radius, 0, Math.PI * 2);
-            maskShape.fillPath();
+        // Tạo mặt nạ bo tròn (mask) ôm trọn ảnh theo kích thước vòng tròn
+        const maskShape = scene.make.graphics();
+        maskShape.fillStyle(0xffffff);
+        maskShape.beginPath();
+        maskShape.arc(0, 0, radius, 0, Math.PI * 2);
+        maskShape.fillPath();
 
-            const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
-            avatarSprite.setMask(mask);
+        const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
+        avatarSprite.setMask(mask);
 
-            container.add(avatarSprite);
+        container.add(avatarSprite);
 
-            // Tạo viền bo tròn bao quanh ảnh avatar (Xanh lá cho bạn, Cam cho khách)
-            if (container.borderRing) {
-                container.borderRing.destroy();
-            }
-            const borderRing = scene.add.circle(0, 0, radius);
-            borderRing.setStrokeStyle(2, borderColor);
-            container.add(borderRing);
-            container.borderRing = borderRing;
+        // Tạo vòng viền màu bao quanh (Xanh lá cho bạn, Cam cho khách)
+        if (container.borderRing) {
+            container.borderRing.destroy();
+        }
+        const borderRing = scene.add.circle(0, 0, radius);
+        borderRing.setStrokeStyle(2, borderColor);
+        container.add(borderRing);
+        container.borderRing = borderRing;
 
-            // Đưa nhãn tên lên trên cùng để không bị che khuất
-            if (container.textLabel) {
-                container.bringToTop(container.textLabel);
-            }
-            container.avatarSprite = avatarSprite;
-        };
+        // Đưa nhãn tên lên trên cùng
+        if (container.textLabel) {
+            container.bringToTop(container.textLabel);
+        }
+        container.avatarSprite = avatarSprite;
     };
 }
 
@@ -207,7 +198,7 @@ function updatePlayerAvatar(scene, container, base64Str, id) {
     const isMe = (id === socket.id);
     const radius = isMe ? 18 : 15;
     const borderColor = isMe ? 0x00ff55 : 0xff5500;
-    setAvatarToContainer(scene, container, base64Str, radius, borderColor);
+    setAvatarFromImage(scene, container, base64Str, radius, borderColor);
 }
 
 function applyAvatar() {
@@ -220,24 +211,16 @@ function applyAvatar() {
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        const img = new Image();
-        img.src = e.target.result;
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 60;
-            canvas.height = 60;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, 60, 60);
-            
-            const compressedBase64 = canvas.toDataURL('image/png');
+        const base64String = e.target.result;
 
-            if (sceneRef && players[socket.id]) {
-                updatePlayerAvatar(sceneRef, players[socket.id], compressedBase64, socket.id);
-            }
+        // Cập nhật ngay cho nhân vật của chính mình
+        if (sceneRef && players[socket.id]) {
+            updatePlayerAvatar(sceneRef, players[socket.id], base64String, socket.id);
+        }
 
-            socket.emit('updateAvatar', compressedBase64);
-            console.log("Đã nén, áp dụng Avatar và giữ viền xanh lá thành công!");
-        };
+        // Gửi chuỗi ảnh lên server để đồng bộ sang các tab/người chơi khác
+        socket.emit('updateAvatar', base64String);
+        console.log("Đã áp dụng ảnh đại diện (Image) thành công!");
     };
     reader.readAsDataURL(file);
 }
