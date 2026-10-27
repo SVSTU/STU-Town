@@ -17,7 +17,6 @@
     const socket = io("https://stu-town-server.onrender.com");
 
     let players = {};
-    let myId = null;
     let targetPosition = null;
     let cursors, wasd;
 
@@ -45,14 +44,19 @@
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // Bắt sự kiện click chuột trên toàn khung game
         scene.input.on('pointerdown', (pointer) => {
             targetPosition = { x: pointer.x, y: pointer.y };
         });
 
+        // Xóa sạch listener cũ để tránh tràn bộ nhớ và xung đột sự kiện
+        socket.off('connect');
+        socket.off('currentPlayers');
+        socket.off('newPlayer');
+        socket.off('playerMoved');
+        socket.off('playerDisconnected');
+
         socket.on('connect', () => {
-            myId = socket.id;
-            console.log("Connected to server, my ID:", myId);
+            console.log("Connected to server, my socket ID:", socket.id);
         });
 
         socket.on('currentPlayers', (serverPlayers) => {
@@ -71,6 +75,7 @@
 
         // Lắng nghe người chơi khác di chuyển từ server
         socket.on('playerMoved', (playerInfo) => {
+            // Cập nhật cho mọi ID khác với socket.id hiện tại
             if (players[playerInfo.id] && playerInfo.id !== socket.id) {
                 const p = players[playerInfo.id];
                 p.x = playerInfo.x;
@@ -92,6 +97,12 @@
     }
 
     function createPlayer(scene, info, id) {
+        // Nếu đã tồn tại hình tròn của ID này trước đó thì xóa đi để làm mới
+        if (players[id]) {
+            if (players[id].textLabel) players[id].textLabel.destroy();
+            players[id].destroy();
+        }
+
         const isMe = (id === socket.id);
         const color = isMe ? 0x00ff55 : 0xff5500;
         const radius = isMe ? 15 : 12;
@@ -108,20 +119,17 @@
 
         circle.textLabel = text;
         players[id] = circle;
+        console.log(`Đã tạo nhân vật [${labelText}] cho ID:`, id);
     }
 
     function update() {
-        // Đảm bảo lấy đúng ID hiện tại của chính mình
-        if (!myId && socket.id) {
-            myId = socket.id;
-        }
-        if (!myId || !players[myId]) return;
+        if (!socket.id || !players[socket.id]) return;
 
-        const p = players[myId];
+        const p = players[socket.id];
         let speed = 4;
         let isMoved = false;
 
-        // 1. Điều khiển bằng bàn phím (WASD / Mũi tên)
+        // 1. Điều khiển bằng bàn phím
         let keyActive = false;
         if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyActive = true; }
         else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyActive = true; }
@@ -130,10 +138,10 @@
         else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyActive = true; }
 
         if (keyActive) {
-            targetPosition = null; // Hủy điểm click nếu đang dùng phím
+            targetPosition = null;
             isMoved = true;
         } 
-        // 2. Điều khiển bằng Click chuột / Chạm màn hình (Tự động trượt mượt mà)
+        // 2. Điều khiển bằng Click chuột / Chạm màn hình
         else if (targetPosition !== null) {
             let dx = targetPosition.x - p.x;
             let dy = targetPosition.y - p.y;
@@ -147,7 +155,7 @@
             } else {
                 p.x = targetPosition.x;
                 p.y = targetPosition.y;
-                targetPosition = null; // Đã đến đích
+                targetPosition = null;
                 isMoved = true;
             }
         }
@@ -158,7 +166,7 @@
             p.textLabel.y = p.y - 25;
         }
 
-        // Bắn tọa độ liên tục lên server khi nhân vật thay đổi vị trí
+        // Gửi tọa độ lên server
         if (isMoved) {
             socket.emit('playerMovement', { x: p.x, y: p.y });
         }
