@@ -104,13 +104,24 @@
 
         cursors = sceneRef.input.keyboard.createCursorKeys();
 
-        // Ngăn chặn Phaser bắt sự kiện bàn phím khi người dùng đang bấm vào ô nhập chat
+        // CHẶN HOÀN TOÀN PHASER BẮT PHÍM KHI ĐANG GÕ CHAT
         const chatInput = document.getElementById('chat-input');
+        
         chatInput.addEventListener('focus', () => {
-            sceneRef.input.keyboard.enabled = false;
+            if (sceneRef && sceneRef.input && sceneRef.input.keyboard) {
+                sceneRef.input.keyboard.enabled = false;
+            }
         });
+
         chatInput.addEventListener('blur', () => {
-            sceneRef.input.keyboard.enabled = true;
+            if (sceneRef && sceneRef.input && sceneRef.input.keyboard) {
+                sceneRef.input.keyboard.enabled = true;
+            }
+        });
+
+        // Ngăn sự kiện phím lan truyền từ ô input ra ngoài canvas game
+        chatInput.addEventListener('keydown', (e) => {
+            e.stopPropagation();
         });
 
         sceneRef.input.on('pointerdown', (pointer) => {
