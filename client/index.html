@@ -8,7 +8,7 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 2px solid #ffffff22; border-radius: 8px; }
+        canvas { border: 2px solid #ffffff22; border-radius: 8px; touch-action: none; }
     </style>
 </head>
 <body>
@@ -22,6 +22,10 @@
         width: 800,
         height: 600,
         backgroundColor: '#2d2d2d',
+        physics: {
+            default: 'arcade',
+            arcade: { debug: false }
+        },
         scene: {
             preload: preload,
             create: create,
@@ -34,7 +38,7 @@
     let myPlayerId = null;
     let cursors;
     let wasd;
-    let targetPosition = null; // Lưu vị trí mục tiêu khi chạm/click chuột
+    let targetPosition = null;
 
     function preload() {}
 
@@ -50,7 +54,7 @@
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // Bắt sự kiện Click chuột hoặc Chạm màn hình điện thoại
+        // Bắt sự kiện Click chuột hoặc Chạm màn hình (hỗ trợ cả mobile)
         this.input.on('pointerdown', function (pointer) {
             targetPosition = {
                 x: pointer.x,
@@ -94,8 +98,8 @@
 
     function addPlayer(scene, playerInfo) {
         const circle = scene.add.circle(playerInfo.x, playerInfo.y, 12, 0xff5500);
-        scene.physics?.add?.existing?.(circle);
-        circle.id = playerInfo.id;
+        scene.physics.add.existing(circle);
+        circle.body.setCollideWorldBounds(true);
         players[playerInfo.id] = circle;
     }
 
@@ -106,11 +110,11 @@
         let speed = 4;
         let moved = false;
 
-        // 1. Điều khiển bằng Bàn phím (Mũi tên hoặc WASD)
+        // 1. Điều khiển bằng Bàn phím (WASD / Mũi tên)
         if (cursors.left.isDown || wasd.left.isDown) {
             myPlayer.x -= speed;
             moved = true;
-            targetPosition = null; // Hủy mục tiêu chuột nếu dùng phím
+            targetPosition = null; 
         } else if (cursors.right.isDown || wasd.right.isDown) {
             myPlayer.x += speed;
             moved = true;
@@ -127,21 +131,21 @@
             targetPosition = null;
         }
 
-        // 2. Điều khiển bằng Cảm ứng / Click chuột
+        // 2. Điều khiển bằng Click chuột hoặc Chạm màn hình
         if (targetPosition && !moved) {
             const distance = Phaser.Math.Distance.Between(myPlayer.x, myPlayer.y, targetPosition.x, targetPosition.y);
 
-            if (distance > 5) { // Nếu chưa đến gần vị trí chạm
+            if (distance > 4) {
                 const angle = Phaser.Math.Angle.Between(myPlayer.x, myPlayer.y, targetPosition.x, targetPosition.y);
                 myPlayer.x += Math.cos(angle) * speed;
                 myPlayer.y += Math.sin(angle) * speed;
                 moved = true;
             } else {
-                targetPosition = null; // Đã đến nơi
+                targetPosition = null; // Đã tới điểm chạm
             }
         }
 
-        // Gửi tọa độ mới lên Server nếu có di chuyển
+        // Gửi tọa độ lên Server khi có dịch chuyển
         if (moved) {
             socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
         }
