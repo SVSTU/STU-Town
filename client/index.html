@@ -46,7 +46,7 @@
     function create() {
         const self = this;
 
-        // Bắt sự kiện bàn phím
+        // Bắt phím
         cursors = this.input.keyboard.createCursorKeys();
         wasd = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -55,24 +55,16 @@
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // Bắt sự kiện click chuột trực tiếp vào canvas
-        setTimeout(() => {
-            const canvasEl = document.querySelector('canvas');
-            if (canvasEl) {
-                canvasEl.addEventListener('pointerdown', (event) => {
-                    const rect = canvasEl.getBoundingClientRect();
-                    const scaleX = 800 / canvasEl.clientWidth;
-                    const scaleY = 600 / canvasEl.clientHeight;
-                    
-                    targetX = (event.clientX - rect.left) * scaleX;
-                    targetY = (event.clientY - rect.top) * scaleY;
-                });
-            }
-        }, 500);
+        // Sử dụng hệ thống pointer chuẩn của Phaser (tự động tính toán tọa độ khung game)
+        this.input.on('pointerdown', (pointer) => {
+            targetX = pointer.x;
+            targetY = pointer.y;
+            console.log("Đã click chuột tại tọa độ:", targetX, targetY);
+        });
 
-        // Lắng nghe sự kiện từ Server
         socket.on('connect', () => {
             myPlayerId = socket.id;
+            console.log("Đã kết nối Server, ID của tôi là:", myPlayerId);
         });
 
         socket.on('currentPlayers', (serverPlayers) => {
@@ -90,7 +82,7 @@
         });
 
         socket.on('playerMoved', (playerInfo) => {
-            if (players[playerInfo.id]) {
+            if (players[playerInfo.id] && playerInfo.id !== myPlayerId) {
                 players[playerInfo.id].x = playerInfo.x;
                 players[playerInfo.id].y = playerInfo.y;
             }
@@ -109,6 +101,7 @@
         scene.physics.add.existing(circle);
         circle.body.setCollideWorldBounds(true);
         players[playerInfo.id] = circle;
+        console.log("Đã tạo nhân vật cho ID:", playerInfo.id);
     }
 
     function update() {
@@ -118,7 +111,6 @@
         let speed = 4;
         let isMoved = false;
 
-        // 1. Kiểm tra di chuyển bằng bàn phím (Nếu bấm phím thì hủy lệnh đi bằng chuột)
         let keyboardPressed = false;
         if (cursors.left.isDown || wasd.left.isDown) {
             myPlayer.x -= speed;
@@ -137,10 +129,10 @@
         }
 
         if (keyboardPressed) {
-            targetX = null; // Hủy đích đến của chuột khi dùng phím
+            targetX = null;
+            targetY = null;
             isMoved = true;
         } 
-        // 2. Nếu không bấm phím nhưng có điểm click chuột/chạm thì di chuyển tới điểm đó
         else if (targetX !== null && targetY !== null) {
             const distX = targetX - myPlayer.x;
             const distY = targetY - myPlayer.y;
@@ -152,7 +144,6 @@
                 myPlayer.y += Math.sin(angle) * speed;
                 isMoved = true;
             } else {
-                // Đã đến nơi, dừng lại
                 myPlayer.x = targetX;
                 myPlayer.y = targetY;
                 targetX = null;
@@ -161,7 +152,6 @@
             }
         }
 
-        // Gửi tọa độ lên Server nếu nhân vật thay đổi vị trí
         if (isMoved) {
             socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
         }
