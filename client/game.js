@@ -115,13 +115,16 @@ function createPlayer(scene, info, id) {
 
     const isMe = (id === socket.id);
     const radius = isMe ? 18 : 15;
+    const borderColor = isMe ? 0x00ff55 : 0xff5500; // Bạn: Viền xanh lá, Khách: Viền cam
 
     const container = scene.add.container(info.x, info.y);
 
-    const bgCircle = scene.add.circle(0, 0, radius, isMe ? 0x00ff55 : 0xff5500);
+    // 1. Vòng tròn nền (nếu chưa có ảnh, nó sẽ hiển thị màu nền viền này)
+    const bgCircle = scene.add.circle(0, 0, radius, borderColor);
     container.add(bgCircle);
     container.bgCircle = bgCircle;
 
+    // 2. Nhãn tên hiển thị phía trên đầu nhân vật
     const shortId = id.substring(0, 4);
     const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
     const textLabel = scene.add.text(0, -28, labelText, {
@@ -133,15 +136,16 @@ function createPlayer(scene, info, id) {
     container.add(textLabel);
     container.textLabel = textLabel;
 
+    // 3. Nếu có avatar, load ảnh đè lên hình tròn
     if (info.avatar) {
-        setAvatarToContainer(scene, container, info.avatar, radius);
+        setAvatarToContainer(scene, container, info.avatar, radius, borderColor);
     }
 
     scene.add.existing(container);
     players[id] = container;
 }
 
-function setAvatarToContainer(scene, container, base64Str, radius) {
+function setAvatarToContainer(scene, container, base64Str, radius, borderColor) {
     const img = new Image();
     img.src = base64Str;
     img.onload = function() {
@@ -169,6 +173,7 @@ function setAvatarToContainer(scene, container, base64Str, radius) {
 
             const avatarSprite = scene.add.image(0, 0, textureKey);
             
+            // Tạo mặt nạ bo tròn bọc khít vòng tròn avatar
             const maskShape = scene.make.graphics();
             maskShape.fillStyle(0xffffff);
             maskShape.beginPath();
@@ -179,6 +184,17 @@ function setAvatarToContainer(scene, container, base64Str, radius) {
             avatarSprite.setMask(mask);
 
             container.add(avatarSprite);
+
+            // Tạo viền bo tròn bao quanh ảnh avatar (Xanh lá cho bạn, Cam cho khách)
+            if (container.borderRing) {
+                container.borderRing.destroy();
+            }
+            const borderRing = scene.add.circle(0, 0, radius);
+            borderRing.setStrokeStyle(2, borderColor);
+            container.add(borderRing);
+            container.borderRing = borderRing;
+
+            // Đưa nhãn tên lên trên cùng để không bị che khuất
             if (container.textLabel) {
                 container.bringToTop(container.textLabel);
             }
@@ -188,8 +204,10 @@ function setAvatarToContainer(scene, container, base64Str, radius) {
 }
 
 function updatePlayerAvatar(scene, container, base64Str, id) {
-    const radius = (id === socket.id) ? 18 : 15;
-    setAvatarToContainer(scene, container, base64Str, radius);
+    const isMe = (id === socket.id);
+    const radius = isMe ? 18 : 15;
+    const borderColor = isMe ? 0x00ff55 : 0xff5500;
+    setAvatarToContainer(scene, container, base64Str, radius, borderColor);
 }
 
 function applyAvatar() {
@@ -218,7 +236,7 @@ function applyAvatar() {
             }
 
             socket.emit('updateAvatar', compressedBase64);
-            console.log("Đã nén và áp dụng Avatar thành công!");
+            console.log("Đã nén, áp dụng Avatar và giữ viền xanh lá thành công!");
         };
     };
     reader.readAsDataURL(file);
@@ -259,46 +277,3 @@ function sendChat(event) {
     if (text !== "") {
         socket.emit('sendChatMessage', text);
         input.value = "";
-    }
-}
-
-function update() {
-    if (!socket.id || !players[socket.id]) return;
-
-    const p = players[socket.id];
-    let speed = 4;
-    let isMoved = false;
-
-    let keyActive = false;
-    if (cursors.left.isDown) { p.x -= speed; keyActive = true; }
-    else if (cursors.right.isDown) { p.x += speed; keyActive = true; }
-
-    if (cursors.up.isDown) { p.y -= speed; keyActive = true; }
-    else if (cursors.down.isDown) { p.y += speed; keyActive = true; }
-
-    if (keyActive) {
-        targetPosition = null;
-        isMoved = true;
-    } 
-    else if (targetPosition !== null) {
-        let dx = targetPosition.x - p.x;
-        let dy = targetPosition.y - p.y;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance > speed) {
-            let angle = Math.atan2(dy, dx);
-            p.x += Math.cos(angle) * speed;
-            p.y += Math.sin(angle) * speed;
-            isMoved = true;
-        } else {
-            p.x = targetPosition.x;
-            p.y = targetPosition.y;
-            targetPosition = null;
-            isMoved = true;
-        }
-    }
-
-    if (isMoved) {
-        socket.emit('playerMovement', { x: p.x, y: p.y });
-    }
-}
