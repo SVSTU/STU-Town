@@ -38,7 +38,8 @@
     let myPlayerId = null;
     let cursors;
     let wasd;
-    let targetPosition = null;
+    let targetX = null;
+    let targetY = null;
 
     function preload() {}
 
@@ -54,20 +55,17 @@
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // Lắng nghe sự kiện click/chạm trực tiếp từ DOM canvas để chắc chắn nhận diện tọa độ
+        // Bắt sự kiện click chuột trực tiếp vào canvas
         setTimeout(() => {
             const canvasEl = document.querySelector('canvas');
             if (canvasEl) {
                 canvasEl.addEventListener('pointerdown', (event) => {
                     const rect = canvasEl.getBoundingClientRect();
-                    // Tính toán tọa độ thực tế tương ứng với kích thước 800x600 của game
                     const scaleX = 800 / canvasEl.clientWidth;
                     const scaleY = 600 / canvasEl.clientHeight;
                     
-                    targetPosition = {
-                        x: (event.clientX - rect.left) * scaleX,
-                        y: (event.clientY - rect.top) * scaleY
-                    };
+                    targetX = (event.clientX - rect.left) * scaleX;
+                    targetY = (event.clientY - rect.top) * scaleY;
                 });
             }
         }, 500);
@@ -118,45 +116,53 @@
 
         const myPlayer = players[myPlayerId];
         let speed = 4;
-        let moved = false;
+        let isMoved = false;
 
-        // 1. Điều khiển bằng Bàn phím (WASD / Mũi tên) -> Ưu tiên ngắt mục tiêu chuột nếu dùng phím
+        // 1. Kiểm tra di chuyển bằng bàn phím (Nếu bấm phím thì hủy lệnh đi bằng chuột)
+        let keyboardPressed = false;
         if (cursors.left.isDown || wasd.left.isDown) {
             myPlayer.x -= speed;
-            moved = true;
-            targetPosition = null; 
+            keyboardPressed = true;
         } else if (cursors.right.isDown || wasd.right.isDown) {
             myPlayer.x += speed;
-            moved = true;
-            targetPosition = null;
+            keyboardPressed = true;
         }
 
         if (cursors.up.isDown || wasd.up.isDown) {
             myPlayer.y -= speed;
-            moved = true;
-            targetPosition = null;
+            keyboardPressed = true;
         } else if (cursors.down.isDown || wasd.down.isDown) {
             myPlayer.y += speed;
-            moved = true;
-            targetPosition = null;
+            keyboardPressed = true;
         }
 
-        // 2. Di chuyển tự động đến vị trí đã click/chạm
-        if (targetPosition && !moved) {
-            const distance = Phaser.Math.Distance.Between(myPlayer.x, myPlayer.y, targetPosition.x, targetPosition.y);
+        if (keyboardPressed) {
+            targetX = null; // Hủy đích đến của chuột khi dùng phím
+            isMoved = true;
+        } 
+        // 2. Nếu không bấm phím nhưng có điểm click chuột/chạm thì di chuyển tới điểm đó
+        else if (targetX !== null && targetY !== null) {
+            const distX = targetX - myPlayer.x;
+            const distY = targetY - myPlayer.y;
+            const distance = Math.sqrt(distX * distX + distY * distY);
 
-            if (distance > 4) {
-                const angle = Phaser.Math.Angle.Between(myPlayer.x, myPlayer.y, targetPosition.x, targetPosition.y);
+            if (distance > speed) {
+                const angle = Math.atan2(distY, distX);
                 myPlayer.x += Math.cos(angle) * speed;
                 myPlayer.y += Math.sin(angle) * speed;
-                moved = true;
+                isMoved = true;
             } else {
-                targetPosition = null; // Đã tới đích
+                // Đã đến nơi, dừng lại
+                myPlayer.x = targetX;
+                myPlayer.y = targetY;
+                targetX = null;
+                targetY = null;
+                isMoved = true;
             }
         }
 
-        // Gửi tọa độ mới lên Server
-        if (moved) {
+        // Gửi tọa độ lên Server nếu nhân vật thay đổi vị trí
+        if (isMoved) {
             socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
         }
     }
