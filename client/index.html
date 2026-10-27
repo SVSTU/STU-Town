@@ -14,8 +14,145 @@
 <body>
 
 <script>
+    console.log("Đang khởi tạo ứng dụng...");
     const SERVER_URL = "https://stu-town-server.onrender.com";
     const socket = io(SERVER_URL);
+
+    let players = {};
+    let myPlayerId = null;
+    let cursors;
+    let wasd;
+    let targetX = null;
+    let targetY = null;
+
+    class MainScene extends Phaser.Scene {
+        constructor() {
+            super('MainScene');
+        }
+
+        preload() {
+            console.log("Scene Preload đang chạy...");
+        }
+
+        create() {
+            console.log("Scene Create đã chạy thành công!");
+            const self = this;
+
+            // Bắt phím bàn phím
+            cursors = this.input.keyboard.createCursorKeys();
+            wasd = this.input.keyboard.addKeys({
+                up: Phaser.Input.Keyboard.KeyCodes.W,
+                down: Phaser.Input.Keyboard.KeyCodes.S,
+                left: Phaser.Input.Keyboard.KeyCodes.A,
+                right: Phaser.Input.Keyboard.KeyCodes.D
+            });
+
+            // Bắt sự kiện click chuột/chạm màn hình của Phaser
+            this.input.on('pointerdown', (pointer) => {
+                targetX = pointer.x;
+                targetY = pointer.y;
+                console.log("Đã click chuột tại tọa độ:", targetX, targetY);
+            });
+
+            // Lắng nghe sự kiện từ Server
+            socket.on('connect', () => {
+                myPlayerId = socket.id;
+                console.log("Đã kết nối Socket.io thành công, ID của tôi là:", myPlayerId);
+            });
+
+            socket.on('currentPlayers', (serverPlayers) => {
+                console.log("Nhận danh sách người chơi hiện tại từ server:", serverPlayers);
+                Object.keys(serverPlayers).forEach((id) => {
+                    if (!players[id]) {
+                        addPlayer(self, serverPlayers[id]);
+                    }
+                });
+            });
+
+            socket.on('newPlayer', (playerInfo) => {
+                console.log("Có người chơi mới tham gia:", playerInfo.id);
+                if (!players[playerInfo.id]) {
+                    addPlayer(self, playerInfo);
+                }
+            });
+
+            socket.on('playerMoved', (playerInfo) => {
+                if (players[playerInfo.id] && playerInfo.id !== myPlayerId) {
+                    players[playerInfo.id].x = playerInfo.x;
+                    players[playerInfo.id].y = playerInfo.y;
+                }
+            });
+
+            socket.on('playerDisconnected', (id) => {
+                console.log("Người chơi ngắt kết nối:", id);
+                if (players[id]) {
+                    players[id].destroy();
+                    delete players[id];
+                }
+            });
+        }
+
+        update() {
+            if (!myPlayerId || !players[myPlayerId]) return;
+
+            const myPlayer = players[myPlayerId];
+            let speed = 4;
+            let isMoved = false;
+
+            let keyboardPressed = false;
+            if (cursors.left.isDown || wasd.left.isDown) {
+                myPlayer.x -= speed;
+                keyboardPressed = true;
+            } else if (cursors.right.isDown || wasd.right.isDown) {
+                myPlayer.x += speed;
+                keyboardPressed = true;
+            }
+
+            if (cursors.up.isDown || wasd.up.isDown) {
+                myPlayer.y -= speed;
+                keyboardPressed = true;
+            } else if (cursors.down.isDown || wasd.down.isDown) {
+                myPlayer.y += speed;
+                keyboardPressed = true;
+            }
+
+            if (keyboardPressed) {
+                targetX = null;
+                targetY = null;
+                isMoved = true;
+            } 
+            else if (targetX !== null && targetY !== null) {
+                const distX = targetX - myPlayer.x;
+                const distY = targetY - myPlayer.y;
+                const distance = Math.sqrt(distX * distX + distY * distY);
+
+                if (distance > speed) {
+                    const angle = Math.atan2(distY, distX);
+                    myPlayer.x += Math.cos(angle) * speed;
+                    myPlayer.y += Math.sin(angle) * speed;
+                    isMoved = true;
+                } else {
+                    myPlayer.x = targetX;
+                    myPlayer.y = targetY;
+                    targetX = null;
+                    targetY = null;
+                    isMoved = true;
+                }
+            }
+
+            if (isMoved) {
+                socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
+            }
+        }
+    }
+
+    function addPlayer(scene, playerInfo) {
+        const circle = scene.add.circle(playerInfo.x, playerInfo.y, 12, 0xff5500);
+        scene.physics.add.existing(circle);
+        circle.body.setCollideWorldBounds(true);
+        players[playerInfo.id] = circle;
+        console.log("Đã vẽ nhân vật lên màn hình cho ID:", playerInfo.id);
+    }
 
     const config = {
         type: Phaser.AUTO,
@@ -26,136 +163,10 @@
             default: 'arcade',
             arcade: { debug: false }
         },
-        scene: {
-            preload: preload,
-            create: create,
-            update: update
-        }
+        scene: MainScene
     };
 
     const game = new Phaser.Game(config);
-    let players = {};
-    let myPlayerId = null;
-    let cursors;
-    let wasd;
-    let targetX = null;
-    let targetY = null;
-
-    function preload() {}
-
-    function create() {
-        const self = this;
-
-        // Bắt phím
-        cursors = this.input.keyboard.createCursorKeys();
-        wasd = this.input.keyboard.addKeys({
-            up: Phaser.Input.Keyboard.KeyCodes.W,
-            down: Phaser.Input.Keyboard.KeyCodes.S,
-            left: Phaser.Input.Keyboard.KeyCodes.A,
-            right: Phaser.Input.Keyboard.KeyCodes.D
-        });
-
-        // Sử dụng hệ thống pointer chuẩn của Phaser (tự động tính toán tọa độ khung game)
-        this.input.on('pointerdown', (pointer) => {
-            targetX = pointer.x;
-            targetY = pointer.y;
-            console.log("Đã click chuột tại tọa độ:", targetX, targetY);
-        });
-
-        socket.on('connect', () => {
-            myPlayerId = socket.id;
-            console.log("Đã kết nối Server, ID của tôi là:", myPlayerId);
-        });
-
-        socket.on('currentPlayers', (serverPlayers) => {
-            Object.keys(serverPlayers).forEach((id) => {
-                if (!players[id]) {
-                    addPlayer(self, serverPlayers[id]);
-                }
-            });
-        });
-
-        socket.on('newPlayer', (playerInfo) => {
-            if (!players[playerInfo.id]) {
-                addPlayer(self, playerInfo);
-            }
-        });
-
-        socket.on('playerMoved', (playerInfo) => {
-            if (players[playerInfo.id] && playerInfo.id !== myPlayerId) {
-                players[playerInfo.id].x = playerInfo.x;
-                players[playerInfo.id].y = playerInfo.y;
-            }
-        });
-
-        socket.on('playerDisconnected', (id) => {
-            if (players[id]) {
-                players[id].destroy();
-                delete players[id];
-            }
-        });
-    }
-
-    function addPlayer(scene, playerInfo) {
-        const circle = scene.add.circle(playerInfo.x, playerInfo.y, 12, 0xff5500);
-        scene.physics.add.existing(circle);
-        circle.body.setCollideWorldBounds(true);
-        players[playerInfo.id] = circle;
-        console.log("Đã tạo nhân vật cho ID:", playerInfo.id);
-    }
-
-    function update() {
-        if (!myPlayerId || !players[myPlayerId]) return;
-
-        const myPlayer = players[myPlayerId];
-        let speed = 4;
-        let isMoved = false;
-
-        let keyboardPressed = false;
-        if (cursors.left.isDown || wasd.left.isDown) {
-            myPlayer.x -= speed;
-            keyboardPressed = true;
-        } else if (cursors.right.isDown || wasd.right.isDown) {
-            myPlayer.x += speed;
-            keyboardPressed = true;
-        }
-
-        if (cursors.up.isDown || wasd.up.isDown) {
-            myPlayer.y -= speed;
-            keyboardPressed = true;
-        } else if (cursors.down.isDown || wasd.down.isDown) {
-            myPlayer.y += speed;
-            keyboardPressed = true;
-        }
-
-        if (keyboardPressed) {
-            targetX = null;
-            targetY = null;
-            isMoved = true;
-        } 
-        else if (targetX !== null && targetY !== null) {
-            const distX = targetX - myPlayer.x;
-            const distY = targetY - myPlayer.y;
-            const distance = Math.sqrt(distX * distX + distY * distY);
-
-            if (distance > speed) {
-                const angle = Math.atan2(distY, distX);
-                myPlayer.x += Math.cos(angle) * speed;
-                myPlayer.y += Math.sin(angle) * speed;
-                isMoved = true;
-            } else {
-                myPlayer.x = targetX;
-                myPlayer.y = targetY;
-                targetX = null;
-                targetY = null;
-                isMoved = true;
-            }
-        }
-
-        if (isMoved) {
-            socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
-        }
-    }
 </script>
 </body>
 </html>
