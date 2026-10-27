@@ -14,8 +14,8 @@
             position: absolute;
             bottom: 20px;
             left: 20px;
-            width: 300px;
-            background: rgba(0, 0, 0, 0.7);
+            width: 310px;
+            background: rgba(0, 0, 0, 0.75);
             border-radius: 8px;
             padding: 10px;
             display: flex;
@@ -27,18 +27,31 @@
         #avatar-section {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
             background: rgba(255, 255, 255, 0.1);
             padding: 6px;
             border-radius: 4px;
             font-size: 12px;
             color: #fff;
+            gap: 5px;
         }
         #avatar-input {
             font-size: 11px;
             color: #fff;
-            width: 100%;
+            flex: 1;
         }
+        #avatar-submit {
+            padding: 4px 8px;
+            background: #0088ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        #avatar-submit:hover { background: #0066cc; }
+
         #chat-messages {
             height: 100px;
             overflow-y: auto;
@@ -81,10 +94,10 @@
 <body>
 
     <div id="chat-container">
-        <!-- Nút chọn ảnh đại diện -->
+        <!-- Phần chọn ảnh và nút Áp dụng -->
         <div id="avatar-section">
-            <label for="avatar-input">Đổi Avatar:</label>
-            <input type="file" id="avatar-input" accept="image/*" onchange="handleAvatarUpload(event)">
+            <input type="file" id="avatar-input" accept="image/*">
+            <button id="avatar-submit" onclick="applyAvatar()">Áp dụng</button>
         </div>
 
         <div id="chat-messages"></div>
@@ -102,7 +115,6 @@
     let targetPosition = null;
     let cursors;
     let sceneRef = null;
-    let myCustomAvatar = null; // Lưu trữ chuỗi Base64 của ảnh đại diện cá nhân
 
     const config = {
         type: Phaser.AUTO,
@@ -172,7 +184,7 @@
             }
         });
 
-        // Lắng nghe sự kiện người chơi đổi avatar
+        // Lắng nghe sự kiện người chơi khác đổi avatar
         socket.on('playerAvatarUpdated', (data) => {
             if (players[data.id]) {
                 updatePlayerAvatar(sceneRef, players[data.id], data.avatar, data.id);
@@ -220,16 +232,15 @@
         const isMe = (id === socket.id);
         const radius = isMe ? 18 : 15;
 
-        // Tạo container chứa nhân vật
         const container = scene.add.container(info.x, info.y);
 
-        // Hình nền tròn cho avatar
+        // Vòng tròn nền
         const bgCircle = scene.add.circle(0, 0, radius, isMe ? 0x00ff55 : 0xff5500);
         container.add(bgCircle);
 
-        // Nếu người chơi có avatar riêng, hiển thị ảnh lên
+        // Nếu có avatar từ server gửi sang
         if (info.avatar) {
-            loadAvatarImage(scene, container, info.avatar, radius);
+            setAvatarToContainer(scene, container, info.avatar, radius);
         }
 
         const shortId = id.substring(0, 4);
@@ -242,60 +253,69 @@
         }).setOrigin(0.5);
 
         container.textLabel = text;
-        scene.add.existing(container); // Đảm bảo container hiện lên scene
+        scene.add.existing(container);
         players[id] = container;
     }
 
-    // Hàm load ảnh đại diện vào container
-    function loadAvatarImage(scene, container, base64Str, radius) {
-        const imgKey = 'avatar_' + Math.random();
-        scene.load.image(imgKey, base64Str);
-        scene.load.once('complete', () => {
-            if (scene.textures.exists(imgKey)) {
-                // Xóa avatar cũ bên trong container nếu có
-                if (container.avatarSprite) container.avatarSprite.destroy();
-
-                const avatarSprite = scene.add.image(0, 0, imgKey);
-                avatarSprite.setDisplaySize(radius * 2, radius * 2);
-                
-                // Tạo mặt nạ hình tròn (circle mask) để bo tròn ảnh avatar
-                const maskShape = scene.make.graphics();
-                maskShape.fillStyle(0xffffff);
-                maskShape.beginPath();
-                maskShape.arc(container.x, container.y, radius, 0, Math.PI * 2);
-                maskShape.fillPath();
-                
-                const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
-                avatarSprite.setMask(mask);
-
-                container.add(avatarSprite);
-                container.avatarSprite = avatarSprite;
+    // Hàm gắn ảnh trực tiếp bằng HTML Image vào Phaser Texture an toàn tuyệt đối
+    function setAvatarToContainer(scene, container, base64Str, radius) {
+        const img = new Image();
+        img.src = base64Str;
+        img.onload = function() {
+            const textureKey = 'tex_' + Math.random();
+            if (scene.textures.exists(textureKey)) {
+                scene.textures.remove(textureKey);
             }
-        });
-        scene.load.start();
+            scene.textures.addImage(textureKey, img);
+
+            if (container.avatarSprite) {
+                container.avatarSprite.destroy();
+            }
+
+            const avatarSprite = scene.add.image(0, 0, textureKey);
+            avatarSprite.setDisplaySize(radius * 2, radius * 2);
+
+            // Tạo mặt nạ bo tròn
+            const maskShape = scene.make.graphics();
+            maskShape.fillStyle(0xffffff);
+            maskShape.beginPath();
+            maskShape.arc(0, 0, radius, 0, Math.PI * 2);
+            maskShape.fillPath();
+
+            const mask = new Phaser.Display.Masks.GeometryMask(scene, maskShape);
+            avatarSprite.setMask(mask);
+
+            container.add(avatarSprite);
+            container.avatarSprite = avatarSprite;
+        };
     }
 
     function updatePlayerAvatar(scene, container, base64Str, id) {
         const radius = (id === socket.id) ? 18 : 15;
-        loadAvatarImage(scene, container, base64Str, radius);
+        setAvatarToContainer(scene, container, base64Str, radius);
     }
 
-    // Xử lý khi người dùng chọn file ảnh từ máy
-    function handleAvatarUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    // Khi người dùng bấm nút "Áp dụng"
+    function applyAvatar() {
+        const fileInput = document.getElementById('avatar-input');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Vui lòng chọn một tệp ảnh trước khi bấm Áp dụng!");
+            return;
+        }
 
         const reader = new FileReader();
         reader.onload = function(e) {
-            myCustomAvatar = e.target.result; // Dữ liệu ảnh dạng Base64
-            
-            // Cập nhật ngay cho nhân vật của mình trên màn hình
+            const base64Data = e.target.result;
+
+            // Cập nhật ngay cho nhân vật của mình
             if (sceneRef && players[socket.id]) {
-                updatePlayerAvatar(sceneRef, players[socket.id], myCustomAvatar, socket.id);
+                updatePlayerAvatar(sceneRef, players[socket.id], base64Data, socket.id);
             }
 
-            // Gửi ảnh đại diện lên server để đồng bộ cho các tab/người chơi khác
-            socket.emit('updateAvatar', myCustomAvatar);
+            // Gửi lên server để đồng bộ cho các tab/người chơi khác
+            socket.emit('updateAvatar', base64Data);
+            console.log("Đã cập nhật và phát tán Avatar thành công!");
         };
         reader.readAsDataURL(file);
     }
