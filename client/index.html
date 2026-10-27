@@ -20,6 +20,7 @@
     let myId = null;
     let clickTarget = null;
     let cursors, wasd;
+    let sceneRef = null;
 
     const config = {
         type: Phaser.AUTO,
@@ -34,18 +35,18 @@
     function preload() {}
 
     function create() {
-        const scene = this;
+        sceneRef = this;
         console.log("SCENE CREATED SUCCESSFULLY!");
 
-        cursors = scene.input.keyboard.createCursorKeys();
-        wasd = scene.input.keyboard.addKeys({
+        cursors = sceneRef.input.keyboard.createCursorKeys();
+        wasd = sceneRef.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
             down: Phaser.Input.Keyboard.KeyCodes.S,
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        scene.input.on('pointerdown', (pointer) => {
+        sceneRef.input.on('pointerdown', (pointer) => {
             clickTarget = { x: pointer.x, y: pointer.y };
         });
 
@@ -56,24 +57,33 @@
 
         socket.on('currentPlayers', (serverPlayers) => {
             Object.keys(serverPlayers).forEach((id) => {
-                if (!players[id]) createPlayer(scene, serverPlayers[id], id);
+                if (!players[id]) {
+                    createPlayer(sceneRef, serverPlayers[id], id);
+                }
             });
         });
 
         socket.on('newPlayer', (playerInfo) => {
-            if (!players[playerInfo.id]) createPlayer(scene, playerInfo, playerInfo.id);
+            if (!players[playerInfo.id]) {
+                createPlayer(sceneRef, playerInfo, playerInfo.id);
+            }
         });
 
-        // Đồng bộ vị trí khi người chơi khác di chuyển
         socket.on('playerMoved', (playerInfo) => {
-            if (players[playerInfo.id] && playerInfo.id !== myId) {
+            if (players[playerInfo.id]) {
+                // Cập nhật tọa độ hình tròn và nhãn tên của người chơi tương ứng
                 players[playerInfo.id].x = playerInfo.x;
                 players[playerInfo.id].y = playerInfo.y;
+                if (players[playerInfo.id].textLabel) {
+                    players[playerInfo.id].textLabel.x = playerInfo.x;
+                    players[playerInfo.id].textLabel.y = playerInfo.y - 25;
+                }
             }
         });
 
         socket.on('playerDisconnected', (id) => {
             if (players[id]) {
+                if (players[id].textLabel) players[id].textLabel.destroy();
                 players[id].destroy();
                 delete players[id];
             }
@@ -81,15 +91,14 @@
     }
 
     function createPlayer(scene, info, id) {
-        const isMe = (id === myId);
+        // Kiểm tra chính xác ID có phải là của mình không
+        const isMe = (id === socket.id);
 
-        // Phân biệt: Bản thân màu Xanh lá (to hơn), Khách màu Cam
         const color = isMe ? 0x00ff55 : 0xff5500;
         const radius = isMe ? 15 : 12;
 
         const circle = scene.add.circle(info.x, info.y, radius, color);
         
-        // Nhãn tên trên đầu
         const labelText = isMe ? "Bạn" : "Khách";
         const text = scene.add.text(info.x, info.y - 25, labelText, {
             font: '14px Arial',
@@ -98,13 +107,19 @@
             padding: { x: 4, y: 2 }
         }).setOrigin(0.5);
 
-        // Lưu gom chung vào một đối tượng hiển thị tọa độ trực tiếp
+        circle.textLabel = text;
         players[id] = circle;
-        players[id].textLabel = text;
+        console.log(`Đã tạo nhân vật [${labelText}] cho ID:`, id);
     }
 
     function update() {
-        if (!myId || !players[myId]) return;
+        if (!myId || !players[myId]) {
+            // Nếu chưa khởi tạo kịp nhân vật của mình, thử gán lại nếu socket.id đã có
+            if (socket.id && players[socket.id]) {
+                myId = socket.id;
+            }
+            return;
+        }
 
         const p = players[myId];
         let speed = 4;
@@ -139,13 +154,13 @@
             }
         }
 
-        // Cập nhật vị trí chữ "Bạn" đi theo hình tròn xanh lá
+        // Cập nhật vị trí nhãn tên "Bạn" đi theo nhân vật của mình
         if (p.textLabel) {
             p.textLabel.x = p.x;
             p.textLabel.y = p.y - 25;
         }
 
-        // Gửi tọa độ mới lên server để đồng bộ sang máy người chơi khác
+        // Gửi tọa độ cập nhật lên server ngay lập tức
         if (moved) {
             socket.emit('playerMovement', { x: p.x, y: p.y });
         }
