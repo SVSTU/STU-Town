@@ -277,3 +277,46 @@ function sendChat(event) {
     if (text !== "") {
         socket.emit('sendChatMessage', text);
         input.value = "";
+    }
+}
+
+function update() {
+    if (!socket.id || !players[socket.id]) return;
+
+    const p = players[socket.id];
+    let speed = 4;
+    let isMoved = false;
+
+    let keyActive = false;
+    if (cursors.left.isDown) { p.x -= speed; keyActive = true; }
+    else if (cursors.right.isDown) { p.x += speed; keyActive = true; }
+
+    if (cursors.up.isDown) { p.y -= speed; keyActive = true; }
+    else if (cursors.down.isDown) { p.y += speed; keyActive = true; }
+
+    if (keyActive) {
+        targetPosition = null;
+        isMoved = true;
+    } 
+    else if (targetPosition !== null) {
+        let dx = targetPosition.x - p.x;
+        let dy = targetPosition.y - p.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > speed) {
+            let angle = Math.atan2(dy, dx);
+            p.x += Math.cos(angle) * speed;
+            p.y += Math.sin(angle) * speed;
+            isMoved = true;
+        } else {
+            p.x = targetPosition.x;
+            p.y = targetPosition.y;
+            targetPosition = null;
+            isMoved = true;
+        }
+    }
+
+    if (isMoved) {
+        socket.emit('playerMovement', { x: p.x, y: p.y });
+    }
+}
