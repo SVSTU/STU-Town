@@ -136,26 +136,24 @@ function createPlayer(scene, info, id) {
     container.add(textLabel);
     container.textLabel = textLabel;
 
-    // 3. Nếu có avatar, nạp ảnh vào container trực tiếp từ đối tượng Image
-    if (info.avatar) {
-        setAvatarFromImage(scene, container, info.avatar, radius, borderColor);
-    }
+    // 3. Lấy avatar: Nếu server có avatar riêng thì dùng, ngược lại dùng mặc định 'stu.png'
+    const avatarSrc = (info.avatar && info.avatar !== "") ? info.avatar : 'stu.png';
+    setAvatarFromImage(scene, container, avatarSrc, radius, borderColor);
 
     scene.add.existing(container);
     players[id] = container;
 }
 
-// Xử lý nạp ảnh trực tiếp qua thẻ Image chuẩn xác
-function setAvatarFromImage(scene, container, base64Str, radius, borderColor) {
+// Xử lý nạp ảnh (hỗ trợ cả đường dẫn file 'stu.png' lẫn chuỗi Base64)
+function setAvatarFromImage(scene, container, imageSource, radius, borderColor) {
     const img = new Image();
-    img.src = base64Str;
+    img.src = imageSource;
     img.onload = function() {
         const textureKey = 'avatar_img_' + Math.random();
         if (scene.textures.exists(textureKey)) {
             scene.textures.remove(textureKey);
         }
         
-        // Đưa trực tiếp đối tượng ảnh vào bộ nhớ texture của Phaser
         scene.textures.addImage(textureKey, img);
 
         if (container.avatarSprite) {
@@ -165,7 +163,7 @@ function setAvatarFromImage(scene, container, base64Str, radius, borderColor) {
         const avatarSprite = scene.add.image(0, 0, textureKey);
         avatarSprite.setDisplaySize(radius * 2, radius * 2);
 
-        // Tạo mặt nạ bo tròn (mask) ôm trọn ảnh theo kích thước vòng tròn
+        // Tạo mặt nạ bo tròn bọc khít vòng tròn
         const maskShape = scene.make.graphics();
         maskShape.fillStyle(0xffffff);
         maskShape.beginPath();
@@ -220,7 +218,7 @@ function applyAvatar() {
 
         // Gửi chuỗi ảnh lên server để đồng bộ sang các tab/người chơi khác
         socket.emit('updateAvatar', base64String);
-        console.log("Đã áp dụng ảnh đại diện (Image) thành công!");
+        console.log("Đã áp dụng ảnh đại diện thành công!");
     };
     reader.readAsDataURL(file);
 }
