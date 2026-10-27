@@ -54,11 +54,12 @@
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // Bắt sự kiện Click chuột hoặc Chạm màn hình (hỗ trợ cả mobile)
+        // Bắt sự kiện Click chuột hoặc Chạm màn hình bằng đối tượng trỏ (Pointer) của Phaser
         this.input.on('pointerdown', function (pointer) {
+            // Lấy tọa độ chính xác bên trong khung game (tính cả scale của canvas)
             targetPosition = {
-                x: pointer.x,
-                y: pointer.y
+                x: pointer.worldX,
+                y: pointer.worldY
             };
         });
 
@@ -110,7 +111,7 @@
         let speed = 4;
         let moved = false;
 
-        // 1. Điều khiển bằng Bàn phím (WASD / Mũi tên)
+        // 1. Điều khiển bằng Bàn phím (WASD / Mũi tên) -> Ưu tiên ngắt mục tiêu chuột nếu bấm phím
         if (cursors.left.isDown || wasd.left.isDown) {
             myPlayer.x -= speed;
             moved = true;
@@ -131,7 +132,7 @@
             targetPosition = null;
         }
 
-        // 2. Điều khiển bằng Click chuột hoặc Chạm màn hình
+        // 2. Điều khiển tự động di chuyển đến điểm Click chuột / Chạm màn hình
         if (targetPosition && !moved) {
             const distance = Phaser.Math.Distance.Between(myPlayer.x, myPlayer.y, targetPosition.x, targetPosition.y);
 
@@ -141,11 +142,11 @@
                 myPlayer.y += Math.sin(angle) * speed;
                 moved = true;
             } else {
-                targetPosition = null; // Đã tới điểm chạm
+                targetPosition = null; // Đã đến nơi
             }
         }
 
-        // Gửi tọa độ lên Server khi có dịch chuyển
+        // Gửi tọa độ lên Server khi nhân vật dịch chuyển
         if (moved) {
             socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
         }
