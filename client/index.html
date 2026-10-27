@@ -13,16 +13,31 @@
 <body>
 
     <div id="chat-container">
-        <div id="avatar-section">
-            <input type="file" id="avatar-input" accept="image/*">
-            <button id="avatar-submit" onclick="applyAvatar()">Áp dụng</button>
+        <div id="chat-header">
+            <strong>STU-Town</strong>
+            <button id="chat-toggle" type="button" aria-label="Thu nhỏ khung chat" aria-expanded="true">−</button>
         </div>
 
+        <div id="chat-content">
+        <form id="profile-form" onsubmit="saveProfile(event)">
+            <input type="text" id="nickname-input" maxlength="24" placeholder="Nickname" aria-label="Nickname">
+            <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
+            <button type="submit" id="profile-submit">Lưu hồ sơ</button>
+        </form>
         <div id="chat-messages"></div>
+        <div id="emoji-picker" aria-label="Chọn emoji">
+            <button type="button" data-emoji="😀">😀</button>
+            <button type="button" data-emoji="😂">😂</button>
+            <button type="button" data-emoji="❤️">❤️</button>
+            <button type="button" data-emoji="👍">👍</button>
+            <button type="button" data-emoji="🎉">🎉</button>
+        </div>
         <form id="chat-form" onsubmit="sendChat(event)">
             <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off">
+            <button type="button" id="emoji-toggle" aria-label="Mở emoji">😊</button>
             <button type="submit" id="chat-submit">Gửi</button>
         </form>
+        </div>
     </div>
 
     <!-- Nhúng file Logic Game riêng -->

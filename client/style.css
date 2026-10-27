@@ -27,27 +27,67 @@ canvas {
     gap: 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     z-index: 10;
+    color: #fff;
 }
 
-#avatar-section {
+#chat-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-height: 26px;
+}
+
+#chat-toggle, #emoji-toggle {
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#chat-toggle {
+    width: 28px;
+    height: 26px;
+    color: #fff;
+    background: #444;
+    font-size: 18px;
+}
+
+#chat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#chat-container.is-collapsed #chat-content {
+    display: none;
+}
+
+#profile-form {
+    display: flex;
+    flex-wrap: wrap;
     background: rgba(255, 255, 255, 0.1);
     padding: 6px;
     border-radius: 4px;
     font-size: 12px;
-    color: #fff;
     gap: 5px;
+}
+
+#nickname-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px;
+    border: 0;
+    border-radius: 4px;
 }
 
 #avatar-input {
     font-size: 11px;
     color: #fff;
     flex: 1;
+    min-width: 0;
 }
 
-#avatar-submit {
+#profile-submit {
     padding: 4px 8px;
     background: #0088ff;
     color: #fff;
@@ -57,7 +97,7 @@ canvas {
     cursor: pointer;
     font-size: 11px;
 }
-#avatar-submit:hover { background: #0066cc; }
+#profile-submit:hover { background: #0066cc; }
 
 #chat-messages {
     height: 100px;
@@ -78,6 +118,35 @@ canvas {
 }
 
 .chat-time { color: #aaa; font-size: 11px; }
+
+.chat-message-content { display: inline; }
+
+.chat-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.reaction-button, #emoji-picker button, #emoji-toggle {
+    border: 1px solid #555;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    cursor: pointer;
+}
+
+.reaction-button { padding: 1px 5px; font-size: 11px; }
+.reaction-button.is-active { border-color: #00ff88; background: rgba(0,255,136,0.25); }
+
+#emoji-picker {
+    display: none;
+    gap: 5px;
+}
+
+#emoji-picker.is-open { display: flex; }
+#emoji-picker button { padding: 4px 7px; }
+#emoji-toggle { padding: 4px 7px; font-size: 16px; }
 
 #chat-form {
     display: flex;
@@ -102,3 +171,7 @@ canvas {
     cursor: pointer;
 }
 #chat-submit:hover { background: #00cc44; }
+
+@media (max-width: 480px) {
+    #chat-container { left: 10px; bottom: 10px; width: min(310px, calc(100vw - 40px)); }
+}

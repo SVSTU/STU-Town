@@ -4,6 +4,9 @@ const serverUrl = ['localhost', '127.0.0.1'].includes(location.hostname)
     ? `${location.protocol}//${location.hostname}:3000`
     : "https://stu-town-server.onrender.com";
 const socket = io(serverUrl, { autoConnect: false });
+const PROFILE_STORAGE_KEY = 'stu-town-profile';
+const REACTION_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
+let profile = loadProfile();
 
 let players = {};
 let targetPosition = null;
@@ -54,6 +57,7 @@ function create() {
 
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
+        socket.emit('updateProfile', profile);
     });
 
     socket.on('currentPlayers', (serverPlayers) => {
@@ -78,10 +82,11 @@ function create() {
         }
     });
 
-    socket.on('playerAvatarUpdated', (data) => {
-        if (players[data.id]) {
-            updatePlayerAvatar(sceneRef, players[data.id], data.avatar);
-        }
+    socket.on('playerProfileUpdated', (data) => {
+        const player = players[data.id];
+        if (!player) return;
+        updatePlayerName(player, data.nickname, data.id);
+        if (data.avatar) updatePlayerAvatar(sceneRef, player, data.avatar);
     });
 
     socket.on('playerDisconnected', (id) => {
@@ -94,7 +99,7 @@ function create() {
     socket.on('chatMessage', (data) => {
         const isMe = (data.id === socket.id);
         const shortId = data.id.substring(0, 4);
-        const senderName = isMe ? "Bạn" : `Khách (${shortId})`;
+        const senderName = isMe ? (profile.nickname || 'Bạn') : (data.nickname || `Khách (${shortId})`);
 
         const now = new Date();
         const timeString = now.toTimeString().split(' ')[0];
@@ -109,7 +114,22 @@ function create() {
         sender.textContent = `${senderName}: `;
         const messageText = document.createElement('span');
         messageText.textContent = String(data.message).slice(0, 300);
-        line.append(time, sender, messageText);
+        line.dataset.messageId = data.messageId || '';
+        const content = document.createElement('div');
+        content.className = 'chat-message-content';
+        content.append(sender, messageText);
+        const reactions = document.createElement('div');
+        reactions.className = 'chat-reactions';
+        REACTION_EMOJIS.forEach((emoji) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'reaction-button';
+            button.dataset.emoji = emoji;
+            button.setAttribute('aria-label', `Thả reaction ${emoji}`);
+            button.textContent = emoji;
+            reactions.appendChild(button);
+        });
+        line.append(time, content, reactions);
         chatMessages.appendChild(line);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -117,6 +137,38 @@ function create() {
             showChatBubble(sceneRef, players[data.id], data.message);
         }
     });
+
+    socket.on('chatReaction', (data) => {
+        const line = [...document.querySelectorAll('.chat-line')]
+            .find((item) => item.dataset.messageId === data.messageId);
+        if (!line) return;
+        const button = line.querySelector(`[data-emoji="${CSS.escape(data.emoji)}"]`);
+        if (!button) return;
+        button.classList.toggle('is-active', data.reactedBy.includes(socket.id));
+        button.dataset.count = String(data.count);
+        button.textContent = data.count ? `${data.emoji} ${data.count}` : data.emoji;
+    });
+
+    document.getElementById('chat-messages').addEventListener('click', (event) => {
+        const button = event.target.closest('.reaction-button');
+        const line = button?.closest('.chat-line');
+        if (button && line?.dataset.messageId) {
+            socket.emit('reactToMessage', { messageId: line.dataset.messageId, emoji: button.dataset.emoji });
+        }
+    });
+
+    document.getElementById('chat-toggle').addEventListener('click', toggleChat);
+    document.getElementById('emoji-toggle').addEventListener('click', () => {
+        document.getElementById('emoji-picker').classList.toggle('is-open');
+    });
+    document.getElementById('emoji-picker').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-emoji]');
+        if (!button) return;
+        const input = document.getElementById('chat-input');
+        input.value += button.dataset.emoji;
+        input.focus();
+    });
+    document.getElementById('nickname-input').value = profile.nickname;
 
     // Đăng ký toàn bộ listener trước khi kết nối để không bỏ lỡ currentPlayers.
     socket.connect();
@@ -138,7 +190,7 @@ function createPlayer(scene, info, id) {
 
     // 1. Nhãn tên hiển thị trên đầu
     const shortId = id.substring(0, 4);
-    const labelText = isMe ? "Bạn" : `Khách (${shortId})`;
+    const labelText = info.nickname || (isMe ? profile.nickname : '') || (isMe ? 'Bạn' : `Khách (${shortId})`);
     const textLabel = scene.add.text(0, -28, labelText, {
         font: '13px Arial',
         fill: '#ffffff',
@@ -156,8 +208,9 @@ function createPlayer(scene, info, id) {
 
     container.playerId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
     // 3. Avatar tùy chỉnh hoặc ảnh mặc định
-    if (info.avatar && typeof info.avatar === 'string' && info.avatar.startsWith('data:image/')) {
-        setAvatarFromBase64(scene, container, info.avatar);
+    const avatar = info.avatar || (isMe ? profile.avatar : null);
+    if (avatar && typeof avatar === 'string' && avatar.startsWith('data:image/')) {
+        setAvatarFromBase64(scene, container, avatar);
     } else {
         container.avatarSprite = scene.add.image(0, 0, 'avatar-default').setDisplaySize(radius * 2, radius * 2);
         container.addAt(container.avatarSprite, 1);
@@ -165,6 +218,12 @@ function createPlayer(scene, info, id) {
 
     scene.add.existing(container);
     players[id] = container;
+}
+
+function updatePlayerName(player, nickname, id) {
+    if (!player.textLabel) return;
+    const shortId = id.substring(0, 4);
+    player.textLabel.setText(nickname || (id === socket.id ? 'Bạn' : `Khách (${shortId})`));
 }
 
 // Hàm gán ảnh tải lên dạng Base64 vào nhân vật
@@ -203,26 +262,77 @@ function updatePlayerAvatar(scene, container, base64Str) {
     setAvatarFromBase64(scene, container, base64Str);
 }
 
-function applyAvatar() {
+function loadProfile() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || '{}');
+        return {
+            nickname: typeof stored.nickname === 'string' ? stored.nickname.slice(0, 24) : '',
+            avatar: typeof stored.avatar === 'string' && stored.avatar.startsWith('data:image/') ? stored.avatar : null
+        };
+    } catch {
+        return { nickname: '', avatar: null };
+    }
+}
+
+function saveProfile(event) {
+    event.preventDefault();
     const fileInput = document.getElementById('avatar-input');
     const file = fileInput.files[0];
+    const nicknameInput = document.getElementById('nickname-input');
+    profile.nickname = nicknameInput.value.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 24);
+
+    const applyProfile = () => {
+        nicknameInput.value = profile.nickname;
+        try {
+            localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+        } catch {
+            alert('Không đủ bộ nhớ trình duyệt để lưu avatar. Hãy chọn ảnh nhỏ hơn.');
+        }
+        if (socket.connected) socket.emit('updateProfile', profile);
+        const player = players[socket.id];
+        if (player) {
+            updatePlayerName(player, profile.nickname, socket.id);
+            if (profile.avatar) updatePlayerAvatar(sceneRef, player, profile.avatar);
+        }
+        console.log('Đã lưu hồ sơ cá nhân.');
+    };
+
     if (!file) {
-        alert("Vui lòng chọn một tệp ảnh trước khi bấm Áp dụng!");
+        applyProfile();
+        return;
+    }
+
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type) || file.size > 1.5 * 1024 * 1024) {
+        alert('Chọn ảnh PNG, JPEG, WebP hoặc GIF tối đa 1,5 MB để lưu được trong trình duyệt.');
         return;
     }
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const base64String = e.target.result;
-
-        if (sceneRef && players[socket.id]) {
-            updatePlayerAvatar(sceneRef, players[socket.id], base64String);
-        }
-
-        socket.emit('updateAvatar', base64String);
-        console.log("Đã áp dụng và đồng bộ ảnh đại diện thành công!");
+        const image = new Image();
+        image.onload = function() {
+            if (image.width > 2048 || image.height > 2048) {
+                alert('Kích thước ảnh tối đa là 2048 × 2048.');
+                return;
+            }
+            profile.avatar = base64String;
+            applyProfile();
+            fileInput.value = '';
+        };
+        image.onerror = () => alert('Tệp ảnh không hợp lệ.');
+        image.src = base64String;
     };
     reader.readAsDataURL(file);
+}
+
+function toggleChat() {
+    const container = document.getElementById('chat-container');
+    const toggle = document.getElementById('chat-toggle');
+    const collapsed = container.classList.toggle('is-collapsed');
+    toggle.textContent = collapsed ? '+' : '−';
+    toggle.setAttribute('aria-label', collapsed ? 'Mở rộng khung chat' : 'Thu nhỏ khung chat');
+    toggle.setAttribute('aria-expanded', String(!collapsed));
 }
 
 function showChatBubble(scene, playerContainer, message) {
