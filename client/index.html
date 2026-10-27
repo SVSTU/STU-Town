@@ -2,171 +2,134 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>STU-Town</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #1a1a1a; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 2px solid #ffffff22; border-radius: 8px; touch-action: none; cursor: pointer; }
+        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { border: 2px solid #555; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
-
 <script>
-    console.log("Đang khởi tạo ứng dụng...");
-    const SERVER_URL = "https://stu-town-server.onrender.com";
-    const socket = io(SERVER_URL);
+    console.log("GAME STARTING...");
+    const socket = io("https://stu-town-server.onrender.com");
 
     let players = {};
-    let myPlayerId = null;
-    let cursors;
-    let wasd;
+    let myId = null;
     let targetX = null;
     let targetY = null;
-
-    class MainScene extends Phaser.Scene {
-        constructor() {
-            super('MainScene');
-        }
-
-        preload() {
-            console.log("Scene Preload đang chạy...");
-        }
-
-        create() {
-            console.log("Scene Create đã chạy thành công!");
-            const self = this;
-
-            // Bắt phím bàn phím
-            cursors = this.input.keyboard.createCursorKeys();
-            wasd = this.input.keyboard.addKeys({
-                up: Phaser.Input.Keyboard.KeyCodes.W,
-                down: Phaser.Input.Keyboard.KeyCodes.S,
-                left: Phaser.Input.Keyboard.KeyCodes.A,
-                right: Phaser.Input.Keyboard.KeyCodes.D
-            });
-
-            // Bắt sự kiện click chuột/chạm màn hình của Phaser
-            this.input.on('pointerdown', (pointer) => {
-                targetX = pointer.x;
-                targetY = pointer.y;
-                console.log("Đã click chuột tại tọa độ:", targetX, targetY);
-            });
-
-            // Lắng nghe sự kiện từ Server
-            socket.on('connect', () => {
-                myPlayerId = socket.id;
-                console.log("Đã kết nối Socket.io thành công, ID của tôi là:", myPlayerId);
-            });
-
-            socket.on('currentPlayers', (serverPlayers) => {
-                console.log("Nhận danh sách người chơi hiện tại từ server:", serverPlayers);
-                Object.keys(serverPlayers).forEach((id) => {
-                    if (!players[id]) {
-                        addPlayer(self, serverPlayers[id]);
-                    }
-                });
-            });
-
-            socket.on('newPlayer', (playerInfo) => {
-                console.log("Có người chơi mới tham gia:", playerInfo.id);
-                if (!players[playerInfo.id]) {
-                    addPlayer(self, playerInfo);
-                }
-            });
-
-            socket.on('playerMoved', (playerInfo) => {
-                if (players[playerInfo.id] && playerInfo.id !== myPlayerId) {
-                    players[playerInfo.id].x = playerInfo.x;
-                    players[playerInfo.id].y = playerInfo.y;
-                }
-            });
-
-            socket.on('playerDisconnected', (id) => {
-                console.log("Người chơi ngắt kết nối:", id);
-                if (players[id]) {
-                    players[id].destroy();
-                    delete players[id];
-                }
-            });
-        }
-
-        update() {
-            if (!myPlayerId || !players[myPlayerId]) return;
-
-            const myPlayer = players[myPlayerId];
-            let speed = 4;
-            let isMoved = false;
-
-            let keyboardPressed = false;
-            if (cursors.left.isDown || wasd.left.isDown) {
-                myPlayer.x -= speed;
-                keyboardPressed = true;
-            } else if (cursors.right.isDown || wasd.right.isDown) {
-                myPlayer.x += speed;
-                keyboardPressed = true;
-            }
-
-            if (cursors.up.isDown || wasd.up.isDown) {
-                myPlayer.y -= speed;
-                keyboardPressed = true;
-            } else if (cursors.down.isDown || wasd.down.isDown) {
-                myPlayer.y += speed;
-                keyboardPressed = true;
-            }
-
-            if (keyboardPressed) {
-                targetX = null;
-                targetY = null;
-                isMoved = true;
-            } 
-            else if (targetX !== null && targetY !== null) {
-                const distX = targetX - myPlayer.x;
-                const distY = targetY - myPlayer.y;
-                const distance = Math.sqrt(distX * distX + distY * distY);
-
-                if (distance > speed) {
-                    const angle = Math.atan2(distY, distX);
-                    myPlayer.x += Math.cos(angle) * speed;
-                    myPlayer.y += Math.sin(angle) * speed;
-                    isMoved = true;
-                } else {
-                    myPlayer.x = targetX;
-                    myPlayer.y = targetY;
-                    targetX = null;
-                    targetY = null;
-                    isMoved = true;
-                }
-            }
-
-            if (isMoved) {
-                socket.emit('playerMovement', { x: myPlayer.x, y: myPlayer.y });
-            }
-        }
-    }
-
-    function addPlayer(scene, playerInfo) {
-        const circle = scene.add.circle(playerInfo.x, playerInfo.y, 12, 0xff5500);
-        scene.physics.add.existing(circle);
-        circle.body.setCollideWorldBounds(true);
-        players[playerInfo.id] = circle;
-        console.log("Đã vẽ nhân vật lên màn hình cho ID:", playerInfo.id);
-    }
+    let cursors, wasd;
 
     const config = {
         type: Phaser.AUTO,
         width: 800,
         height: 600,
         backgroundColor: '#2d2d2d',
-        physics: {
-            default: 'arcade',
-            arcade: { debug: false }
-        },
-        scene: MainScene
+        scene: { preload: preload, create: create, update: update }
     };
 
     const game = new Phaser.Game(config);
+
+    function preload() {}
+
+    function create() {
+        const scene = this;
+        console.log("SCENE CREATED SUCCESSFULLY!");
+
+        cursors = scene.input.keyboard.createCursorKeys();
+        wasd = scene.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
+        });
+
+        // Bắt sự kiện click chuột
+        scene.input.on('pointerdown', (pointer) => {
+            targetX = pointer.x;
+            targetY = pointer.y;
+            console.log("Clicked at:", targetX, targetY);
+        });
+
+        socket.on('connect', () => {
+            myId = socket.id;
+            console.log("Connected to server, my ID:", myId);
+        });
+
+        socket.on('currentPlayers', (serverPlayers) => {
+            Object.keys(serverPlayers).forEach((id) => {
+                if (!players[id]) createPlayer(scene, serverPlayers[id]);
+            });
+        });
+
+        socket.on('newPlayer', (playerInfo) => {
+            if (!players[playerInfo.id]) createPlayer(scene, playerInfo);
+        });
+
+        socket.on('playerMoved', (playerInfo) => {
+            if (players[playerInfo.id] && playerInfo.id !== myId) {
+                players[playerInfo.id].x = playerInfo.x;
+                players[playerInfo.id].y = playerInfo.y;
+            }
+        });
+
+        socket.on('playerDisconnected', (id) => {
+            if (players[id]) {
+                players[id].destroy();
+                delete players[id];
+            }
+        });
+    }
+
+    function createPlayer(scene, info) {
+        const circle = scene.add.circle(info.x, info.y, 12, 0xff5500);
+        players[info.id] = circle;
+        console.log("Created player circle for:", info.id);
+    }
+
+    function update() {
+        if (!myId || !players[myId]) return;
+
+        const p = players[myId];
+        let speed = 4;
+        let moved = false;
+
+        let keyMoved = false;
+        if (cursors.left.isDown || wasd.left.isDown) { p.x -= speed; keyMoved = true; }
+        else if (cursors.right.isDown || wasd.right.isDown) { p.x += speed; keyMoved = true; }
+
+        if (cursors.up.isDown || wasd.up.isDown) { p.y -= speed; keyMoved = true; }
+        else if (cursors.down.isDown || wasd.down.isDown) { p.y += speed; keyMoved = true; }
+
+        if (keyMoved) {
+            targetX = null;
+            targetY = null;
+            moved = true;
+        } else if (targetX !== null && targetY !== null) {
+            let dx = targetX - p.x;
+            let dy = targetY - p.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > speed) {
+                let angle = Math.atan2(dy, dx);
+                p.x += Math.cos(angle) * speed;
+                p.y += Math.sin(angle) * speed;
+                moved = true;
+            } else {
+                p.x = targetX;
+                p.y = targetY;
+                targetX = null;
+                targetY = null;
+                moved = true;
+            }
+        }
+
+        if (moved) {
+            socket.emit('playerMovement', { x: p.x, y: p.y });
+        }
+    }
 </script>
 </body>
 </html>
