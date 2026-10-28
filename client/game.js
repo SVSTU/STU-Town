@@ -176,21 +176,30 @@ function create() {
 
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
+        const saveStatus = document.getElementById('player-save-status');
+        if (saveStatus) saveStatus.textContent = 'Đang kiểm tra kết nối lưu dữ liệu…';
         socket.emit('updateProfile', profile);
         socket.emit('getFarmState');
     });
 
     socket.on('connect_error', (error) => {
         console.error('Không kết nối được máy chủ game:', error?.message || error);
+        const saveStatus = document.getElementById('player-save-status');
+        if (saveStatus) saveStatus.textContent = 'Chưa kết nối máy chủ; dữ liệu chưa được lưu.';
         const feedback = document.getElementById('interaction-feedback');
         if (feedback) feedback.textContent = `Mất kết nối máy chủ game: ${error?.message || 'hãy thử tải lại trang.'}`;
     });
 
     socket.on('playerPersistenceStatus', (status = {}) => {
+        const saveStatus = document.getElementById('player-save-status');
         if (status.enabled && !status.available) {
+            if (saveStatus) saveStatus.textContent = 'Supabase chưa sẵn sàng; dữ liệu đang lưu trong phiên này.';
             console.error('Supabase chưa sẵn sàng; game vẫn hoạt động nhưng chưa lưu hồ sơ:', status.message || 'Lỗi đọc hồ sơ.');
         } else if (!status.enabled) {
+            if (saveStatus) saveStatus.textContent = 'Chỉ lưu trong phiên hiện tại; server chưa cấu hình Supabase.';
             console.warn('Supabase chưa cấu hình; game đang chạy nhưng dữ liệu chưa được lưu lâu dài.');
+        } else if (status.available) {
+            if (saveStatus) saveStatus.textContent = 'Đã bật lưu hồ sơ trên Supabase.';
         }
     });
 

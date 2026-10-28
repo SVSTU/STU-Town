@@ -32,11 +32,16 @@ function validPlayerToken(token) {
 }
 
 async function supabaseRequest(pathname, options = {}) {
+  const authHeaders = { apikey: SUPABASE_SERVICE_ROLE_KEY };
+  // Current Supabase secret keys are not JWTs; send them only as `apikey`.
+  // Legacy service_role keys are JWTs and are also needed as the bearer role token.
+  if (SUPABASE_SERVICE_ROLE_KEY.startsWith('eyJ')) {
+    authHeaders.Authorization = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+  }
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
     ...options,
     headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      ...authHeaders,
       'Content-Type': 'application/json',
       ...(options.headers || {})
     },
