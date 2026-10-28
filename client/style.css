@@ -184,6 +184,12 @@ canvas {
     color: #fff;
     font-size: 12px;
 }
+#inventory-toggle, #map-exit { position: fixed; z-index: 20; top: 12px; right: 12px; padding: 9px 12px; border: 1px solid #777; border-radius: 8px; background: #171b19eF; color: #fff; cursor: pointer; }
+#map-exit { right: 112px; background: #263b2c; }
+#inventory-panel { position: fixed; z-index: 20; top: 54px; right: 12px; width: 210px; padding: 12px; border: 1px solid #557154; border-radius: 9px; background: #151b18f2; color: #fff; }
+#inventory-items { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 9px 0; }
+#inventory-items span { padding: 5px; border-radius: 5px; background: #263b2c; }
+#inventory-panel small { color: #bbb; }
 
 .interaction-hud-heading {
     display: flex;

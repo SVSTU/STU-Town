@@ -20,8 +20,9 @@ const reactionEmojis = new Set(['❤️', '😂', '👍', '😮', '😢', '🔥'
 const quickFloatingEmotes = new Set(['👋', '❤️', '😂', '👍', '🔥', '🎉']);
 const FARM_GROWTH_MS = 30_000;
 const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
-const FARM_CROPS = ['🥕', '🍅', '🌽', '🍓'];
-const FARM_ZONE = { x: 600, y: 505, radius: 112 };
+const FARM_CROP_KEYS = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
+const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-e', 'khu-f']);
+const CLOSED_MAP_IDS = new Set(['canteen', 'khu-c', 'auditorium', 'khu-d']);
 const CAMPUS_BUILDINGS = [
   { x: 48, y: 72, width: 135, height: 110 },
   { x: 48, y: 278, width: 135, height: 105 },
@@ -33,6 +34,7 @@ const CAMPUS_BUILDINGS = [
   { x: 280, y: 520, width: 185, height: 43 }
 ];
 const farmPlots = new Map(FARM_PLOT_IDS.map((id) => [id, { crop: '', plantedAt: 0, plantedBy: '' }]));
+const playerInventories = new Map();
 let nextMessageId = 0;
 
 function getFarmSnapshot() {
@@ -57,6 +59,20 @@ function isValidAvatar(value) {
     /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(value);
 }
 
+function isKhuEFScheduleOpen() {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+  const time = hour * 60 + minute;
+  return (time >= 420 && time <= 690) || (time >= 780 && time <= 1020);
+}
+
+function getMapPlayers(mapId) {
+  return Object.fromEntries(Object.entries(players).filter(([, player]) => player.mapId === mapId));
+}
+
 io.on('connection', (socket) => {
   console.log('Người chơi kết nối:', socket.id);
   let lastFloatingEmoteAt = 0;
@@ -66,18 +82,68 @@ io.on('connection', (socket) => {
     x: Math.floor(Math.random() * 70) + 330,
     y: Math.floor(Math.random() * 70) + 320,
     avatar: null,
-    nickname: ''
+    nickname: '',
+    mapId: 'campus'
   };
+  socket.join('map:campus');
+  playerInventories.set(socket.id, {
+    seeds: { carrot: 3, tomato: 3, corn: 3, strawberry: 3 },
+    produce: { carrot: 0, tomato: 0, corn: 0, strawberry: 0 }
+  });
 
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
-  socket.emit('currentPlayers', players);
+  socket.emit('currentPlayers', getMapPlayers('campus'));
+  socket.emit('inventoryState', playerInventories.get(socket.id));
   
   // Thông báo cho các người chơi khác về sự xuất hiện của người mới (kèm avatar mặc định)
-  socket.broadcast.emit('newPlayer', { 
+  socket.to('map:campus').emit('newPlayer', {
     id: socket.id, 
     x: players[socket.id].x, 
     y: players[socket.id].y,
-    avatar: players[socket.id].avatar 
+    avatar: players[socket.id].avatar,
+    nickname: players[socket.id].nickname,
+    mapId: 'campus'
+  });
+
+  socket.on('enterCampusMap', (mapId) => {
+    if (typeof mapId !== 'string') return;
+    if (players[socket.id]?.mapId !== 'campus') return;
+    if (mapId === 'dormitory' || mapId === 'khu-a') {
+      socket.emit('mapChangeDenied', 'Khu vực cá nhân sẽ yêu cầu đăng nhập; tính năng đang được lên kế hoạch.');
+      return;
+    }
+    if (CLOSED_MAP_IDS.has(mapId)) {
+      socket.emit('mapChangeDenied', 'Khu vực này hiện chưa mở.');
+      return;
+    }
+    if (!OPEN_MAP_IDS.has(mapId)) {
+      socket.emit('mapChangeDenied', 'Không tìm thấy bản đồ khu vực này.');
+      return;
+    }
+    if ((mapId === 'khu-e' || mapId === 'khu-f') && !isKhuEFScheduleOpen()) {
+      socket.emit('mapChangeDenied', 'Khu E/F đang đóng. Lịch mở: 07:00–11:30 và 13:00–17:00 giờ Việt Nam.');
+      return;
+    }
+    const previousMapId = players[socket.id]?.mapId || 'campus';
+    socket.leave(`map:${previousMapId}`);
+    socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
+    const spawn = mapId === 'farm' ? { x: 400, y: 430 } : { x: 400, y: 300 };
+    Object.assign(players[socket.id], spawn, { mapId });
+    socket.join(`map:${mapId}`);
+    socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
+    socket.to(`map:${mapId}`).emit('newPlayer', { id: socket.id, ...players[socket.id] });
+    if (mapId === 'farm') socket.emit('farmState', getFarmSnapshot());
+  });
+
+  socket.on('returnToCampus', () => {
+    const previousMapId = players[socket.id]?.mapId || 'campus';
+    if (previousMapId === 'campus') return;
+    socket.leave(`map:${previousMapId}`);
+    socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
+    Object.assign(players[socket.id], { x: 400, y: 250, mapId: 'campus' });
+    socket.join('map:campus');
+    socket.emit('mapChanged', { mapId: 'campus', players: getMapPlayers('campus') });
+    socket.to('map:campus').emit('newPlayer', { id: socket.id, ...players[socket.id] });
   });
 
   // 2. Lắng nghe di chuyển của người chơi
@@ -85,11 +151,11 @@ io.on('connection', (socket) => {
     if (players[socket.id] && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
       const x = Math.max(15, Math.min(785, data.x));
       const y = Math.max(15, Math.min(585, data.y));
-      if (isBlockedPosition(x, y)) return;
+      if (players[socket.id].mapId === 'campus' && isBlockedPosition(x, y)) return;
       players[socket.id].x = x;
       players[socket.id].y = y;
       
-      socket.broadcast.emit('playerMoved', { 
+      socket.to(`map:${players[socket.id].mapId}`).emit('playerMoved', {
         id: socket.id, 
         x,
         y
@@ -103,23 +169,28 @@ io.on('connection', (socket) => {
 
   socket.on('interactFarmPlot', (payload = {}) => {
     if (!payload || typeof payload !== 'object') return;
-    const { plotId, action } = payload;
+    const { plotId, action, cropKey } = payload;
     const player = players[socket.id];
     const plot = farmPlots.get(plotId);
     if (!player || !plot || !['plant', 'harvest'].includes(action)) return;
-
-    const distance = Math.hypot(player.x - FARM_ZONE.x, player.y - FARM_ZONE.y);
-    if (distance > FARM_ZONE.radius) {
-      socket.emit('farmInteractionResult', { message: 'Hãy đến gần nông trại để tương tác.' });
+    if (player.mapId !== 'farm') {
+      socket.emit('farmInteractionResult', { message: 'Hãy vào bản đồ nông trại cộng đồng để tương tác.' });
       return;
     }
+    const inventory = playerInventories.get(socket.id);
 
     if (action === 'plant') {
       if (plot.plantedAt) {
         socket.emit('farmInteractionResult', { message: 'Luống này đang có cây trồng.' });
         return;
       }
-      plot.crop = FARM_CROPS[Math.floor(Math.random() * FARM_CROPS.length)];
+      if (!Object.hasOwn(FARM_CROP_KEYS, cropKey) || inventory.seeds[cropKey] < 1) {
+        socket.emit('farmInteractionResult', { message: 'Bạn không còn hạt giống loại này trong túi.' });
+        return;
+      }
+      inventory.seeds[cropKey] -= 1;
+      plot.crop = FARM_CROP_KEYS[cropKey];
+      plot.cropKey = cropKey;
       plot.plantedAt = Date.now();
       plot.plantedBy = players[socket.id].nickname || 'Một sinh viên';
       socket.emit('farmInteractionResult', { message: `Bạn đã gieo ${plot.crop}. Cây sẽ lớn sau 30 giây.` });
@@ -134,12 +205,16 @@ io.on('connection', (socket) => {
         return;
       }
       const harvestedCrop = plot.crop;
+      const cropKey = plot.cropKey;
+      if (Object.hasOwn(inventory.produce, cropKey)) inventory.produce[cropKey] += 1;
       plot.crop = '';
+      plot.cropKey = '';
       plot.plantedAt = 0;
       plot.plantedBy = '';
       socket.emit('farmInteractionResult', { message: `Đã thu hoạch ${harvestedCrop}! Luống đã sẵn sàng gieo lại.` });
     }
-    io.emit('farmState', getFarmSnapshot());
+    socket.emit('inventoryState', inventory);
+    io.to('map:farm').emit('farmState', getFarmSnapshot());
   });
 
   socket.on('sendPlayerEmote', (emoji) => {
@@ -147,7 +222,7 @@ io.on('connection', (socket) => {
     const now = Date.now();
     if (now - lastFloatingEmoteAt < 600) return;
     lastFloatingEmoteAt = now;
-    io.emit('playerFloatingEmote', { id: socket.id, emoji });
+    io.to(`map:${players[socket.id].mapId}`).emit('playerFloatingEmote', { id: socket.id, emoji });
   });
 
   // 3. Lắng nghe tin nhắn chat
@@ -235,7 +310,7 @@ io.on('connection', (socket) => {
     const avatar = profile.avatar === null ? null : isValidAvatar(profile.avatar) ? profile.avatar : players[socket.id].avatar;
     players[socket.id].nickname = nickname;
     players[socket.id].avatar = avatar;
-    io.emit('playerProfileUpdated', { id: socket.id, nickname, avatar });
+    io.to(`map:${players[socket.id].mapId}`).emit('playerProfileUpdated', { id: socket.id, nickname, avatar });
   });
 
   // 4. Lắng nghe sự kiện thay đổi avatar của người chơi
@@ -244,7 +319,7 @@ io.on('connection', (socket) => {
     if (players[socket.id]) {
       players[socket.id].avatar = avatarData;
       // Phát tán ảnh avatar mới đến tất cả người chơi khác để cập nhật giao diện
-      socket.broadcast.emit('playerAvatarUpdated', {
+      socket.to(`map:${players[socket.id].mapId}`).emit('playerAvatarUpdated', {
         id: socket.id,
         avatar: avatarData
       });
@@ -255,6 +330,7 @@ io.on('connection', (socket) => {
   // 5. Xử lý khi người chơi thoát game
   socket.on('disconnect', () => {
     console.log('Người chơi thoát:', socket.id);
+    const mapId = players[socket.id]?.mapId || 'campus';
     delete players[socket.id];
     for (const [messageId, message] of recentMessages) {
       for (const [emoji, users] of message.reactions) {
@@ -268,7 +344,8 @@ io.on('connection', (socket) => {
         recentPrivateMessages.delete(messageId);
       }
     }
-    io.emit('playerDisconnected', socket.id);
+    playerInventories.delete(socket.id);
+    io.to(`map:${mapId}`).emit('playerDisconnected', socket.id);
   });
 });
 

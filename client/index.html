@@ -79,9 +79,22 @@
             <span id="interaction-zone-description"></span>
         </div>
         <button type="button" id="interaction-button">Khám phá khu vực (E)</button>
+        <label id="farm-seed-picker" hidden>Hạt giống
+            <select id="farm-seed-type" aria-label="Chọn hạt giống">
+                <option value="carrot">🥕 Cà rốt</option><option value="tomato">🍅 Cà chua</option>
+                <option value="corn">🌽 Bắp</option><option value="strawberry">🍓 Dâu tây</option>
+            </select>
+        </label>
         <div id="farm-plot-list" hidden aria-label="Các luống cây"></div>
         <div id="interaction-feedback" role="status"></div>
     </section>
+    <button type="button" id="inventory-toggle" aria-expanded="false">🎒 Túi đồ</button>
+    <section id="inventory-panel" hidden aria-label="Túi đồ cá nhân">
+        <strong>Túi đồ cá nhân</strong>
+        <div id="inventory-items"></div>
+        <small>Vật phẩm chỉ lưu trong phiên hiện tại.</small>
+    </section>
+    <button type="button" id="map-exit" hidden>← Trở về sân trường</button>
 
     <!-- Nhúng file Logic Game riêng -->
     <script src="game.js?v=20261028-campus-farm"></script>
