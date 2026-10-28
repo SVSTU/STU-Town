@@ -306,6 +306,8 @@ function create() {
 
     socket.on('mapChanged', ({ mapId, players: mapPlayers }) => {
         currentMapId = mapId || 'campus';
+        // Public chat belongs to a single map room; do not leave old room messages visible.
+        document.getElementById('chat-messages').replaceChildren();
         Object.values(players).forEach((player) => player.destroy());
         players = {};
         targetPosition = null;

@@ -1187,11 +1187,13 @@ io.on('connection', (socket) => {
   socket.on('sendChatMessage', (message) => {
     if (typeof message !== 'string') return;
     message = message.trim().slice(0, 300);
-    if (!message) return;
+    const player = players[socket.id];
+    if (!message || !player) return;
     const messageId = `${socket.id}:${++nextMessageId}`;
-    recentMessages.set(messageId, { reactions: new Map() });
+    const mapId = player.mapId;
+    recentMessages.set(messageId, { mapId, reactions: new Map() });
     if (recentMessages.size > 100) recentMessages.delete(recentMessages.keys().next().value);
-    io.emit('chatMessage', { id: socket.id, nickname: players[socket.id]?.nickname || '', messageId, message });
+    io.to(`map:${mapId}`).emit('chatMessage', { id: socket.id, nickname: player.nickname || '', messageId, message, mapId });
     rewardReputation(socket.id);
   });
 
@@ -1233,12 +1235,12 @@ io.on('connection', (socket) => {
     const { messageId, emoji } = payload;
     if (typeof messageId !== 'string' || !reactionEmojis.has(emoji)) return;
     const message = recentMessages.get(messageId);
-    if (!message) return;
+    if (!message || !players[socket.id] || message.mapId !== players[socket.id].mapId) return;
     if (!message.reactions.has(emoji)) message.reactions.set(emoji, new Set());
     const users = message.reactions.get(emoji);
     if (users.has(socket.id)) users.delete(socket.id);
     else users.add(socket.id);
-    io.emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
+    io.to(`map:${message.mapId}`).emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
     rewardReputation(socket.id);
   });
 
@@ -1310,7 +1312,7 @@ io.on('connection', (socket) => {
     for (const [messageId, message] of recentMessages) {
       for (const [emoji, users] of message.reactions) {
         if (users.delete(socket.id)) {
-          io.emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
+          io.to(`map:${message.mapId}`).emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
         }
       }
     }
