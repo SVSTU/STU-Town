@@ -25,9 +25,10 @@ const FARM_HARVEST_COST_EVERY = 4;
 const CAMPUS_BENCH_REST = 10;
 const CAMPUS_BENCH_COOLDOWN_MS = 3_000;
 const CAMPUS_BENCHES = [
-  { id: 'bench-1', x: 570, y: 50 }, { id: 'bench-2', x: 625, y: 50 }, { id: 'bench-3', x: 680, y: 50 },
-  { id: 'bench-4', x: 535, y: 285 }, { id: 'bench-5', x: 600, y: 285 }, { id: 'bench-6', x: 665, y: 285 },
-  { id: 'bench-7', x: 570, y: 425 }, { id: 'bench-8', x: 635, y: 425 }
+  { id: 'bench-1', x: 540, y: 50 }, { id: 'bench-2', x: 625, y: 50 },
+  { id: 'bench-3', x: 550, y: 285 }, { id: 'bench-4', x: 630, y: 285 },
+  { id: 'bench-5', x: 670, y: 365 },
+  { id: 'bench-6', x: 540, y: 435 }, { id: 'bench-7', x: 630, y: 435 }
 ];
 const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
 const FARM_CROP_KEYS = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
@@ -72,6 +73,16 @@ function getPlayerState(player) {
 function emitPlayerState(id) {
   const player = players[id];
   if (player) io.to(id).emit('playerState', getPlayerState(player));
+}
+
+function getCampusBenchOccupants() {
+  return Object.fromEntries(Object.entries(players)
+    .filter(([, player]) => player.mapId === 'campus' && player.sittingAtBench)
+    .map(([id, player]) => [player.sittingAtBench, id]));
+}
+
+function emitCampusBenchOccupants() {
+  io.to('map:campus').emit('campusBenchOccupancy', getCampusBenchOccupants());
 }
 
 function rewardReputation(id) {
@@ -240,7 +251,7 @@ function scheduleFarmMouse() {
       updatedAt: Date.now()
     };
     io.to('map:farm').emit('farmMouseState', { active: true, id: activeFarmMouse.id, x: activeFarmMouse.x, y: activeFarmMouse.y });
-    announceFarmEvent('🐭 Chuột phá hoại xuất hiện ở vườn cộng đồng! Di chuyển chạm vào chuột để bắt trước khi bị cắn.');
+    announceFarmEvent('🐭 Chuột phá hoại xuất hiện! Di chuyển chạm vào chuột để bắt trước khi bị cắn. Thưởng: danh tiếng +50, +1 Đồng vàng sự kiện, độ mệt +1, độ đói −1.');
     farmMouseMoveTimer = setInterval(() => {
       if (!activeFarmMouse) return;
       const now = Date.now();
@@ -306,6 +317,7 @@ io.on('connection', (socket) => {
     weaknessElapsed: 0,
     statsTickAt: Date.now(),
     lastMovementAt: Date.now(),
+    sittingAtBench: '',
     lastFarmActionAt: 0
   };
   socket.join('map:campus');
@@ -319,6 +331,7 @@ io.on('connection', (socket) => {
   socket.emit('currentPlayers', getMapPlayers('campus'));
   socket.emit('inventoryState', playerInventories.get(socket.id));
   socket.emit('playerState', getPlayerState(players[socket.id]));
+  socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
   
   // Thông báo cho các người chơi khác về sự xuất hiện của người mới (kèm avatar mặc định)
   socket.to('map:campus').emit('newPlayer', {
@@ -350,8 +363,11 @@ io.on('connection', (socket) => {
       return;
     }
     const previousMapId = players[socket.id]?.mapId || 'campus';
+    const wasSittingAtBench = Boolean(players[socket.id]?.sittingAtBench);
+    if (players[socket.id]) players[socket.id].sittingAtBench = '';
     socket.leave(`map:${previousMapId}`);
     socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
+    if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();
     const spawn = mapId === 'farm' ? { x: 400, y: 430 } : { x: 400, y: 300 };
     Object.assign(players[socket.id], spawn, { mapId });
     socket.join(`map:${mapId}`);
@@ -361,7 +377,7 @@ io.on('connection', (socket) => {
       socket.emit('farmState', getFarmSnapshot());
       socket.emit('farmMouseState', { active: Boolean(activeFarmMouse), id: activeFarmMouse?.id, x: activeFarmMouse?.x, y: activeFarmMouse?.y });
       if (activeFarmMouse) {
-        socket.emit('farmEventMessage', { message: '🐭 Chuột đang phá hoại vườn cộng đồng! Di chuyển chạm vào chuột để bắt trước khi bị cắn.' });
+        socket.emit('farmEventMessage', { message: '🐭 Chuột đang phá hoại vườn cộng đồng! Di chuyển chạm vào chuột để bắt trước khi bị cắn. Thưởng: danh tiếng +50, +1 Đồng vàng sự kiện, độ mệt +1, độ đói −1.' });
       }
       scheduleFarmMouse();
     }
@@ -386,9 +402,11 @@ io.on('connection', (socket) => {
   // 2. Lắng nghe di chuyển của người chơi
   socket.on('playerMovement', (data) => {
     if (players[socket.id] && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
+      const wasSittingAtBench = Boolean(players[socket.id].sittingAtBench);
       const x = Math.max(15, Math.min(785, data.x));
       const y = Math.max(15, Math.min(585, data.y));
       if (players[socket.id].mapId === 'campus' && isBlockedPosition(x, y)) return;
+      players[socket.id].sittingAtBench = '';
       players[socket.id].x = x;
       players[socket.id].y = y;
       players[socket.id].lastMovementAt = Date.now();
@@ -398,6 +416,7 @@ io.on('connection', (socket) => {
         x,
         y
       });
+      if (wasSittingAtBench) emitCampusBenchOccupants();
       if (players[socket.id].mapId === 'farm' && activeFarmMouse) {
         const dx = x - activeFarmMouse.x;
         const dy = y - activeFarmMouse.y;
@@ -526,11 +545,18 @@ io.on('connection', (socket) => {
     }
     const distance = Math.hypot(player.x - bench.x, player.y - bench.y);
     if (distance > 55) return socket.emit('benchRestResult', { message: 'Hãy đến gần ghế để ngồi nghỉ.' });
+    const occupiedByOther = Object.entries(players).some(([id, otherPlayer]) =>
+      id !== socket.id && otherPlayer.mapId === 'campus' && otherPlayer.sittingAtBench === benchId
+    );
+    if (occupiedByOther) return socket.emit('benchRestResult', { message: 'Ghế đang có người ngồi.' });
     const now = Date.now();
     if (now - (player.lastBenchRestAt || 0) < CAMPUS_BENCH_COOLDOWN_MS) {
       return socket.emit('benchRestResult', { message: 'Bạn vừa nghỉ xong, hãy chờ một chút.' });
     }
+    if (player.sittingAtBench && player.sittingAtBench !== benchId) player.sittingAtBench = '';
+    player.sittingAtBench = benchId;
     player.lastBenchRestAt = now;
+    emitCampusBenchOccupants();
     const rested = Math.min(CAMPUS_BENCH_REST, player.stats.fatigue);
     if (rested <= 0) return socket.emit('benchRestResult', { message: 'Bạn chưa mệt, không cần nghỉ lúc này.', state: getPlayerState(player) });
     player.stats.fatigue = clampStat(player.stats.fatigue - CAMPUS_BENCH_REST);
@@ -675,6 +701,7 @@ io.on('connection', (socket) => {
     console.log('Người chơi thoát:', socket.id);
     const mapId = players[socket.id]?.mapId || 'campus';
     delete players[socket.id];
+    if (mapId === 'campus') emitCampusBenchOccupants();
     if (mapId === 'farm' && farmMembers().length === 0) {
       clearFarmMouseTimers();
       activeFarmMouse = null;

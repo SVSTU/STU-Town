@@ -8,9 +8,10 @@ const PROFILE_STORAGE_KEY = 'stu-town-profile';
 const REACTION_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
 const QUICK_FLOATING_EMOTES = ['👋', '❤️', '😂', '👍', '🔥', '🎉'];
 const CAMPUS_BENCHES = [
-    { id: 'bench-1', x: 570, y: 50 }, { id: 'bench-2', x: 625, y: 50 }, { id: 'bench-3', x: 680, y: 50 },
-    { id: 'bench-4', x: 535, y: 285 }, { id: 'bench-5', x: 600, y: 285 }, { id: 'bench-6', x: 665, y: 285 },
-    { id: 'bench-7', x: 570, y: 425 }, { id: 'bench-8', x: 635, y: 425 }
+    { id: 'bench-1', x: 540, y: 50 }, { id: 'bench-2', x: 625, y: 50 },
+    { id: 'bench-3', x: 550, y: 285 }, { id: 'bench-4', x: 630, y: 285 },
+    { id: 'bench-5', x: 670, y: 365 },
+    { id: 'bench-6', x: 540, y: 435 }, { id: 'bench-7', x: 630, y: 435 }
 ];
 const FARM_PLOT_LAYOUT = [
     { id: 'plot-1', x: 200, y: 290, width: 78, height: 42 },
@@ -78,6 +79,8 @@ let privateUnreadByPeer = new Map();
 let activePrivatePeerId = '';
 let farmPlots = {};
 let farmGraphics = null;
+let campusBenchGraphics = null;
+let campusBenchOccupants = {};
 let activeInteractionZoneId = '';
 let activeInteriorObjectId = '';
 let activeFarmPlotId = '';
@@ -182,6 +185,11 @@ function create() {
     });
 
     socket.on('playerState', updatePlayerStats);
+    socket.on('campusBenchOccupancy', (occupants) => {
+        campusBenchOccupants = occupants && typeof occupants === 'object' ? occupants : {};
+        if (currentMapId === 'campus' && sceneRef) drawCampusBenches(sceneRef);
+        if (currentMapId === 'campus' && socket.id && players[socket.id]) updateInteractionZone(players[socket.id]);
+    });
 
     socket.on('serviceResult', (result) => {
         document.getElementById('zone-service-feedback').textContent = String(result?.message || '');
@@ -620,20 +628,9 @@ function drawCampusMap(scene) {
     map.fillStyle(0x3299b5, 1).fillCircle(570, 350, 26);
     map.fillStyle(0xb9f3ff, 1).fillCircle(570, 350, 12);
 
-    // Ghế gỗ đặt tại các khoảng sân trống; người chơi tới gần để ngồi nghỉ.
-    CAMPUS_BENCHES.forEach(({ x, y }) => {
-        // Hai thanh tựa, mặt ngồi có viền sáng, chân và tay đỡ đối xứng.
-        map.fillStyle(0x51351f, 1).fillRoundedRect(x - 19, y - 11, 38, 5, 2);
-        map.fillStyle(0xb4773e, 1).fillRoundedRect(x - 18, y - 10, 36, 3, 1);
-        map.fillStyle(0x684326, 1).fillRoundedRect(x - 18, y - 4, 36, 7, 2);
-        map.fillStyle(0xc58a4e, 1).fillRoundedRect(x - 17, y - 4, 34, 3, 1);
-        map.fillStyle(0x51351f, 1)
-            .fillRoundedRect(x - 15, y + 2, 3, 10, 1)
-            .fillRoundedRect(x + 12, y + 2, 3, 10, 1)
-            .fillRoundedRect(x - 21, y - 6, 3, 8, 1)
-            .fillRoundedRect(x + 18, y - 6, 3, 8, 1);
-        map.lineStyle(1, 0xe0b77f, 0.9).strokeRoundedRect(x - 18, y - 4, 36, 7, 2);
-    });
+    // Ghế gỗ tách lớp để đổi kiểu hiển thị theo trạng thái có người ngồi.
+    campusBenchGraphics = scene.add.graphics().setDepth(-8.8);
+    drawCampusBenches(scene);
 
     // Vườn cộng đồng nằm cạnh trục đường phía nam.
     map.fillStyle(0x60964d, 1).fillRoundedRect(520, 462, 168, 88, 10);
@@ -656,6 +653,37 @@ function drawCampusMap(scene) {
 
     farmGraphics = scene.add.graphics().setDepth(-8);
     mapObjects = scene.children.list.slice(firstMapChild);
+}
+
+function drawCampusBenches(scene) {
+    if (!scene) return;
+    if (!campusBenchGraphics || !campusBenchGraphics.scene) {
+        campusBenchGraphics = scene.add.graphics().setDepth(-8.8);
+    }
+    campusBenchGraphics.clear();
+    CAMPUS_BENCHES.forEach(({ id, x, y }) => {
+        const occupied = Boolean(campusBenchOccupants[id]);
+        const backDark = occupied ? 0x31543a : 0x51351f;
+        const backWood = occupied ? 0x56875a : 0xb4773e;
+        const seatDark = occupied ? 0x31543a : 0x684326;
+        const seatWood = occupied ? 0x6a9c66 : 0xc58a4e;
+        campusBenchGraphics.fillStyle(backDark, 1).fillRoundedRect(x - 19, y - 11, 38, 5, 2);
+        campusBenchGraphics.fillStyle(backWood, 1).fillRoundedRect(x - 18, y - 10, 36, 3, 1);
+        campusBenchGraphics.fillStyle(backDark, 1).fillRoundedRect(x - 18, y - 6, 36, 3, 1);
+        campusBenchGraphics.fillStyle(seatDark, 1).fillRoundedRect(x - 18, y - 4, 36, 7, 2);
+        campusBenchGraphics.fillStyle(seatWood, 1).fillRoundedRect(x - 17, y - 4, 34, 3, 1);
+        campusBenchGraphics.fillStyle(backDark, 1)
+            .fillRoundedRect(x - 15, y + 2, 3, 10, 1)
+            .fillRoundedRect(x + 12, y + 2, 3, 10, 1)
+            .fillRoundedRect(x - 21, y - 6, 3, 8, 1)
+            .fillRoundedRect(x + 18, y - 6, 3, 8, 1);
+        campusBenchGraphics.lineStyle(1, occupied ? 0xc7e7a9 : 0xe0b77f, 0.95)
+            .strokeRoundedRect(x - 18, y - 4, 36, 7, 2);
+        if (occupied) {
+            campusBenchGraphics.fillStyle(0xffd28b, 1).fillCircle(x, y - 16, 4);
+            campusBenchGraphics.fillStyle(0x274b37, 1).fillRoundedRect(x - 5, y - 12, 10, 7, 3);
+        }
+    });
 }
 
 function drawInteriorMap(scene, mapId) {
@@ -723,6 +751,7 @@ function switchMapVisuals(mapId) {
     mapObjects.forEach((object) => object.destroy());
     mapObjects = [];
     farmGraphics = null;
+    campusBenchGraphics = null;
     if (mapId === 'campus') drawCampusMap(sceneRef);
     else drawInteriorMap(sceneRef, mapId);
     document.getElementById('map-exit').hidden = mapId === 'campus';
@@ -1163,7 +1192,10 @@ function updateInteractionZone(player) {
         .filter(({ zone, distance }) => distance <= zone.radius)
         .sort((a, b) => a.distance - b.distance)[0]?.zone || null;
     const nextZoneId = nearestZone?.id || '';
-    if (nextZoneId === activeInteractionZoneId) return;
+    if (nextZoneId === activeInteractionZoneId) {
+        if (nearestZone?.id.startsWith('bench-')) updateBenchInteractionState(nearestZone);
+        return;
+    }
 
     activeInteractionZoneId = nextZoneId;
     const hud = document.getElementById('interaction-hud');
@@ -1177,9 +1209,23 @@ function updateInteractionZone(player) {
     document.getElementById('interaction-zone-description').textContent = nearestZone.detail;
     farmList.hidden = true;
     interactionButton.hidden = false;
+    interactionButton.disabled = false;
     interactionButton.textContent = nearestZone.id.startsWith('bench-')
         ? 'Ngồi nghỉ (E)'
         : nearestZone.locked || nearestZone.loginRequired ? 'Khu vực đang khóa' : 'Vào bản đồ khu vực (E)';
+    if (nearestZone.id.startsWith('bench-')) updateBenchInteractionState(nearestZone);
+}
+
+function updateBenchInteractionState(bench) {
+    const button = document.getElementById('interaction-button');
+    const occupantId = campusBenchOccupants[bench.id];
+    const occupiedByOther = Boolean(occupantId && occupantId !== socket.id);
+    const occupiedBySelf = Boolean(occupantId && occupantId === socket.id);
+    button.disabled = occupiedByOther || occupiedBySelf;
+    button.textContent = occupiedByOther ? 'Ghế đang có người' : occupiedBySelf ? 'Bạn đang ngồi nghỉ' : 'Ngồi nghỉ (E)';
+    document.getElementById('interaction-zone-description').textContent = occupiedByOther
+        ? 'Ghế đang được người chơi khác sử dụng.'
+        : occupiedBySelf ? 'Bạn đang ngồi nghỉ. Di chuyển để nhường ghế.' : bench.detail;
 }
 
 function updateFarmPlotInteraction(player) {
@@ -1212,15 +1258,27 @@ function updateFarmPlotInteraction(player) {
     let detail = 'Luống trống · chọn để gieo hạt.';
     if (state?.plantedAt) {
         const ageMs = Date.now() - state.plantedAt;
-        detail = ageMs < FARM_GROWTH_MS
-            ? `${state.crop || 'Cây trồng'} đang lớn.`
-            : ageMs < FARM_WILT_MS ? 'Cây đã trưởng thành · có thể thu hoạch.' : 'Cây đã héo · có thể thu hoạch.';
+        if (ageMs < FARM_GROWTH_MS) {
+            detail = `${state.crop || 'Cây trồng'} đang lớn · trưởng thành sau ${formatFarmTime(FARM_GROWTH_MS - ageMs)}.`;
+        } else if (ageMs < FARM_WILT_MS) {
+            detail = `Cây đã trưởng thành · héo sau ${formatFarmTime(FARM_WILT_MS - ageMs)}. Có thể thu hoạch 3 nông sản.`;
+        } else {
+            detail = 'Cây đã héo · có thể thu hoạch 1 nông sản. Cây ở vườn cộng đồng không chết.';
+        }
     }
     document.getElementById('interaction-zone-name').textContent = `Luống ${plotNumber}`;
     document.getElementById('interaction-zone-description').textContent = detail;
     const hasInteracted = interactedFarmPlotId === nearestPlot.id;
     interactionButton.hidden = hasInteracted;
     interactionButton.textContent = `Tương tác luống ${plotNumber} (E)`;
+}
+
+function formatFarmTime(milliseconds) {
+    const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+    if (totalSeconds < 60) return `${totalSeconds} giây`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds ? `${minutes} phút ${seconds} giây` : `${minutes} phút`;
 }
 
 function updateInteriorInteraction(player) {
