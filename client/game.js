@@ -528,14 +528,26 @@ function renderPrivateMessages() {
     const messages = privateConversations.get(activePrivatePeerId) || [];
     messages.forEach((data) => {
         const line = document.createElement('div');
-        const isMine = data.id === socket.id;
+        const senderId = typeof data.id === 'string' ? data.id : '';
+        const isMine = data.isMe === true || senderId === socket.id;
         line.className = `private-message ${isMine ? 'is-mine' : 'is-theirs'}`;
-        const sender = document.createElement('b');
+        const sender = document.createElement('div');
         sender.className = 'private-message-sender';
-        sender.textContent = isMine ? 'Bạn' : `Từ ${data.nickname || 'Người chơi'} (${data.id.substring(0, 4)})`;
+        const shortSenderId = senderId ? senderId.substring(0, 4) : '????';
+        if (isMine) {
+            const peer = players[activePrivatePeerId];
+            const shortPeerId = activePrivatePeerId ? activePrivatePeerId.substring(0, 4) : '????';
+            const peerName = peer?.playerNickname || 'Khách';
+            sender.textContent = `🔒 Riêng tư · Bạn → ${peerName} (${shortPeerId})`;
+        } else {
+            const senderName = typeof data.nickname === 'string' && data.nickname.trim()
+                ? data.nickname.trim()
+                : `Khách (${shortSenderId})`;
+            sender.textContent = `🔒 Riêng tư · Từ ${senderName}${data.nickname ? ` (${shortSenderId})` : ''}`;
+        }
         const body = document.createElement('span');
         body.className = 'private-message-body';
-        body.textContent = String(data.message).slice(0, 300);
+        body.textContent = String(data.message ?? '').slice(0, 300);
         const time = document.createElement('time');
         time.className = 'private-message-time';
         const sentAt = new Date(data.sentAt);

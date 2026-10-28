@@ -189,8 +189,18 @@ canvas {
     background: #493765;
 }
 
-.private-message-sender { font-size: 11px; color: #d6eaff; }
-.private-message.is-theirs .private-message-sender { color: #e6d5ff; }
+.private-message-sender {
+    max-width: 100%;
+    padding: 2px 5px;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.28);
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.private-message.is-theirs .private-message-sender { color: #f0e4ff; }
 .private-message-time { align-self: flex-end; color: #d0d0d0; font-size: 10px; }
 
 #private-conversation-title {
