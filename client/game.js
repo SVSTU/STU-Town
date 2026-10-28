@@ -154,6 +154,7 @@ function create() {
 
     socket.on('privateChatMessage', (data) => {
         const peerId = data.peerId;
+        if (!Array.isArray(data.reactions)) data.reactions = [];
         if (!privateConversations.has(peerId)) privateConversations.set(peerId, []);
         privateConversations.get(peerId).push(data);
         const isViewingConversation = !document.getElementById('private-chat-view').hidden
@@ -194,6 +195,34 @@ function create() {
         line.querySelector('.reaction-picker').classList.remove('is-open');
     });
 
+    socket.on('privateChatReaction', (data) => {
+        let conversationPeerId = '';
+        let targetMessage = null;
+        for (const [peerId, messages] of privateConversations) {
+            targetMessage = messages.find((message) => message.messageId === data.messageId);
+            if (targetMessage) {
+                conversationPeerId = peerId;
+                break;
+            }
+        }
+        if (!targetMessage) return;
+
+        if (!Array.isArray(targetMessage.reactions)) targetMessage.reactions = [];
+        const reactionIndex = targetMessage.reactions.findIndex((reaction) => reaction.emoji === data.emoji);
+        if (!data.count) {
+            if (reactionIndex !== -1) targetMessage.reactions.splice(reactionIndex, 1);
+        } else {
+            const reaction = {
+                emoji: data.emoji,
+                count: data.count,
+                reactedBy: Array.isArray(data.reactedBy) ? data.reactedBy : []
+            };
+            if (reactionIndex === -1) targetMessage.reactions.push(reaction);
+            else targetMessage.reactions[reactionIndex] = reaction;
+        }
+        if (activePrivatePeerId === conversationPeerId) renderPrivateMessages();
+    });
+
     document.getElementById('chat-messages').addEventListener('click', (event) => {
         const addButton = event.target.closest('.reaction-add');
         const line = event.target.closest('.chat-line');
@@ -204,6 +233,22 @@ function create() {
         const button = event.target.closest('.reaction-choice, .reaction-button');
         if (button && line?.dataset.messageId) {
             socket.emit('reactToMessage', { messageId: line.dataset.messageId, emoji: button.dataset.emoji });
+        }
+    });
+
+    document.getElementById('private-messages').addEventListener('click', (event) => {
+        const addButton = event.target.closest('.reaction-add');
+        const line = event.target.closest('.private-message');
+        if (addButton && line) {
+            line.querySelector('.reaction-picker').classList.toggle('is-open');
+            return;
+        }
+        const button = event.target.closest('.reaction-choice, .reaction-button');
+        if (button && line?.dataset.messageId) {
+            socket.emit('reactToPrivateMessage', {
+                messageId: line.dataset.messageId,
+                emoji: button.dataset.emoji
+            });
         }
     });
 
@@ -455,8 +500,7 @@ function showChatBubble(scene, playerContainer, message, isPrivate = false) {
         playerContainer.chatBubble.destroy();
     }
 
-    const bubbleText = isPrivate ? `RIÊNG TƯ · ${message}` : message;
-    const bubble = scene.add.text(0, -50, bubbleText, {
+    const bubble = scene.add.text(0, -50, message, {
         font: '12px Arial',
         fill: isPrivate ? '#ffffff' : '#000000',
         backgroundColor: isPrivate ? '#643b91' : '#ffffff',
@@ -540,6 +584,7 @@ function renderPrivateMessages() {
         const senderId = typeof data.id === 'string' ? data.id : '';
         const isMine = data.isMe === true || senderId === socket.id;
         line.className = `private-message ${isMine ? 'is-mine' : 'is-theirs'}`;
+        line.dataset.messageId = data.messageId || '';
         const sender = document.createElement('div');
         sender.className = 'private-message-sender';
         const shortSenderId = senderId ? senderId.substring(0, 4) : '????';
@@ -563,7 +608,39 @@ function renderPrivateMessages() {
         const validSentAt = Number.isNaN(sentAt.getTime()) ? new Date() : sentAt;
         time.dateTime = validSentAt.toISOString();
         time.textContent = validSentAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        line.append(sender, body, time);
+
+        const reactions = document.createElement('div');
+        reactions.className = 'chat-reactions';
+        (Array.isArray(data.reactions) ? data.reactions : []).forEach((reaction) => {
+            if (!REACTION_EMOJIS.includes(reaction.emoji) || !Number.isInteger(reaction.count) || reaction.count < 1) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'reaction-button';
+            button.dataset.emoji = reaction.emoji;
+            button.setAttribute('aria-label', `Reaction ${reaction.emoji}: ${reaction.count}`);
+            button.classList.toggle('is-active', Array.isArray(reaction.reactedBy) && reaction.reactedBy.includes(socket.id));
+            button.textContent = `${reaction.emoji} ${reaction.count}`;
+            reactions.appendChild(button);
+        });
+
+        const addReaction = document.createElement('button');
+        addReaction.type = 'button';
+        addReaction.className = 'reaction-add';
+        addReaction.setAttribute('aria-label', 'Chọn reaction cho tin nhắn riêng');
+        addReaction.textContent = '+';
+        const reactionPicker = document.createElement('div');
+        reactionPicker.className = 'reaction-picker';
+        REACTION_EMOJIS.forEach((emoji) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'reaction-choice';
+            button.dataset.emoji = emoji;
+            button.setAttribute('aria-label', `Chọn reaction ${emoji}`);
+            button.textContent = emoji;
+            reactionPicker.appendChild(button);
+        });
+        reactions.append(addReaction, reactionPicker);
+        line.append(sender, body, time, reactions);
         container.appendChild(line);
     });
     container.scrollTop = container.scrollHeight;

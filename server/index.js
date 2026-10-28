@@ -15,6 +15,7 @@ const io = new Server(server, {
 
 const players = {};
 const recentMessages = new Map();
+const recentPrivateMessages = new Map();
 const reactionEmojis = new Set(['❤️', '😂', '👍', '😮', '😢', '🔥']);
 let nextMessageId = 0;
 
@@ -84,12 +85,21 @@ io.on('connection', (socket) => {
     if (!message) return;
 
     const messageId = `${socket.id}:private:${++nextMessageId}`;
+    recentPrivateMessages.set(messageId, {
+      senderId: socket.id,
+      recipientId: to,
+      reactions: new Map()
+    });
+    if (recentPrivateMessages.size > 100) {
+      recentPrivateMessages.delete(recentPrivateMessages.keys().next().value);
+    }
     const sender = {
       id: socket.id,
       nickname: players[socket.id].nickname || '',
       messageId,
       message,
-      sentAt: new Date().toISOString()
+      sentAt: new Date().toISOString(),
+      reactions: []
     };
     socket.to(to).emit('privateChatMessage', { ...sender, peerId: socket.id });
     socket.emit('privateChatMessage', { ...sender, peerId: to, isMe: true });
@@ -106,6 +116,27 @@ io.on('connection', (socket) => {
     if (users.has(socket.id)) users.delete(socket.id);
     else users.add(socket.id);
     io.emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
+  });
+
+  socket.on('reactToPrivateMessage', (payload = {}) => {
+    if (!payload || typeof payload !== 'object') return;
+    const { messageId, emoji } = payload;
+    if (typeof messageId !== 'string' || !reactionEmojis.has(emoji)) return;
+    const message = recentPrivateMessages.get(messageId);
+    if (!message || ![message.senderId, message.recipientId].includes(socket.id)) return;
+    if (!players[message.senderId] || !players[message.recipientId]) return;
+
+    if (!message.reactions.has(emoji)) message.reactions.set(emoji, new Set());
+    const users = message.reactions.get(emoji);
+    if (users.has(socket.id)) users.delete(socket.id);
+    else users.add(socket.id);
+    if (users.size === 0) message.reactions.delete(emoji);
+    io.to([message.senderId, message.recipientId]).emit('privateChatReaction', {
+      messageId,
+      emoji,
+      count: users.size,
+      reactedBy: [...users]
+    });
   });
 
   socket.on('updateProfile', (profile = {}) => {
@@ -142,6 +173,11 @@ io.on('connection', (socket) => {
         if (users.delete(socket.id)) {
           io.emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
         }
+      }
+    }
+    for (const [messageId, message] of recentPrivateMessages) {
+      if (message.senderId === socket.id || message.recipientId === socket.id) {
+        recentPrivateMessages.delete(messageId);
       }
     }
     io.emit('playerDisconnected', socket.id);
