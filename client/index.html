@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-private-sender">
+    <link rel="stylesheet" href="style.css?v=20261028-player-economy">
 </head>
 <body>
 
@@ -95,8 +95,20 @@
         <small>Vật phẩm chỉ lưu trong phiên hiện tại.</small>
     </section>
     <button type="button" id="map-exit" hidden>← Trở về sân trường</button>
+    <section id="player-stats" aria-label="Chỉ số nhân vật">
+        <strong>Chỉ số</strong>
+        <label>Độ đói <span id="hunger-value">100</span><progress id="hunger-bar" max="100" value="100"></progress></label>
+        <label>Sức mạnh <span id="strength-value">100</span><progress id="strength-bar" max="100" value="100"></progress></label>
+        <label>Độ mệt <span id="fatigue-value">0</span><progress id="fatigue-bar" max="100" value="0"></progress></label>
+        <div id="wallet-summary"></div>
+    </section>
+    <section id="zone-service-panel" hidden aria-label="Dịch vụ khu vực">
+        <strong id="zone-service-title"></strong>
+        <div id="zone-service-content"></div>
+        <div id="zone-service-feedback" role="status"></div>
+    </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-campus-farm"></script>
+    <script src="game.js?v=20261028-player-economy"></script>
 </body>
 </html>

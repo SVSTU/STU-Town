@@ -14,11 +14,12 @@ const FARM_PLOT_LAYOUT = [
     { id: 'plot-4', x: 530, y: 290, width: 78, height: 42 }
 ];
 const CAMPUS_ZONES = [
-    { id: 'canteen', name: 'Căng tin', detail: 'Khu vực này chưa mở.', x: 120, y: 145, radius: 74, locked: true },
+    { id: 'canteen', name: 'Căng tin', detail: 'Ẩm thực, thức uống và hồi phục chỉ số.', x: 120, y: 145, radius: 74 },
     { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Khu vực này chưa mở.', x: 355, y: 175, radius: 92, locked: true },
     { id: 'auditorium', name: 'Hội trường A · Khu B', detail: 'Khu vực này chưa mở.', x: 585, y: 155, radius: 100, locked: true },
     { id: 'khu-d', name: 'Khu D · Thang máy', detail: 'Khu vực này chưa mở.', x: 115, y: 330, radius: 95, locked: true },
-    { id: 'khu-a', name: 'Khu A · Nông trại cá nhân', detail: 'Cần đăng nhập để mở nông trại cá nhân (sẽ bổ sung sau).', x: 730, y: 490, radius: 54, loginRequired: true },
+    { id: 'khu-a', name: 'Khu A · Hành chính & giao dịch', detail: 'Mua hạt giống, bán nông sản và dùng trạm hồi phục.', x: 730, y: 340, radius: 54 },
+    { id: 'personal-farm', name: 'Nông trại cá nhân · Khu A', detail: 'Cần đăng nhập để mở không gian nông trại cá nhân.', x: 734, y: 510, radius: 40, loginRequired: true },
     { id: 'sports', name: 'Sân thể thao', detail: 'Sân bóng và khu vận động ngoài trời.', x: 365, y: 365, radius: 116 },
     { id: 'fountain', name: 'Đài phun nước', detail: 'Điểm hẹn ở sân trung tâm.', x: 570, y: 360, radius: 52 },
     { id: 'dormitory', name: 'Ký túc xá', detail: 'Cần đăng nhập để tạo không gian nghỉ riêng (sẽ bổ sung sau).', x: 135, y: 510, radius: 76, loginRequired: true },
@@ -37,6 +38,18 @@ const CAMPUS_BUILDINGS = [
     { x: 280, y: 520, width: 185, height: 43 }
 ];
 const FARM_GROWTH_MS = 30_000;
+const CROP_INFO = {
+    carrot: { icon: '🥕', name: 'Cà rốt', price: 100 },
+    tomato: { icon: '🍅', name: 'Cà chua', price: 150 },
+    corn: { icon: '🌽', name: 'Bắp', price: 180 },
+    strawberry: { icon: '🍓', name: 'Dâu tây', price: 250 }
+};
+const FOOD_INFO = {
+    bread: { icon: '🥖', name: 'Bánh mì', coins: 100, reputation: 20, effect: '+25 đói' },
+    water: { icon: '💧', name: 'Nước suối', coins: 80, reputation: 16, effect: '-20 mệt' },
+    bao: { icon: '🥟', name: 'Bánh bao', coins: 150, reputation: 30, effect: '+15 đói, +15 sức mạnh' },
+    soda: { icon: '🥤', name: 'Nước ngọt', coins: 180, reputation: 36, effect: '+25 sức mạnh, -15 mệt' }
+};
 let profile = loadProfile();
 
 let players = {};
@@ -49,6 +62,7 @@ let activeInteractionZoneId = '';
 let currentMapId = 'campus';
 let mapObjects = [];
 let inventory = { seeds: {}, produce: {} };
+let playerStatsState = { stats: { hunger: 100, strength: 100, fatigue: 0 }, coins: 1500, reputation: 0, farmPlantCount: 0 };
 let targetPosition = null;
 let cursors;
 let sceneRef = null;
@@ -110,6 +124,19 @@ function create() {
     socket.on('inventoryState', (state) => {
         inventory = state && typeof state === 'object' ? state : { seeds: {}, produce: {} };
         renderInventory();
+    });
+
+    socket.on('playerState', updatePlayerStats);
+
+    socket.on('serviceResult', (result) => {
+        document.getElementById('zone-service-feedback').textContent = String(result?.message || '');
+        if (result?.state) updatePlayerStats(result.state);
+        if (result?.inventory) {
+            inventory = result.inventory;
+            renderInventory();
+            updateFarmPlotControls();
+            renderZoneServices(currentMapId);
+        }
     });
 
     socket.on('mapChangeDenied', (message) => {
@@ -368,6 +395,16 @@ function create() {
         });
     });
     document.getElementById('farm-seed-type').addEventListener('change', updateFarmPlotControls);
+    document.getElementById('zone-service-content').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-service-action]');
+        if (!button || !socket.connected) return;
+        const action = button.dataset.serviceAction;
+        if (action === 'buy-seed' || action === 'sell-crop') {
+            socket.emit('farmShopAction', { action, cropKey: button.dataset.cropKey });
+        } else if (action === 'buy-food') {
+            socket.emit('canteenPurchase', { itemId: button.dataset.itemId, currency: button.dataset.currency });
+        } else if (action === 'heal') socket.emit('useRecoveryStation');
+    });
 
     document.getElementById('chat-toggle').addEventListener('click', toggleChat);
     document.getElementById('settings-toggle').addEventListener('click', toggleSettings);
@@ -485,6 +522,8 @@ function drawInteriorMap(scene, mapId) {
         sports: ['Sân thể thao', 'Sân bóng và khu vực vận động'],
         fountain: ['Đài phun nước', 'Quảng trường và điểm hẹn'],
         farm: ['Nông trại cộng đồng', 'Bốn luống dùng chung · túi đồ riêng cho từng người'],
+        'khu-a': ['Khu A · Hành chính & giao dịch', 'Thương nhân · Giáo sư · Trạm hồi phục'],
+        canteen: ['Căn tin · Ẩm thực', 'Mua món ăn bằng tiền đồng hoặc danh tiếng'],
         'khu-e': ['Khu E', 'Bản đồ khu vực E'],
         'khu-f': ['Khu F', 'Bản đồ khu vực F']
     }[mapId] || ['Khu vực', ''];
@@ -511,6 +550,18 @@ function drawInteriorMap(scene, mapId) {
             g.fillStyle(0xe4e7df, 1).fillCircle(400, 300, 100);
             g.fillStyle(0x3299b5, 1).fillCircle(400, 300, 78);
             g.fillStyle(0xb9f3ff, 1).fillCircle(400, 300, 35);
+        } else if (mapId === 'khu-a') {
+            g.fillStyle(0xb8884d, 1).fillRoundedRect(220, 210, 160, 95, 8);
+            g.fillStyle(0x8292a5, 1).fillRoundedRect(420, 210, 160, 95, 8);
+            g.fillStyle(0x527448, 1).fillRoundedRect(300, 350, 200, 55, 8);
+            scene.add.text(300, 250, '🧑‍🌾 THƯƠNG NHÂN', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
+            scene.add.text(500, 250, '👨‍🏫 GIÁO SƯ', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
+            scene.add.text(400, 378, '🩺 TRẠM HỖ TRỢ · 500 ĐỒNG', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
+        } else if (mapId === 'canteen') {
+            g.fillStyle(0xd4b67d, 1).fillRoundedRect(220, 205, 360, 75, 8);
+            g.fillStyle(0x806a48, 1).fillRoundedRect(250, 340, 100, 50, 8);
+            g.fillStyle(0x806a48, 1).fillRoundedRect(450, 340, 100, 50, 8);
+            scene.add.text(400, 242, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
         } else {
             g.lineStyle(3, 0xc9e6a8, 0.8).strokeRoundedRect(240, 220, 320, 150, 8);
         }
@@ -537,6 +588,9 @@ function switchMapVisuals(mapId) {
     document.getElementById('interaction-hud').hidden = mapId !== 'farm';
     document.getElementById('farm-seed-picker').hidden = mapId !== 'farm';
     document.getElementById('farm-plot-list').hidden = mapId !== 'farm';
+    document.getElementById('zone-service-panel').hidden = !['khu-a', 'canteen'].includes(mapId);
+    document.getElementById('zone-service-feedback').textContent = '';
+    renderZoneServices(mapId);
     if (mapId === 'campus') activeInteractionZoneId = '__map-transition__';
     if (mapId === 'farm') {
         activeInteractionZoneId = 'farm';
@@ -601,6 +655,66 @@ function renderInventory() {
         const produce = document.createElement('span');
         produce.textContent = `${labels[key]} Thu hoạch: ${Number(inventory.produce?.[key]) || 0}`;
         items.append(seed, produce);
+    });
+}
+
+function updatePlayerStats(state) {
+    if (!state || typeof state !== 'object') return;
+    playerStatsState = {
+        ...playerStatsState,
+        ...state,
+        stats: { ...playerStatsState.stats, ...(state.stats || {}) }
+    };
+    ['hunger', 'strength', 'fatigue'].forEach((key) => {
+        const value = Math.max(0, Math.min(100, Number(playerStatsState.stats[key]) || 0));
+        document.getElementById(`${key}-value`).textContent = String(value);
+        document.getElementById(`${key}-bar`).value = value;
+    });
+    document.getElementById('wallet-summary').textContent =
+        `🪙 ${playerStatsState.coins} tiền đồng  ·  ⭐ ${playerStatsState.reputation} danh tiếng`;
+    if (['khu-a', 'canteen'].includes(currentMapId)) renderZoneServices(currentMapId);
+}
+
+function addServiceButton(parent, label, action, data = {}, disabled = false) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.dataset.serviceAction = action;
+    Object.entries(data).forEach(([key, value]) => { button.dataset[key] = String(value); });
+    button.disabled = disabled;
+    parent.appendChild(button);
+}
+
+function renderZoneServices(mapId) {
+    const panel = document.getElementById('zone-service-panel');
+    const title = document.getElementById('zone-service-title');
+    const content = document.getElementById('zone-service-content');
+    if (!panel || !content) return;
+    panel.hidden = !['khu-a', 'canteen'].includes(mapId);
+    if (panel.hidden) return;
+    content.replaceChildren();
+    if (mapId === 'khu-a') {
+        title.textContent = 'Khu A · Thương nhân trồng trọt';
+        Object.entries(CROP_INFO).forEach(([cropKey, crop]) => {
+            const row = document.createElement('p');
+            row.textContent = `${crop.icon} ${crop.name} · ${crop.price} đồng/gói`;
+            content.appendChild(row);
+            addServiceButton(content, `Mua hạt · ${Number(inventory.seeds?.[cropKey]) || 0} gói`, 'buy-seed', { cropKey }, playerStatsState.coins < crop.price);
+            addServiceButton(content, `Bán nông sản · ${Number(inventory.produce?.[cropKey]) || 0} quả (${crop.price} đồng)`, 'sell-crop', { cropKey }, !(inventory.produce?.[cropKey] > 0));
+        });
+        addServiceButton(content, 'Trạm hồi phục · 500 đồng (+50 đói, +50 sức mạnh, −50 mệt)', 'heal', {}, playerStatsState.coins < 500);
+        const professor = document.createElement('p');
+        professor.textContent = '👨‍🏫 Giáo sư · Nhiệm vụ sẽ mở ở phiên bản sau.';
+        content.appendChild(professor);
+        return;
+    }
+    title.textContent = 'Căn tin · Món ăn và thức uống';
+    Object.entries(FOOD_INFO).forEach(([itemId, item]) => {
+        const row = document.createElement('p');
+        row.textContent = `${item.icon} ${item.name} · ${item.effect}`;
+        content.appendChild(row);
+        addServiceButton(content, `Mua bằng tiền đồng · ${item.coins}`, 'buy-food', { itemId, currency: 'coins' }, playerStatsState.coins < item.coins);
+        addServiceButton(content, `Mua bằng danh tiếng · ${item.reputation}`, 'buy-food', { itemId, currency: 'reputation' }, playerStatsState.reputation < item.reputation);
     });
 }
 
@@ -1071,7 +1185,9 @@ function update() {
     const p = players[socket.id];
     const previousX = p.x;
     const previousY = p.y;
-    let speed = 4;
+    const fatigue = Number(playerStatsState.stats.fatigue) || 0;
+    let speed = fatigue >= 80 ? 2.2 : fatigue >= 50 ? 3 : 4;
+    if ((Number(playerStatsState.stats.hunger) || 0) <= 0) speed = Math.min(speed, 2);
     let isMoved = false;
 
     let keyActive = false;

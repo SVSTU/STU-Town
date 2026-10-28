@@ -21,8 +21,15 @@ const quickFloatingEmotes = new Set(['👋', '❤️', '😂', '👍', '🔥', '
 const FARM_GROWTH_MS = 30_000;
 const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
 const FARM_CROP_KEYS = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
-const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-e', 'khu-f']);
-const CLOSED_MAP_IDS = new Set(['canteen', 'khu-c', 'auditorium', 'khu-d']);
+const CROP_PRICES = { carrot: 100, tomato: 150, corn: 180, strawberry: 250 };
+const FOOD_MENU = {
+  bread: { coins: 100, reputation: 20, hunger: 25 },
+  water: { coins: 80, reputation: 16, fatigue: -20 },
+  bao: { coins: 150, reputation: 30, hunger: 15, strength: 15 },
+  soda: { coins: 180, reputation: 36, strength: 25, fatigue: -15 }
+};
+const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-e', 'khu-f', 'khu-a', 'canteen']);
+const CLOSED_MAP_IDS = new Set(['khu-c', 'auditorium', 'khu-d']);
 const CAMPUS_BUILDINGS = [
   { x: 48, y: 72, width: 135, height: 110 },
   { x: 48, y: 278, width: 135, height: 105 },
@@ -35,7 +42,70 @@ const CAMPUS_BUILDINGS = [
 ];
 const farmPlots = new Map(FARM_PLOT_IDS.map((id) => [id, { crop: '', plantedAt: 0, plantedBy: '' }]));
 const playerInventories = new Map();
+const reputationRewardedAt = new Map();
 let nextMessageId = 0;
+
+function getPlayerState(player) {
+  return {
+    stats: { ...player.stats },
+    coins: player.coins,
+    reputation: player.reputation,
+    farmPlantCount: player.farmPlantCount
+  };
+}
+
+function emitPlayerState(id) {
+  const player = players[id];
+  if (player) io.to(id).emit('playerState', getPlayerState(player));
+}
+
+function rewardReputation(id) {
+  const player = players[id];
+  const now = Date.now();
+  if (!player || now - (reputationRewardedAt.get(id) || 0) < 60_000) return false;
+  player.reputation += 1;
+  reputationRewardedAt.set(id, now);
+  emitPlayerState(id);
+  return true;
+}
+
+function clampStat(value) { return Math.max(0, Math.min(100, value)); }
+
+function tickPlayerStats() {
+  const now = Date.now();
+  for (const [id, player] of Object.entries(players)) {
+    const elapsed = now - player.statsTickAt;
+    player.statsTickAt = now;
+    const safeForHunger = ['khu-a', 'canteen'].includes(player.mapId);
+    const safeForMovementFatigue = ['khu-a', 'farm'].includes(player.mapId);
+    if (!safeForHunger) {
+      player.hungerElapsed += elapsed;
+      while (player.hungerElapsed >= 300_000) {
+        player.hungerElapsed -= 300_000;
+        player.stats.hunger = clampStat(player.stats.hunger - 1);
+      }
+    }
+    const recentlyMoving = now - player.lastMovementAt < 30_000;
+    if (!safeForMovementFatigue && recentlyMoving) {
+      player.fatigueElapsed += elapsed;
+      while (player.fatigueElapsed >= 120_000) {
+        player.fatigueElapsed -= 120_000;
+        player.stats.fatigue = clampStat(player.stats.fatigue + 1);
+      }
+    }
+    if (player.stats.hunger === 0) {
+      player.weaknessElapsed += elapsed;
+      while (player.weaknessElapsed >= 60_000) {
+        player.weaknessElapsed -= 60_000;
+        player.stats.strength = clampStat(player.stats.strength - 1);
+        player.stats.fatigue = clampStat(player.stats.fatigue + 1);
+      }
+    } else player.weaknessElapsed = 0;
+    if (elapsed >= 1_000) emitPlayerState(id);
+  }
+}
+
+setInterval(tickPlayerStats, 10_000);
 
 function getFarmSnapshot() {
   const now = Date.now();
@@ -83,7 +153,17 @@ io.on('connection', (socket) => {
     y: Math.floor(Math.random() * 70) + 320,
     avatar: null,
     nickname: '',
-    mapId: 'campus'
+    mapId: 'campus',
+    stats: { hunger: 100, strength: 100, fatigue: 0 },
+    coins: 1500,
+    reputation: 0,
+    farmPlantCount: 0,
+    hungerElapsed: 0,
+    fatigueElapsed: 0,
+    weaknessElapsed: 0,
+    statsTickAt: Date.now(),
+    lastMovementAt: Date.now(),
+    lastFarmActionAt: 0
   };
   socket.join('map:campus');
   playerInventories.set(socket.id, {
@@ -94,6 +174,7 @@ io.on('connection', (socket) => {
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
   socket.emit('currentPlayers', getMapPlayers('campus'));
   socket.emit('inventoryState', playerInventories.get(socket.id));
+  socket.emit('playerState', getPlayerState(players[socket.id]));
   
   // Thông báo cho các người chơi khác về sự xuất hiện của người mới (kèm avatar mặc định)
   socket.to('map:campus').emit('newPlayer', {
@@ -108,7 +189,7 @@ io.on('connection', (socket) => {
   socket.on('enterCampusMap', (mapId) => {
     if (typeof mapId !== 'string') return;
     if (players[socket.id]?.mapId !== 'campus') return;
-    if (mapId === 'dormitory' || mapId === 'khu-a') {
+    if (mapId === 'dormitory' || mapId === 'personal-farm') {
       socket.emit('mapChangeDenied', 'Khu vực cá nhân sẽ yêu cầu đăng nhập; tính năng đang được lên kế hoạch.');
       return;
     }
@@ -154,6 +235,7 @@ io.on('connection', (socket) => {
       if (players[socket.id].mapId === 'campus' && isBlockedPosition(x, y)) return;
       players[socket.id].x = x;
       players[socket.id].y = y;
+      players[socket.id].lastMovementAt = Date.now();
       
       socket.to(`map:${players[socket.id].mapId}`).emit('playerMoved', {
         id: socket.id, 
@@ -177,6 +259,12 @@ io.on('connection', (socket) => {
       socket.emit('farmInteractionResult', { message: 'Hãy vào bản đồ nông trại cộng đồng để tương tác.' });
       return;
     }
+    const actionDelay = 800 + player.stats.fatigue * 25;
+    if (Date.now() - player.lastFarmActionAt < actionDelay) {
+      socket.emit('farmInteractionResult', { message: 'Hãy chậm lại và nghỉ một chút trước hành động tiếp theo.' });
+      return;
+    }
+    player.lastFarmActionAt = Date.now();
     const inventory = playerInventories.get(socket.id);
 
     if (action === 'plant') {
@@ -193,7 +281,17 @@ io.on('connection', (socket) => {
       plot.cropKey = cropKey;
       plot.plantedAt = Date.now();
       plot.plantedBy = players[socket.id].nickname || 'Một sinh viên';
-      socket.emit('farmInteractionResult', { message: `Bạn đã gieo ${plot.crop}. Cây sẽ lớn sau 30 giây.` });
+      player.farmPlantCount += 1;
+      let farmCostMessage = '';
+      if (player.farmPlantCount >= 4) {
+        player.farmPlantCount -= 4;
+        player.stats.strength = clampStat(player.stats.strength - 0.5);
+        player.stats.fatigue = clampStat(player.stats.fatigue + 0.5);
+        player.stats.hunger = clampStat(player.stats.hunger - 0.5);
+        farmCostMessage = ' Đủ 4 ô: sức mạnh −0.5, mệt +0.5, đói −0.5.';
+      }
+      socket.emit('farmInteractionResult', { message: `Bạn đã gieo ${plot.crop}. Cây sẽ lớn sau 30 giây.${farmCostMessage}` });
+      emitPlayerState(socket.id);
     } else {
       if (!plot.plantedAt) {
         socket.emit('farmInteractionResult', { message: 'Luống này chưa được gieo hạt.' });
@@ -217,6 +315,53 @@ io.on('connection', (socket) => {
     io.to('map:farm').emit('farmState', getFarmSnapshot());
   });
 
+  socket.on('farmShopAction', (payload = {}) => {
+    if (players[socket.id]?.mapId !== 'khu-a') return socket.emit('serviceResult', { message: 'Hãy đến quầy thương nhân ở Khu A.' });
+    const { action, cropKey } = payload || {};
+    const price = Object.hasOwn(CROP_PRICES, cropKey) ? CROP_PRICES[cropKey] : 0;
+    const crop = Object.hasOwn(FARM_CROP_KEYS, cropKey) ? FARM_CROP_KEYS[cropKey] : '';
+    const inventory = playerInventories.get(socket.id);
+    const player = players[socket.id];
+    if (!player || !inventory || !price || !crop) return;
+    if (action === 'buy-seed') {
+      if (player.coins < price) return socket.emit('serviceResult', { message: 'Bạn không đủ tiền đồng.' });
+      player.coins -= price;
+      inventory.seeds[cropKey] = (inventory.seeds[cropKey] || 0) + 1;
+      socket.emit('serviceResult', { message: `Đã mua 1 gói hạt ${crop} với ${price} tiền đồng.`, state: getPlayerState(player), inventory });
+    } else if (action === 'sell-crop') {
+      if ((inventory.produce[cropKey] || 0) < 1) return socket.emit('serviceResult', { message: 'Bạn chưa có nông sản này để bán.' });
+      inventory.produce[cropKey] -= 1;
+      player.coins += price;
+      socket.emit('serviceResult', { message: `Đã bán ${crop} với giá ${price} tiền đồng.`, state: getPlayerState(player), inventory });
+    }
+  });
+
+  socket.on('useRecoveryStation', () => {
+    const player = players[socket.id];
+    if (!player || player.mapId !== 'khu-a') return socket.emit('serviceResult', { message: 'Trạm hồi phục đặt tại Khu A.' });
+    if (player.coins < 500) return socket.emit('serviceResult', { message: 'Cần 500 tiền đồng để dùng gói hồi phục.' });
+    player.coins -= 500;
+    player.stats.hunger = clampStat(player.stats.hunger + 50);
+    player.stats.strength = clampStat(player.stats.strength + 50);
+    player.stats.fatigue = clampStat(player.stats.fatigue - 50);
+    socket.emit('serviceResult', { message: 'Đã dùng gói hồi phục: +50 đói, +50 sức mạnh, -50 mệt.', state: getPlayerState(player) });
+  });
+
+  socket.on('canteenPurchase', (payload = {}) => {
+    const player = players[socket.id];
+    if (!player || player.mapId !== 'canteen') return socket.emit('serviceResult', { message: 'Hãy đến Căn tin để mua thực phẩm.' });
+    const { itemId, currency } = payload || {};
+    const item = Object.hasOwn(FOOD_MENU, itemId) ? FOOD_MENU[itemId] : null;
+    if (!item || !['coins', 'reputation'].includes(currency)) return;
+    const cost = item[currency];
+    if (player[currency] < cost) return socket.emit('serviceResult', { message: `Bạn không đủ ${currency === 'coins' ? 'tiền đồng' : 'danh tiếng'}.` });
+    player[currency] -= cost;
+    if (item.hunger) player.stats.hunger = clampStat(player.stats.hunger + item.hunger);
+    if (item.strength) player.stats.strength = clampStat(player.stats.strength + item.strength);
+    if (item.fatigue) player.stats.fatigue = clampStat(player.stats.fatigue + item.fatigue);
+    socket.emit('serviceResult', { message: `Đã mua món ăn. ${item.hunger ? `Đói ${item.hunger > 0 ? '+' : ''}${item.hunger}. ` : ''}${item.strength ? `Sức mạnh +${item.strength}. ` : ''}${item.fatigue ? `Mệt ${item.fatigue}.` : ''}`, state: getPlayerState(player) });
+  });
+
   socket.on('sendPlayerEmote', (emoji) => {
     if (!players[socket.id] || !quickFloatingEmotes.has(emoji)) return;
     const now = Date.now();
@@ -234,6 +379,7 @@ io.on('connection', (socket) => {
     recentMessages.set(messageId, { reactions: new Map() });
     if (recentMessages.size > 100) recentMessages.delete(recentMessages.keys().next().value);
     io.emit('chatMessage', { id: socket.id, nickname: players[socket.id]?.nickname || '', messageId, message });
+    rewardReputation(socket.id);
   });
 
   socket.on('sendPrivateMessage', (payload = {}) => {
@@ -266,6 +412,7 @@ io.on('connection', (socket) => {
     };
     socket.to(to).emit('privateChatMessage', { ...sender, peerId: socket.id });
     socket.emit('privateChatMessage', { ...sender, peerId: to, isMe: true });
+    rewardReputation(socket.id);
   });
 
   socket.on('reactToMessage', (payload = {}) => {
@@ -279,6 +426,7 @@ io.on('connection', (socket) => {
     if (users.has(socket.id)) users.delete(socket.id);
     else users.add(socket.id);
     io.emit('chatReaction', { messageId, emoji, count: users.size, reactedBy: [...users] });
+    rewardReputation(socket.id);
   });
 
   socket.on('reactToPrivateMessage', (payload = {}) => {
@@ -300,6 +448,7 @@ io.on('connection', (socket) => {
       count: users.size,
       reactedBy: [...users]
     });
+    rewardReputation(socket.id);
   });
 
   socket.on('updateProfile', (profile = {}) => {
@@ -345,6 +494,7 @@ io.on('connection', (socket) => {
       }
     }
     playerInventories.delete(socket.id);
+    reputationRewardedAt.delete(socket.id);
     io.to(`map:${mapId}`).emit('playerDisconnected', socket.id);
   });
 });
