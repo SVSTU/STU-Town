@@ -240,6 +240,8 @@ const FARM_WILT_MS = FARM_GROWTH_MS * 10;
 const FARM_DEATH_MS = FARM_GROWTH_MS * 50;
 const FARM_HARVEST_COST_EVERY = 4;
 const CAMPUS_BENCH_REST = 10;
+const CAMPUS_BENCH_REST_DURATION_MS = 30_000;
+const CAMPUS_BENCH_REST_STEP_MS = CAMPUS_BENCH_REST_DURATION_MS / CAMPUS_BENCH_REST;
 const CAMPUS_BENCH_COOLDOWN_MS = 3_000;
 const CAMPUS_BENCHES = [
   { id: 'bench-1', x: 540, y: 50 }, { id: 'bench-2', x: 625, y: 50 },
@@ -401,6 +403,56 @@ function getCampusBenchOccupants() {
 function emitCampusBenchOccupants() {
   io.to('map:campus').emit('campusBenchOccupancy', getCampusBenchOccupants());
 }
+
+function stopCampusBenchRest(player) {
+  if (!player) return false;
+  const wasSitting = Boolean(player.sittingAtBench);
+  player.sittingAtBench = '';
+  player.benchRestStartedAt = 0;
+  player.benchRestRecovered = 0;
+  return wasSitting;
+}
+
+function tickCampusBenchRest() {
+  const now = Date.now();
+  let occupancyChanged = false;
+  for (const [id, player] of Object.entries(players)) {
+    if (!player.benchRestStartedAt) continue;
+    if (player.mapId !== 'campus' || !player.sittingAtBench) {
+      occupancyChanged = stopCampusBenchRest(player) || occupancyChanged;
+      continue;
+    }
+
+    const elapsed = now - player.benchRestStartedAt;
+    const targetRecovery = Math.min(CAMPUS_BENCH_REST, Math.floor(elapsed / CAMPUS_BENCH_REST_STEP_MS));
+    const pendingRecovery = targetRecovery - player.benchRestRecovered;
+    if (pendingRecovery > 0 && player.stats.fatigue > 0) {
+      const recovered = Math.min(pendingRecovery, player.stats.fatigue);
+      player.stats.fatigue = clampStat(player.stats.fatigue - recovered);
+      player.benchRestRecovered += recovered;
+      emitPlayerState(id);
+      const playerSocket = io.sockets.sockets.get(id);
+      playerSocket?.emit('benchRestResult', {
+        message: `Đang nghỉ: mệt −${recovered} (đã hồi ${player.benchRestRecovered}/${CAMPUS_BENCH_REST}).`,
+        state: getPlayerState(player)
+      });
+    }
+
+    if (elapsed >= CAMPUS_BENCH_REST_DURATION_MS
+      || player.benchRestRecovered >= CAMPUS_BENCH_REST
+      || player.stats.fatigue <= 0) {
+      const totalRecovered = player.benchRestRecovered;
+      occupancyChanged = stopCampusBenchRest(player) || occupancyChanged;
+      io.sockets.sockets.get(id)?.emit('benchRestResult', {
+        message: `Bạn nghỉ xong. Độ mệt đã giảm ${totalRecovered} điểm.`,
+        state: getPlayerState(player)
+      });
+    }
+  }
+  if (occupancyChanged) emitCampusBenchOccupants();
+}
+
+setInterval(tickCampusBenchRest, 1_000);
 
 function rewardReputation(id) {
   const player = players[id];
@@ -736,6 +788,8 @@ io.on('connection', (socket) => {
     statsTickAt: Date.now(),
     lastMovementAt: Date.now(),
     sittingAtBench: '',
+    benchRestStartedAt: 0,
+    benchRestRecovered: 0,
     lastFarmActionAt: 0
   };
   socket.join('map:campus');
@@ -786,7 +840,7 @@ io.on('connection', (socket) => {
     }
     const previousMapId = players[socket.id]?.mapId || 'campus';
     const wasSittingAtBench = Boolean(players[socket.id]?.sittingAtBench);
-    if (players[socket.id]) players[socket.id].sittingAtBench = '';
+    if (players[socket.id]) stopCampusBenchRest(players[socket.id]);
     socket.leave(`map:${previousMapId}`);
     socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
     if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();
@@ -835,7 +889,10 @@ io.on('connection', (socket) => {
       const x = Math.max(15, Math.min(785, data.x));
       const y = Math.max(15, Math.min(585, data.y));
       if (players[socket.id].mapId === 'campus' && isBlockedPosition(x, y)) return;
-      players[socket.id].sittingAtBench = '';
+      stopCampusBenchRest(players[socket.id]);
+      if (wasSittingAtBench) {
+        socket.emit('benchRestResult', { message: 'Bạn đứng dậy; lượt nghỉ đã dừng.' });
+      }
       players[socket.id].x = x;
       players[socket.id].y = y;
       players[socket.id].lastMovementAt = Date.now();
@@ -985,18 +1042,28 @@ io.on('connection', (socket) => {
     );
     if (occupiedByOther) return socket.emit('benchRestResult', { message: 'Ghế đang có người ngồi.' });
     const now = Date.now();
+    if (player.sittingAtBench === benchId && player.benchRestStartedAt) {
+      return socket.emit('benchRestResult', {
+        message: `Bạn đang nghỉ: đã giảm ${player.benchRestRecovered || 0}/${CAMPUS_BENCH_REST} điểm mệt.`,
+        state: getPlayerState(player)
+      });
+    }
+    if (player.stats.fatigue <= 0) {
+      return socket.emit('benchRestResult', { message: 'Bạn chưa mệt, không cần nghỉ lúc này.', state: getPlayerState(player) });
+    }
     if (now - (player.lastBenchRestAt || 0) < CAMPUS_BENCH_COOLDOWN_MS) {
       return socket.emit('benchRestResult', { message: 'Bạn vừa nghỉ xong, hãy chờ một chút.' });
     }
-    if (player.sittingAtBench && player.sittingAtBench !== benchId) player.sittingAtBench = '';
+    if (player.sittingAtBench && player.sittingAtBench !== benchId) stopCampusBenchRest(player);
     player.sittingAtBench = benchId;
     player.lastBenchRestAt = now;
+    player.benchRestStartedAt = now;
+    player.benchRestRecovered = 0;
     emitCampusBenchOccupants();
-    const rested = Math.min(CAMPUS_BENCH_REST, player.stats.fatigue);
-    if (rested <= 0) return socket.emit('benchRestResult', { message: 'Bạn chưa mệt, không cần nghỉ lúc này.', state: getPlayerState(player) });
-    player.stats.fatigue = clampStat(player.stats.fatigue - CAMPUS_BENCH_REST);
-    socket.emit('benchRestResult', { message: `Bạn ngồi nghỉ và giảm ${rested} điểm mệt.`, state: getPlayerState(player) });
-    schedulePlayerSave(socket.id);
+    socket.emit('benchRestResult', {
+      message: 'Bạn bắt đầu nghỉ. Độ mệt giảm dần 1 điểm mỗi 3 giây, tối đa 10 điểm trong 30 giây. Di chuyển sẽ dừng nghỉ.',
+      state: getPlayerState(player)
+    });
   });
 
   socket.on('canteenPurchase', (payload = {}) => {
@@ -1051,7 +1118,7 @@ io.on('connection', (socket) => {
       const previousMapId = player.mapId;
       const mapId = `halloween:${socket.id}`;
       const wasSittingAtBench = Boolean(player.sittingAtBench);
-      player.sittingAtBench = '';
+      stopCampusBenchRest(player);
       socket.leave(`map:${previousMapId}`);
       socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
       if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();

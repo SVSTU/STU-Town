@@ -1393,29 +1393,47 @@ function isLectureHoursNow() {
     return (minutes >= 420 && minutes < 690) || (minutes >= 780 && minutes < 1020);
 }
 
+function getTradeQuantityLimit() {
+    const crop = CROP_INFO[zoneServiceView.cropKey];
+    if (!crop) return 0;
+    if (zoneServiceView.tradeAction === 'buy-seed') {
+        return Math.min(99, Math.floor((Number(playerStatsState.coins) || 0) / crop.price));
+    }
+    return Math.min(99, Number(inventory.produce?.[zoneServiceView.cropKey]) || 0);
+}
+
 function syncTradeDraftFromForm() {
     const cropSelect = document.getElementById('trade-crop');
     const quantityInput = document.getElementById('trade-quantity');
     if (cropSelect) zoneServiceView.cropKey = cropSelect.value;
     if (quantityInput) {
-        const amount = Number.parseInt(quantityInput.value, 10);
-        zoneServiceView.quantity = Number.isInteger(amount) ? Math.max(1, Math.min(99, amount)) : 1;
+        const parsed = Number(quantityInput.value);
+        const amount = Number.isInteger(parsed) ? parsed : 1;
+        const limit = getTradeQuantityLimit();
+        zoneServiceView.quantity = limit > 0 ? Math.max(1, Math.min(limit, amount)) : 1;
     }
 }
 
 function updateTradeSummary() {
     const crop = CROP_INFO[zoneServiceView.cropKey];
-    const quantity = zoneServiceView.quantity;
     const summary = document.getElementById('trade-summary');
     const submit = document.getElementById('trade-submit');
+    const quantityInput = document.getElementById('trade-quantity');
     if (!crop || !summary || !submit) return;
     const isBuying = zoneServiceView.tradeAction === 'buy-seed';
+    const limit = getTradeQuantityLimit();
+    zoneServiceView.quantity = limit > 0 ? Math.max(1, Math.min(limit, zoneServiceView.quantity)) : 1;
+    if (quantityInput) {
+        quantityInput.max = String(Math.max(1, limit));
+        quantityInput.value = String(zoneServiceView.quantity);
+    }
+    const quantity = zoneServiceView.quantity;
     const total = crop.price * quantity;
     const available = isBuying ? playerStatsState.coins : Number(inventory.produce?.[zoneServiceView.cropKey]) || 0;
     summary.textContent = isBuying
         ? `Tổng ${total.toLocaleString('vi-VN')}đ · Ví ${playerStatsState.coins.toLocaleString('vi-VN')}đ`
         : `Nhận ${total.toLocaleString('vi-VN')}đ · Có ${available} ${crop.name}`;
-    submit.disabled = isBuying ? total > playerStatsState.coins : quantity > available;
+    submit.disabled = limit < 1 || quantity > limit || (isBuying && total > playerStatsState.coins);
 }
 
 function renderTradeScreen(content, title) {
@@ -1441,7 +1459,7 @@ function renderTradeScreen(content, title) {
     quantityInput.id = 'trade-quantity';
     quantityInput.type = 'number';
     quantityInput.min = '1';
-    quantityInput.max = '99';
+    quantityInput.max = String(Math.max(1, getTradeQuantityLimit()));
     quantityInput.step = '1';
     quantityInput.value = String(zoneServiceView.quantity);
     quantityLabel.appendChild(quantityInput);
@@ -1466,23 +1484,37 @@ function syncFoodDraftFromForm() {
     if (itemSelect) zoneServiceView.itemId = itemSelect.value;
     if (currencySelect) zoneServiceView.currency = currencySelect.value;
     if (quantityInput) {
-        const amount = Number.parseInt(quantityInput.value, 10);
-        zoneServiceView.quantity = Number.isInteger(amount) ? Math.max(1, Math.min(99, amount)) : 1;
+        const parsed = Number(quantityInput.value);
+        const amount = Number.isInteger(parsed) ? parsed : 1;
+        const item = FOOD_INFO[zoneServiceView.itemId];
+        const owned = Number(inventory.items?.[zoneServiceView.itemId]) || 0;
+        const balance = Number(playerStatsState[zoneServiceView.currency]) || 0;
+        const limit = item ? Math.max(0, Math.min(99, 10 - owned, Math.floor(balance / item[zoneServiceView.currency]))) : 0;
+        zoneServiceView.quantity = limit > 0 ? Math.max(1, Math.min(limit, amount)) : 1;
     }
 }
 
 function updateFoodSummary() {
     const item = FOOD_INFO[zoneServiceView.itemId];
-    const quantity = zoneServiceView.quantity;
     const summary = document.getElementById('food-summary');
     const submit = document.getElementById('food-submit');
+    const quantityInput = document.getElementById('food-quantity');
     if (!item || !summary || !submit) return;
+    const maxByCapacity = Math.max(0, 10 - (Number(inventory.items?.[zoneServiceView.itemId]) || 0));
+    const maxByBalance = Math.floor((Number(playerStatsState[zoneServiceView.currency]) || 0) / item[zoneServiceView.currency]);
+    const limit = Math.max(0, Math.min(99, maxByCapacity, maxByBalance));
+    zoneServiceView.quantity = limit > 0 ? Math.max(1, Math.min(limit, zoneServiceView.quantity)) : 1;
+    if (quantityInput) {
+        quantityInput.max = String(Math.max(1, limit));
+        quantityInput.value = String(zoneServiceView.quantity);
+    }
+    const quantity = zoneServiceView.quantity;
     const cost = item[zoneServiceView.currency] * quantity;
     const balance = Number(playerStatsState[zoneServiceView.currency]) || 0;
     const ownedCount = Number(inventory.items?.[zoneServiceView.itemId]) || 0;
     const currencyName = zoneServiceView.currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
     summary.textContent = `${item.icon} ${item.effect} · Túi: ${ownedCount}/10 · Tổng: ${cost} ${currencyName} · Đang có: ${balance}`;
-    submit.disabled = cost > balance || ownedCount + quantity > 10;
+    submit.disabled = limit < 1 || cost > balance || ownedCount + quantity > 10;
 }
 
 function renderFoodOrder(content, title) {
@@ -1518,7 +1550,10 @@ function renderFoodOrder(content, title) {
     quantityInput.id = 'food-quantity';
     quantityInput.type = 'number';
     quantityInput.min = '1';
-    quantityInput.max = '99';
+    const initialItem = FOOD_INFO[zoneServiceView.itemId];
+    const initialOwned = Number(inventory.items?.[zoneServiceView.itemId]) || 0;
+    const initialBalance = Number(playerStatsState[zoneServiceView.currency]) || 0;
+    quantityInput.max = String(Math.max(1, Math.min(99, 10 - initialOwned, initialItem ? Math.floor(initialBalance / initialItem[zoneServiceView.currency]) : 0)));
     quantityInput.step = '1';
     quantityInput.value = String(zoneServiceView.quantity);
     quantityLabel.appendChild(quantityInput);
