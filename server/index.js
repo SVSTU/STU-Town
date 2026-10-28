@@ -76,6 +76,7 @@ function tickPlayerStats() {
   for (const [id, player] of Object.entries(players)) {
     const elapsed = now - player.statsTickAt;
     player.statsTickAt = now;
+    const statsBefore = `${player.stats.hunger}|${player.stats.strength}|${player.stats.fatigue}`;
     const safeForHunger = ['khu-a', 'canteen'].includes(player.mapId);
     const safeForMovementFatigue = ['khu-a', 'farm'].includes(player.mapId);
     if (!safeForHunger) {
@@ -101,7 +102,8 @@ function tickPlayerStats() {
         player.stats.fatigue = clampStat(player.stats.fatigue + 1);
       }
     } else player.weaknessElapsed = 0;
-    if (elapsed >= 1_000) emitPlayerState(id);
+    const statsAfter = `${player.stats.hunger}|${player.stats.strength}|${player.stats.fatigue}`;
+    if (statsAfter !== statsBefore) emitPlayerState(id);
   }
 }
 
@@ -168,7 +170,8 @@ io.on('connection', (socket) => {
   socket.join('map:campus');
   playerInventories.set(socket.id, {
     seeds: { carrot: 3, tomato: 3, corn: 3, strawberry: 3 },
-    produce: { carrot: 0, tomato: 0, corn: 0, strawberry: 0 }
+    produce: { carrot: 0, tomato: 0, corn: 0, strawberry: 0 },
+    items: {}
   });
 
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
@@ -318,21 +321,27 @@ io.on('connection', (socket) => {
   socket.on('farmShopAction', (payload = {}) => {
     if (players[socket.id]?.mapId !== 'khu-a') return socket.emit('serviceResult', { message: 'Hãy đến quầy thương nhân ở Khu A.' });
     const { action, cropKey } = payload || {};
+    const quantity = Number(payload?.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      return socket.emit('serviceResult', { message: 'Số lượng cần là số nguyên từ 1 đến 99.' });
+    }
     const price = Object.hasOwn(CROP_PRICES, cropKey) ? CROP_PRICES[cropKey] : 0;
     const crop = Object.hasOwn(FARM_CROP_KEYS, cropKey) ? FARM_CROP_KEYS[cropKey] : '';
     const inventory = playerInventories.get(socket.id);
     const player = players[socket.id];
     if (!player || !inventory || !price || !crop) return;
     if (action === 'buy-seed') {
-      if (player.coins < price) return socket.emit('serviceResult', { message: 'Bạn không đủ tiền đồng.' });
-      player.coins -= price;
-      inventory.seeds[cropKey] = (inventory.seeds[cropKey] || 0) + 1;
-      socket.emit('serviceResult', { message: `Đã mua 1 gói hạt ${crop} với ${price} tiền đồng.`, state: getPlayerState(player), inventory });
+      const total = price * quantity;
+      if (player.coins < total) return socket.emit('serviceResult', { message: `Bạn cần ${total} tiền đồng để mua ${quantity} gói.` });
+      player.coins -= total;
+      inventory.seeds[cropKey] = (inventory.seeds[cropKey] || 0) + quantity;
+      socket.emit('serviceResult', { message: `Đã mua ${quantity} gói hạt ${crop}, tổng ${total} tiền đồng.`, state: getPlayerState(player), inventory });
     } else if (action === 'sell-crop') {
-      if ((inventory.produce[cropKey] || 0) < 1) return socket.emit('serviceResult', { message: 'Bạn chưa có nông sản này để bán.' });
-      inventory.produce[cropKey] -= 1;
-      player.coins += price;
-      socket.emit('serviceResult', { message: `Đã bán ${crop} với giá ${price} tiền đồng.`, state: getPlayerState(player), inventory });
+      if ((inventory.produce[cropKey] || 0) < quantity) return socket.emit('serviceResult', { message: `Bạn không đủ ${quantity} ${crop} trong túi.` });
+      const total = price * quantity;
+      inventory.produce[cropKey] -= quantity;
+      player.coins += total;
+      socket.emit('serviceResult', { message: `Đã bán ${quantity} ${crop}, nhận ${total} tiền đồng.`, state: getPlayerState(player), inventory });
     }
   });
 
@@ -351,15 +360,19 @@ io.on('connection', (socket) => {
     const player = players[socket.id];
     if (!player || player.mapId !== 'canteen') return socket.emit('serviceResult', { message: 'Hãy đến Căn tin để mua thực phẩm.' });
     const { itemId, currency } = payload || {};
+    const quantity = Number(payload?.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      return socket.emit('serviceResult', { message: 'Số lượng cần là số nguyên từ 1 đến 99.' });
+    }
     const item = Object.hasOwn(FOOD_MENU, itemId) ? FOOD_MENU[itemId] : null;
     if (!item || !['coins', 'reputation'].includes(currency)) return;
-    const cost = item[currency];
+    const cost = item[currency] * quantity;
     if (player[currency] < cost) return socket.emit('serviceResult', { message: `Bạn không đủ ${currency === 'coins' ? 'tiền đồng' : 'danh tiếng'}.` });
     player[currency] -= cost;
-    if (item.hunger) player.stats.hunger = clampStat(player.stats.hunger + item.hunger);
-    if (item.strength) player.stats.strength = clampStat(player.stats.strength + item.strength);
-    if (item.fatigue) player.stats.fatigue = clampStat(player.stats.fatigue + item.fatigue);
-    socket.emit('serviceResult', { message: `Đã mua món ăn. ${item.hunger ? `Đói ${item.hunger > 0 ? '+' : ''}${item.hunger}. ` : ''}${item.strength ? `Sức mạnh +${item.strength}. ` : ''}${item.fatigue ? `Mệt ${item.fatigue}.` : ''}`, state: getPlayerState(player) });
+    if (item.hunger) player.stats.hunger = clampStat(player.stats.hunger + item.hunger * quantity);
+    if (item.strength) player.stats.strength = clampStat(player.stats.strength + item.strength * quantity);
+    if (item.fatigue) player.stats.fatigue = clampStat(player.stats.fatigue + item.fatigue * quantity);
+    socket.emit('serviceResult', { message: `Đã mua ${quantity} phần. ${item.hunger ? `Đói ${item.hunger > 0 ? '+' : ''}${item.hunger * quantity}. ` : ''}${item.strength ? `Sức mạnh +${item.strength * quantity}. ` : ''}${item.fatigue ? `Mệt ${item.fatigue * quantity}.` : ''}`, state: getPlayerState(player) });
   });
 
   socket.on('sendPlayerEmote', (emoji) => {

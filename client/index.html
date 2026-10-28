@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-player-economy">
+    <link rel="stylesheet" href="style.css?v=20261028-inventory-categories">
 </head>
 <body>
 
@@ -88,11 +88,21 @@
         <div id="farm-plot-list" hidden aria-label="Các luống cây"></div>
         <div id="interaction-feedback" role="status"></div>
     </section>
-    <button type="button" id="inventory-toggle" aria-expanded="false">🎒 Túi đồ</button>
-    <section id="inventory-panel" hidden aria-label="Túi đồ cá nhân">
-        <strong>Túi đồ cá nhân</strong>
-        <div id="inventory-items"></div>
-        <small>Vật phẩm chỉ lưu trong phiên hiện tại.</small>
+    <section id="inventory-panel" aria-label="Túi đồ cá nhân">
+        <strong>🎒 Túi đồ</strong>
+        <div class="inventory-compartment">
+            <h3>Hạt giống</h3>
+            <div id="inventory-seeds" class="inventory-list" aria-live="polite"></div>
+        </div>
+        <div class="inventory-compartment">
+            <h3>Nông sản</h3>
+            <div id="inventory-produce" class="inventory-list" aria-live="polite"></div>
+        </div>
+        <div class="inventory-compartment">
+            <h3>Vật phẩm</h3>
+            <div id="inventory-items" class="inventory-list" aria-live="polite"></div>
+        </div>
+        <small>Túi đồ được lưu trong phiên hiện tại.</small>
     </section>
     <button type="button" id="map-exit" hidden>← Trở về sân trường</button>
     <section id="player-stats" aria-label="Chỉ số nhân vật">
@@ -109,6 +119,6 @@
     </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-player-economy"></script>
+    <script src="game.js?v=20261028-inventory-categories"></script>
 </body>
 </html>

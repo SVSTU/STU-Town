@@ -61,8 +61,12 @@ let farmGraphics = null;
 let activeInteractionZoneId = '';
 let currentMapId = 'campus';
 let mapObjects = [];
-let inventory = { seeds: {}, produce: {} };
+let inventory = { seeds: {}, produce: {}, items: {} };
 let playerStatsState = { stats: { hunger: 100, strength: 100, fatigue: 0 }, coins: 1500, reputation: 0, farmPlantCount: 0 };
+let zoneServiceView = {
+    screen: 'home', tradeAction: 'buy-seed', cropKey: 'carrot', quantity: 1,
+    itemId: 'bread', currency: 'coins'
+};
 let targetPosition = null;
 let cursors;
 let sceneRef = null;
@@ -87,7 +91,7 @@ function create() {
     sceneRef = this;
     drawCampusMap(sceneRef);
     createFarmPlotControls();
-    document.getElementById('inventory-toggle').hidden = true;
+    renderInventory();
     createCircularTexture(sceneRef, 'avatar-default', sceneRef.textures.get('avatar-default-source').getSourceImage());
     console.log("SCENE CREATED SUCCESSFULLY!");
 
@@ -122,7 +126,7 @@ function create() {
     });
 
     socket.on('inventoryState', (state) => {
-        inventory = state && typeof state === 'object' ? state : { seeds: {}, produce: {} };
+        inventory = normalizeInventory(state);
         renderInventory();
     });
 
@@ -132,7 +136,7 @@ function create() {
         document.getElementById('zone-service-feedback').textContent = String(result?.message || '');
         if (result?.state) updatePlayerStats(result.state);
         if (result?.inventory) {
-            inventory = result.inventory;
+            inventory = normalizeInventory(result.inventory);
             renderInventory();
             updateFarmPlotControls();
             renderZoneServices(currentMapId);
@@ -380,11 +384,6 @@ function create() {
 
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
-    document.getElementById('inventory-toggle').addEventListener('click', () => {
-        const panel = document.getElementById('inventory-panel');
-        panel.hidden = !panel.hidden;
-        document.getElementById('inventory-toggle').setAttribute('aria-expanded', String(!panel.hidden));
-    });
     document.getElementById('farm-plot-list').addEventListener('click', (event) => {
         const button = event.target.closest('[data-farm-plot]');
         if (!button || !socket.connected || currentMapId !== 'farm') return;
@@ -397,13 +396,70 @@ function create() {
     document.getElementById('farm-seed-type').addEventListener('change', updateFarmPlotControls);
     document.getElementById('zone-service-content').addEventListener('click', (event) => {
         const button = event.target.closest('[data-service-action]');
-        if (!button || !socket.connected) return;
+        if (!button) return;
         const action = button.dataset.serviceAction;
-        if (action === 'buy-seed' || action === 'sell-crop') {
-            socket.emit('farmShopAction', { action, cropKey: button.dataset.cropKey });
-        } else if (action === 'buy-food') {
-            socket.emit('canteenPurchase', { itemId: button.dataset.itemId, currency: button.dataset.currency });
-        } else if (action === 'heal') socket.emit('useRecoveryStation');
+        if (action === 'open-trade') {
+            zoneServiceView = { ...zoneServiceView, screen: 'trade', tradeAction: button.dataset.tradeAction, quantity: 1 };
+            renderZoneServices(currentMapId);
+        } else if (action === 'open-heal') {
+            zoneServiceView.screen = 'recovery';
+            renderZoneServices(currentMapId);
+        } else if (action === 'service-back') {
+            zoneServiceView.screen = 'home';
+            renderZoneServices(currentMapId);
+        } else if (action === 'submit-trade') {
+            syncTradeDraftFromForm();
+            if (!socket.connected) return;
+            socket.emit('farmShopAction', {
+                action: zoneServiceView.tradeAction,
+                cropKey: zoneServiceView.cropKey,
+                quantity: zoneServiceView.quantity
+            });
+        } else if (action === 'confirm-heal') {
+            if (!socket.connected) return;
+            socket.emit('useRecoveryStation');
+            zoneServiceView.screen = 'home';
+            renderZoneServices(currentMapId);
+        } else if (action === 'open-food-order') {
+            zoneServiceView.screen = 'food-order';
+            zoneServiceView.quantity = 1;
+            renderZoneServices(currentMapId);
+        } else if (action === 'submit-food-order') {
+            syncFoodDraftFromForm();
+            if (!socket.connected) return;
+            socket.emit('canteenPurchase', {
+                itemId: zoneServiceView.itemId,
+                currency: zoneServiceView.currency,
+                quantity: zoneServiceView.quantity
+            });
+        }
+    });
+    document.getElementById('zone-service-content').addEventListener('input', (event) => {
+        if (event.target.id === 'trade-quantity') {
+            syncTradeDraftFromForm();
+            event.target.value = String(zoneServiceView.quantity);
+            updateTradeSummary();
+        }
+        if (event.target.id === 'food-quantity') {
+            syncFoodDraftFromForm();
+            event.target.value = String(zoneServiceView.quantity);
+            updateFoodSummary();
+        }
+    });
+    document.getElementById('zone-service-content').addEventListener('change', (event) => {
+        if (event.target.id === 'trade-crop') {
+            zoneServiceView.cropKey = event.target.value;
+            zoneServiceView.quantity = 1;
+            renderZoneServices(currentMapId);
+        }
+        if (event.target.id === 'food-item') {
+            zoneServiceView.itemId = event.target.value;
+            updateFoodSummary();
+        }
+        if (event.target.id === 'food-currency') {
+            zoneServiceView.currency = event.target.value;
+            updateFoodSummary();
+        }
     });
 
     document.getElementById('chat-toggle').addEventListener('click', toggleChat);
@@ -584,12 +640,12 @@ function switchMapVisuals(mapId) {
     if (mapId === 'campus') drawCampusMap(sceneRef);
     else drawInteriorMap(sceneRef, mapId);
     document.getElementById('map-exit').hidden = mapId === 'campus';
-    document.getElementById('inventory-toggle').hidden = mapId !== 'farm';
     document.getElementById('interaction-hud').hidden = mapId !== 'farm';
     document.getElementById('farm-seed-picker').hidden = mapId !== 'farm';
     document.getElementById('farm-plot-list').hidden = mapId !== 'farm';
     document.getElementById('zone-service-panel').hidden = !['khu-a', 'canteen'].includes(mapId);
     document.getElementById('zone-service-feedback').textContent = '';
+    zoneServiceView = { screen: 'home', tradeAction: 'buy-seed', cropKey: 'carrot', quantity: 1, itemId: 'bread', currency: 'coins' };
     renderZoneServices(mapId);
     if (mapId === 'campus') activeInteractionZoneId = '__map-transition__';
     if (mapId === 'farm') {
@@ -645,16 +701,51 @@ function updateFarmPlotControls() {
 }
 
 function renderInventory() {
-    const items = document.getElementById('inventory-items');
-    if (!items) return;
-    items.replaceChildren();
-    const labels = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
-    Object.keys(labels).forEach((key) => {
-        const seed = document.createElement('span');
-        seed.textContent = `${labels[key]} Hạt: ${Number(inventory.seeds?.[key]) || 0}`;
-        const produce = document.createElement('span');
-        produce.textContent = `${labels[key]} Thu hoạch: ${Number(inventory.produce?.[key]) || 0}`;
-        items.append(seed, produce);
+    const cropKeys = Object.keys(CROP_INFO);
+    renderInventorySection('inventory-seeds', cropKeys.map((key) => ({
+        label: `${CROP_INFO[key].icon} ${CROP_INFO[key].name}`,
+        count: inventory.seeds[key]
+    })), 'Chưa có hạt giống');
+    renderInventorySection('inventory-produce', cropKeys.map((key) => ({
+        label: `${CROP_INFO[key].icon} ${CROP_INFO[key].name}`,
+        count: inventory.produce[key]
+    })), 'Chưa có nông sản');
+    const itemEntries = Object.entries(inventory.items)
+        .filter(([, count]) => Number(count) > 0)
+        .map(([name, count]) => ({ label: name, count }));
+    renderInventorySection('inventory-items', itemEntries, 'Chưa có vật phẩm');
+}
+
+function normalizeInventory(state) {
+    const source = state && typeof state === 'object' ? state : {};
+    return {
+        seeds: source.seeds && typeof source.seeds === 'object' ? source.seeds : {},
+        produce: source.produce && typeof source.produce === 'object' ? source.produce : {},
+        items: source.items && typeof source.items === 'object' ? source.items : {}
+    };
+}
+
+function renderInventorySection(id, entries, emptyMessage) {
+    const container = document.getElementById(id);
+    if (!container) return;
+    container.replaceChildren();
+    const visibleEntries = entries.filter((entry) => Number(entry.count) > 0);
+    if (visibleEntries.length === 0) {
+        const empty = document.createElement('small');
+        empty.className = 'inventory-empty';
+        empty.textContent = emptyMessage;
+        container.append(empty);
+        return;
+    }
+    visibleEntries.forEach(({ label, count }) => {
+        const row = document.createElement('div');
+        row.className = 'inventory-entry';
+        const itemName = document.createElement('span');
+        itemName.textContent = String(label);
+        const itemCount = document.createElement('strong');
+        itemCount.textContent = `×${Math.max(0, Number(count) || 0)}`;
+        row.append(itemName, itemCount);
+        container.append(row);
     });
 }
 
@@ -694,28 +785,176 @@ function renderZoneServices(mapId) {
     if (panel.hidden) return;
     content.replaceChildren();
     if (mapId === 'khu-a') {
-        title.textContent = 'Khu A · Thương nhân trồng trọt';
-        Object.entries(CROP_INFO).forEach(([cropKey, crop]) => {
-            const row = document.createElement('p');
-            row.textContent = `${crop.icon} ${crop.name} · ${crop.price} đồng/gói`;
-            content.appendChild(row);
-            addServiceButton(content, `Mua hạt · ${Number(inventory.seeds?.[cropKey]) || 0} gói`, 'buy-seed', { cropKey }, playerStatsState.coins < crop.price);
-            addServiceButton(content, `Bán nông sản · ${Number(inventory.produce?.[cropKey]) || 0} quả (${crop.price} đồng)`, 'sell-crop', { cropKey }, !(inventory.produce?.[cropKey] > 0));
-        });
-        addServiceButton(content, 'Trạm hồi phục · 500 đồng (+50 đói, +50 sức mạnh, −50 mệt)', 'heal', {}, playerStatsState.coins < 500);
+        if (zoneServiceView.screen === 'trade') {
+            renderTradeScreen(content, title);
+            return;
+        }
+        if (zoneServiceView.screen === 'recovery') {
+            title.textContent = 'Trạm hồi phục';
+            const description = document.createElement('p');
+            description.textContent = 'Gói hồi phục · 500 tiền đồng · +50 đói, +50 sức mạnh, −50 mệt.';
+            content.appendChild(description);
+            addServiceButton(content, '← Quay lại dịch vụ Khu A', 'service-back');
+            addServiceButton(content, 'Xác nhận sử dụng', 'confirm-heal', {}, playerStatsState.coins < 500);
+            return;
+        }
+        title.textContent = 'Khu A · Chọn dịch vụ';
+        addServiceButton(content, '🛒 Mua hạt giống', 'open-trade', { tradeAction: 'buy-seed' });
+        addServiceButton(content, '📦 Bán nông sản', 'open-trade', { tradeAction: 'sell-crop' });
+        addServiceButton(content, '🩺 Trạm hồi phục', 'open-heal');
         const professor = document.createElement('p');
-        professor.textContent = '👨‍🏫 Giáo sư · Nhiệm vụ sẽ mở ở phiên bản sau.';
+        professor.textContent = '👨‍🏫 Giáo sư · Nhiệm vụ chưa mở.';
         content.appendChild(professor);
         return;
     }
-    title.textContent = 'Căn tin · Món ăn và thức uống';
-    Object.entries(FOOD_INFO).forEach(([itemId, item]) => {
-        const row = document.createElement('p');
-        row.textContent = `${item.icon} ${item.name} · ${item.effect}`;
-        content.appendChild(row);
-        addServiceButton(content, `Mua bằng tiền đồng · ${item.coins}`, 'buy-food', { itemId, currency: 'coins' }, playerStatsState.coins < item.coins);
-        addServiceButton(content, `Mua bằng danh tiếng · ${item.reputation}`, 'buy-food', { itemId, currency: 'reputation' }, playerStatsState.reputation < item.reputation);
+    if (zoneServiceView.screen === 'food-order') {
+        renderFoodOrder(content, title);
+        return;
+    }
+    title.textContent = 'Căn tin · Chọn dịch vụ';
+    addServiceButton(content, '🍽️ Chọn món ăn / thức uống', 'open-food-order');
+}
+
+function syncTradeDraftFromForm() {
+    const cropSelect = document.getElementById('trade-crop');
+    const quantityInput = document.getElementById('trade-quantity');
+    if (cropSelect) zoneServiceView.cropKey = cropSelect.value;
+    if (quantityInput) {
+        const amount = Number.parseInt(quantityInput.value, 10);
+        zoneServiceView.quantity = Number.isInteger(amount) ? Math.max(1, Math.min(99, amount)) : 1;
+    }
+}
+
+function updateTradeSummary() {
+    const crop = CROP_INFO[zoneServiceView.cropKey];
+    const quantity = zoneServiceView.quantity;
+    const summary = document.getElementById('trade-summary');
+    const submit = document.getElementById('trade-submit');
+    if (!crop || !summary || !submit) return;
+    const isBuying = zoneServiceView.tradeAction === 'buy-seed';
+    const total = crop.price * quantity;
+    const available = isBuying ? playerStatsState.coins : Number(inventory.produce?.[zoneServiceView.cropKey]) || 0;
+    summary.textContent = isBuying
+        ? `Tổng tiền: ${total} đồng · Ví có ${playerStatsState.coins} đồng`
+        : `Nhận: ${total} đồng · Trong túi: ${available} ${crop.name}`;
+    submit.disabled = isBuying ? total > playerStatsState.coins : quantity > available;
+}
+
+function renderTradeScreen(content, title) {
+    const isBuying = zoneServiceView.tradeAction === 'buy-seed';
+    title.textContent = isBuying ? 'Thương nhân · Mua hạt giống' : 'Thương nhân · Bán nông sản';
+    addServiceButton(content, '← Quay lại dịch vụ Khu A', 'service-back');
+
+    const cropLabel = document.createElement('label');
+    cropLabel.textContent = 'Chọn loại';
+    const cropSelect = document.createElement('select');
+    cropSelect.id = 'trade-crop';
+    Object.entries(CROP_INFO).forEach(([key, crop]) => {
+        const option = new Option(`${crop.icon} ${crop.name} · ${crop.price} đồng/${isBuying ? 'gói hạt' : 'quả'}`, key);
+        option.selected = key === zoneServiceView.cropKey;
+        cropSelect.add(option);
     });
+    cropLabel.appendChild(cropSelect);
+    content.appendChild(cropLabel);
+
+    const quantityLabel = document.createElement('label');
+    quantityLabel.textContent = 'Số lượng';
+    const quantityInput = document.createElement('input');
+    quantityInput.id = 'trade-quantity';
+    quantityInput.type = 'number';
+    quantityInput.min = '1';
+    quantityInput.max = '99';
+    quantityInput.step = '1';
+    quantityInput.value = String(zoneServiceView.quantity);
+    quantityLabel.appendChild(quantityInput);
+    content.appendChild(quantityLabel);
+
+    const summary = document.createElement('p');
+    summary.id = 'trade-summary';
+    content.appendChild(summary);
+    const submit = document.createElement('button');
+    submit.id = 'trade-submit';
+    submit.type = 'button';
+    submit.dataset.serviceAction = 'submit-trade';
+    submit.textContent = isBuying ? 'Xác nhận mua' : 'Xác nhận bán';
+    content.appendChild(submit);
+    updateTradeSummary();
+}
+
+function syncFoodDraftFromForm() {
+    const itemSelect = document.getElementById('food-item');
+    const currencySelect = document.getElementById('food-currency');
+    const quantityInput = document.getElementById('food-quantity');
+    if (itemSelect) zoneServiceView.itemId = itemSelect.value;
+    if (currencySelect) zoneServiceView.currency = currencySelect.value;
+    if (quantityInput) {
+        const amount = Number.parseInt(quantityInput.value, 10);
+        zoneServiceView.quantity = Number.isInteger(amount) ? Math.max(1, Math.min(99, amount)) : 1;
+    }
+}
+
+function updateFoodSummary() {
+    const item = FOOD_INFO[zoneServiceView.itemId];
+    const quantity = zoneServiceView.quantity;
+    const summary = document.getElementById('food-summary');
+    const submit = document.getElementById('food-submit');
+    if (!item || !summary || !submit) return;
+    const cost = item[zoneServiceView.currency] * quantity;
+    const balance = Number(playerStatsState[zoneServiceView.currency]) || 0;
+    const currencyName = zoneServiceView.currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
+    summary.textContent = `${item.icon} ${item.effect} · Tổng: ${cost} ${currencyName} · Đang có: ${balance}`;
+    submit.disabled = cost > balance;
+}
+
+function renderFoodOrder(content, title) {
+    title.textContent = 'Căn tin · Chọn món và số lượng';
+    addServiceButton(content, '← Quay lại dịch vụ Căn tin', 'service-back');
+    const itemLabel = document.createElement('label');
+    itemLabel.textContent = 'Chọn món';
+    const itemSelect = document.createElement('select');
+    itemSelect.id = 'food-item';
+    Object.entries(FOOD_INFO).forEach(([key, item]) => {
+        const option = new Option(`${item.icon} ${item.name}`, key);
+        option.selected = key === zoneServiceView.itemId;
+        itemSelect.add(option);
+    });
+    itemLabel.appendChild(itemSelect);
+    content.appendChild(itemLabel);
+
+    const currencyLabel = document.createElement('label');
+    currencyLabel.textContent = 'Thanh toán bằng';
+    const currencySelect = document.createElement('select');
+    currencySelect.id = 'food-currency';
+    [['coins', 'Tiền đồng'], ['reputation', 'Danh tiếng']].forEach(([key, label]) => {
+        const option = new Option(label, key);
+        option.selected = key === zoneServiceView.currency;
+        currencySelect.add(option);
+    });
+    currencyLabel.appendChild(currencySelect);
+    content.appendChild(currencyLabel);
+
+    const quantityLabel = document.createElement('label');
+    quantityLabel.textContent = 'Số lượng';
+    const quantityInput = document.createElement('input');
+    quantityInput.id = 'food-quantity';
+    quantityInput.type = 'number';
+    quantityInput.min = '1';
+    quantityInput.max = '99';
+    quantityInput.step = '1';
+    quantityInput.value = String(zoneServiceView.quantity);
+    quantityLabel.appendChild(quantityInput);
+    content.appendChild(quantityLabel);
+
+    const summary = document.createElement('p');
+    summary.id = 'food-summary';
+    content.appendChild(summary);
+    const submit = document.createElement('button');
+    submit.id = 'food-submit';
+    submit.type = 'button';
+    submit.dataset.serviceAction = 'submit-food-order';
+    submit.textContent = 'Xác nhận mua';
+    content.appendChild(submit);
+    updateFoodSummary();
 }
 
 function drawFarmPlots(scene) {
