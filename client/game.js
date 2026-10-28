@@ -164,7 +164,7 @@ function create() {
             updatePrivateRecipientList();
         }
         if (activePrivatePeerId === peerId) renderPrivateMessages();
-        if (players[data.id]) showChatBubble(sceneRef, players[data.id], data.message);
+        if (players[data.id]) showChatBubble(sceneRef, players[data.id], data.message, true);
     });
 
     socket.on('privateMessageError', (message) => {
@@ -449,16 +449,17 @@ function toggleSettings() {
     setSettingsOpen(!panel.classList.contains('is-open'));
 }
 
-function showChatBubble(scene, playerContainer, message) {
+function showChatBubble(scene, playerContainer, message, isPrivate = false) {
     if (!scene || !playerContainer) return;
     if (playerContainer.chatBubble) {
         playerContainer.chatBubble.destroy();
     }
 
-    const bubble = scene.add.text(0, -50, message, {
+    const bubbleText = isPrivate ? `RIÊNG TƯ · ${message}` : message;
+    const bubble = scene.add.text(0, -50, bubbleText, {
         font: '12px Arial',
-        fill: '#000',
-        backgroundColor: '#ffffff',
+        fill: isPrivate ? '#ffffff' : '#000000',
+        backgroundColor: isPrivate ? '#643b91' : '#ffffff',
         padding: { x: 6, y: 4 },
         align: 'center'
     }).setOrigin(0.5);
