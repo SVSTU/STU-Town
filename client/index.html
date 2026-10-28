@@ -34,6 +34,15 @@
             <button type="button" id="group-mode-button" class="is-active" role="tab" aria-selected="true">Phòng chung</button>
             <button type="button" id="private-mode-button" role="tab" aria-selected="false">Riêng tư <span id="private-unread" hidden></span></button>
         </div>
+        <div id="quick-emotes" role="group" aria-label="Thả biểu cảm nhanh">
+            <span>Biểu cảm:</span>
+            <button type="button" data-player-emote="👋" aria-label="Thả xin chào lên trên đầu nhân vật" title="Xin chào">👋</button>
+            <button type="button" data-player-emote="❤️" aria-label="Thả trái tim lên trên đầu nhân vật" title="Trái tim">❤️</button>
+            <button type="button" data-player-emote="😂" aria-label="Thả tiếng cười lên trên đầu nhân vật" title="Cười">😂</button>
+            <button type="button" data-player-emote="👍" aria-label="Thả thích lên trên đầu nhân vật" title="Thích">👍</button>
+            <button type="button" data-player-emote="🔥" aria-label="Thả lửa lên trên đầu nhân vật" title="Tuyệt vời">🔥</button>
+            <button type="button" data-player-emote="🎉" aria-label="Thả pháo giấy lên trên đầu nhân vật" title="Chúc mừng">🎉</button>
+        </div>
         <section id="group-chat-view" class="chat-mode-view" role="tabpanel">
         <div id="chat-messages"></div>
         <div id="emoji-picker" aria-label="Chọn emoji">
@@ -65,6 +74,6 @@
     </div>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-private-reactions"></script>
+    <script src="game.js?v=20261028-floating-emotes"></script>
 </body>
 </html>

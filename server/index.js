@@ -17,6 +17,7 @@ const players = {};
 const recentMessages = new Map();
 const recentPrivateMessages = new Map();
 const reactionEmojis = new Set(['❤️', '😂', '👍', '😮', '😢', '🔥']);
+const quickFloatingEmotes = new Set(['👋', '❤️', '😂', '👍', '🔥', '🎉']);
 let nextMessageId = 0;
 
 function isValidAvatar(value) {
@@ -26,6 +27,7 @@ function isValidAvatar(value) {
 
 io.on('connection', (socket) => {
   console.log('Người chơi kết nối:', socket.id);
+  let lastFloatingEmoteAt = 0;
 
   // 1. Khởi tạo thông tin người chơi (gồm tọa độ và avatar mặc định là null)
   players[socket.id] = {
@@ -60,6 +62,14 @@ io.on('connection', (socket) => {
         y
       });
     }
+  });
+
+  socket.on('sendPlayerEmote', (emoji) => {
+    if (!players[socket.id] || !quickFloatingEmotes.has(emoji)) return;
+    const now = Date.now();
+    if (now - lastFloatingEmoteAt < 600) return;
+    lastFloatingEmoteAt = now;
+    io.emit('playerFloatingEmote', { id: socket.id, emoji });
   });
 
   // 3. Lắng nghe tin nhắn chat

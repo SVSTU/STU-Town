@@ -6,6 +6,7 @@ const serverUrl = ['localhost', '127.0.0.1'].includes(location.hostname)
 const socket = io(serverUrl, { autoConnect: false });
 const PROFILE_STORAGE_KEY = 'stu-town-profile';
 const REACTION_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
+const QUICK_FLOATING_EMOTES = ['👋', '❤️', '😂', '👍', '🔥', '🎉'];
 let profile = loadProfile();
 
 let players = {};
@@ -100,6 +101,12 @@ function create() {
             document.getElementById('private-conversation-title').textContent = 'Người nhận đã thoát phiên';
             renderPrivateMessages();
         }
+    });
+
+    socket.on('playerFloatingEmote', (data) => {
+        if (!data || !QUICK_FLOATING_EMOTES.includes(data.emoji)) return;
+        const player = players[data.id];
+        if (player) showFloatingEmote(sceneRef, player, data.emoji);
     });
 
     socket.on('chatMessage', (data) => {
@@ -250,6 +257,12 @@ function create() {
                 emoji: button.dataset.emoji
             });
         }
+    });
+
+    document.getElementById('quick-emotes').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-player-emote]');
+        if (!button || !socket.connected) return;
+        socket.emit('sendPlayerEmote', button.dataset.playerEmote);
     });
 
     document.getElementById('chat-toggle').addEventListener('click', toggleChat);
@@ -519,6 +532,27 @@ function showChatBubble(scene, playerContainer, message, isPrivate = false) {
             bubble.destroy();
             playerContainer.chatBubble = null;
         }
+    });
+}
+
+function showFloatingEmote(scene, playerContainer, emoji) {
+    if (!scene || !playerContainer || !QUICK_FLOATING_EMOTES.includes(emoji)) return;
+
+    const emote = scene.add.text(0, -54, emoji, {
+        font: '30px Arial',
+        padding: { x: 2, y: 2 },
+        shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 4, fill: true }
+    }).setOrigin(0.5);
+    playerContainer.add(emote);
+    playerContainer.bringToTop(emote);
+    scene.tweens.add({
+        targets: emote,
+        y: -108,
+        alpha: 0,
+        scale: 1.25,
+        duration: 1300,
+        ease: 'Cubic.Out',
+        onComplete: () => emote.destroy()
     });
 }
 

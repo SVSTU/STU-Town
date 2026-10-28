@@ -131,6 +131,41 @@ canvas {
     font-size: 11px;
 }
 
+#quick-emotes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 28px;
+    padding: 2px 4px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+#quick-emotes span {
+    margin-right: 2px;
+    color: #bbb;
+    font-size: 10px;
+}
+
+#quick-emotes button {
+    width: 28px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+}
+
+#quick-emotes button:hover,
+#quick-emotes button:focus-visible {
+    border-color: #a77be8;
+    background: rgba(167, 123, 232, 0.28);
+}
+
 .chat-mode-view {
     display: flex;
     flex: 1;
