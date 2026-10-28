@@ -237,6 +237,7 @@ canvas {
 #zone-service-feedback { min-height: 16px; margin-top: 7px; color: #ffe7a6; }
 
 #announcements-panel { position: fixed; z-index: 15; top: 50%; left: 50%; display: flex; box-sizing: border-box; width: min(800px, calc(100vw - 16px)); height: min(600px, calc(100vh - 16px)); transform: translate(-50%, -50%); flex-direction: column; overflow: hidden; padding: 12px; border: 1px solid #8ba879; border-radius: 12px; background: rgba(18, 29, 22, 0.97); color: #f1f5ec; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5); }
+#announcements-panel[hidden] { display: none; }
 .announcements-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 9px; border-bottom: 1px solid #405843; }
 .announcements-header strong { color: #c9f3a7; }
 .announcements-header > button { flex: 0 0 26px; width: 26px; height: 26px; border: 1px solid #637765; border-radius: 5px; background: #2a332c; color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
@@ -247,6 +248,7 @@ canvas {
 #announcements-panel.is-collapsed { width: max-content; height: auto; max-width: calc(100vw - 24px); overflow: visible; padding: 10px 12px; }
 #announcements-panel.is-collapsed .announcements-header { padding-bottom: 0; border-bottom: 0; }
 #announcements-panel.is-collapsed .announcements-header strong { white-space: nowrap; }
+#announcements-panel.is-collapsed #announcements-body { display: none; }
 #announcements-body { display: flex; min-height: 0; flex: 1; flex-direction: column; }
 #announcements-status { flex: 0 0 auto; margin: 8px 0; color: #c8d3c2; font-size: 13px; }
 #announcements-list { display: grid; min-height: 0; flex: 1; align-content: start; gap: 8px; overflow: auto; padding: 2px 4px 2px 0; }
