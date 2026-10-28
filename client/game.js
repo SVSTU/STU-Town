@@ -1562,6 +1562,9 @@ function interactWithCurrentZone() {
 }
 
 function isBlockedPosition(x, y) {
+    // Campus buildings only occupy the campus map. Reusing these collision
+    // rectangles in interiors blocks movement at unrelated coordinates.
+    if (currentMapId !== 'campus') return false;
     const padding = 14;
     return CAMPUS_BUILDINGS.some((building) =>
         x >= building.x - padding && x <= building.x + building.width + padding
