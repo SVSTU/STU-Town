@@ -180,6 +180,20 @@ function create() {
         socket.emit('getFarmState');
     });
 
+    socket.on('connect_error', (error) => {
+        console.error('Không kết nối được máy chủ game:', error?.message || error);
+        const feedback = document.getElementById('interaction-feedback');
+        if (feedback) feedback.textContent = `Mất kết nối máy chủ game: ${error?.message || 'hãy thử tải lại trang.'}`;
+    });
+
+    socket.on('playerPersistenceStatus', (status = {}) => {
+        if (status.enabled && !status.available) {
+            console.error('Supabase chưa sẵn sàng; game vẫn hoạt động nhưng chưa lưu hồ sơ:', status.message || 'Lỗi đọc hồ sơ.');
+        } else if (!status.enabled) {
+            console.warn('Supabase chưa cấu hình; game đang chạy nhưng dữ liệu chưa được lưu lâu dài.');
+        }
+    });
+
     socket.on('playerIdentity', ({ token } = {}) => {
         if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{40,100}$/.test(token)) return;
         socket.auth.playerToken = token;

@@ -278,8 +278,9 @@ let farmMouseMoveTimer = null;
 function getPersistentPlayerSnapshot(id) {
   const player = players[id];
   const inventory = playerInventories.get(id);
-  const tokenHash = io.sockets.sockets.get(id)?.data?.playerTokenHash;
-  if (!player || !inventory || !tokenHash || !isSupabaseConfigured) return null;
+  const playerSocket = io.sockets.sockets.get(id);
+  const tokenHash = playerSocket?.data?.playerTokenHash;
+  if (!player || !inventory || !tokenHash || !playerSocket?.data?.profilePersistenceReady) return null;
   return {
     token_hash: tokenHash,
     coins: Math.max(0, Math.floor(Number(player.coins) || 0)),
@@ -331,10 +332,18 @@ io.use(async (socket, next) => {
     socket.data.playerToken = token;
     socket.data.playerTokenHash = tokenHash;
     socket.data.savedProfile = savedProfile;
+    socket.data.profilePersistenceReady = isSupabaseConfigured;
     next();
   } catch (error) {
-    console.error('Không tải được hồ sơ Supabase; từ chối kết nối để tránh tạo dữ liệu mới:', error.message);
-    next(new Error('Không thể tải dữ liệu người chơi. Hãy thử kết nối lại sau.'));
+    console.error('Không tải được hồ sơ Supabase; vẫn cho phép vào game và tạm khóa lưu để tránh ghi đè dữ liệu:', error.message);
+    const suppliedToken = socket.handshake.auth?.playerToken;
+    const token = validPlayerToken(suppliedToken) ? suppliedToken : crypto.randomBytes(32).toString('base64url');
+    socket.data.playerToken = token;
+    socket.data.playerTokenHash = hashPlayerToken(token);
+    socket.data.savedProfile = null;
+    socket.data.profilePersistenceReady = false;
+    socket.data.profilePersistenceError = error.message;
+    next();
   }
 });
 
@@ -730,6 +739,11 @@ io.on('connection', (socket) => {
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
   socket.emit('currentPlayers', getMapPlayers('campus'));
   socket.emit('playerIdentity', { token: socket.data.playerToken });
+  socket.emit('playerPersistenceStatus', {
+    enabled: isSupabaseConfigured,
+    available: Boolean(socket.data.profilePersistenceReady),
+    message: socket.data.profilePersistenceError || (!isSupabaseConfigured ? 'Server chưa được cấu hình Supabase.' : '')
+  });
   socket.emit('inventoryState', playerInventories.get(socket.id));
   socket.emit('playerState', getPlayerState(players[socket.id]));
   socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
