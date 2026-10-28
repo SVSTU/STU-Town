@@ -225,6 +225,21 @@ canvas {
 #zone-service-content button:disabled { opacity: .48; cursor: not-allowed; }
 #zone-service-feedback { min-height: 16px; margin-top: 7px; color: #ffe7a6; }
 
+#announcements-panel { position: fixed; z-index: 15; top: 50%; left: 50%; box-sizing: border-box; width: min(460px, calc(100vw - 24px)); max-height: min(68vh, 500px); transform: translate(-50%, -50%); overflow: auto; padding: 14px; border: 1px solid #8ba879; border-radius: 12px; background: rgba(18, 29, 22, 0.97); color: #f1f5ec; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5); }
+.announcements-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 9px; border-bottom: 1px solid #405843; }
+.announcements-header > div { display: grid; gap: 3px; }
+.announcements-header strong { color: #c9f3a7; }
+.announcements-header a { color: #b8d8ff; font-size: 12px; }
+#announcements-refresh { flex: 0 0 30px; width: 30px; height: 30px; border: 1px solid #729858; border-radius: 6px; background: #315d35; color: #fff; font-size: 20px; cursor: pointer; }
+#announcements-status { margin: 8px 0; color: #c8d3c2; font-size: 13px; }
+#announcements-list { display: grid; gap: 8px; }
+.announcement-post { padding: 9px; border: 1px solid #344d38; border-radius: 8px; background: #202d23; }
+.announcement-post h3 { margin: 0 0 4px; font-size: 14px; line-height: 1.35; }
+.announcement-post h3 a { color: #e6f2de; text-decoration: none; }
+.announcement-post h3 a:hover { text-decoration: underline; }
+.announcement-post time { color: #aebaac; font-size: 11px; }
+.announcement-post p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 5px 0 0; color: #d5ddd2; font-size: 12px; line-height: 1.45; }
+
 .interaction-hud-heading {
     display: flex;
     flex-direction: column;

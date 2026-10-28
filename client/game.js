@@ -22,7 +22,7 @@ const FARM_PLOT_LAYOUT = [
 const CAMPUS_ZONES = [
     { id: 'canteen', name: 'Căng tin', detail: 'Ẩm thực, thức uống và hồi phục chỉ số.', x: 120, y: 145, radius: 74 },
     { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Khu vực này chưa mở.', x: 355, y: 175, radius: 92, locked: true },
-    { id: 'auditorium', name: 'Hội trường A · Khu B', detail: 'Khu vực này chưa mở.', x: 585, y: 155, radius: 100, locked: true },
+    { id: 'auditorium', name: 'Hội trường A · Bảng thông báo', detail: 'Xem bài viết mới nhất từ Sinh Viên STU.', x: 585, y: 155, radius: 100 },
     { id: 'khu-d', name: 'Khu D · Thang máy', detail: 'Khu vực này chưa mở.', x: 115, y: 330, radius: 95, locked: true },
     { id: 'khu-a', name: 'Khu A · Hành chính & giao dịch', detail: 'Mua hạt giống, bán nông sản và dùng trạm hồi phục.', x: 730, y: 340, radius: 54 },
     { id: 'personal-farm', name: 'Nông trại cá nhân · Khu A', detail: 'Cần đăng nhập để mở không gian nông trại cá nhân.', x: 734, y: 510, radius: 40, loginRequired: true },
@@ -218,6 +218,7 @@ function create() {
         targetPosition = null;
         activeInteractionZoneId = '';
         switchMapVisuals(currentMapId);
+        if (currentMapId === 'auditorium') loadAnnouncements();
         Object.entries(mapPlayers || {}).forEach(([id, info]) => createPlayer(sceneRef, info, id));
         updatePrivateRecipientList();
     });
@@ -448,6 +449,7 @@ function create() {
 
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
+    document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
     document.getElementById('zone-service-close').addEventListener('click', () => {
         zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
         renderZoneServices(currentMapId);
@@ -694,6 +696,7 @@ function drawInteriorMap(scene, mapId) {
         farm: ['Nông trại cộng đồng', 'Bốn luống dùng chung · túi đồ riêng cho từng người'],
         'khu-a': ['Khu A · Hành chính & giao dịch', 'Thương nhân · Giáo sư · Trạm hồi phục'],
         canteen: ['Căn tin · Ẩm thực', 'Mua món ăn bằng tiền đồng hoặc danh tiếng'],
+        auditorium: ['Hội trường A · Bảng thông báo', 'Bài viết mới nhất từ Sinh Viên STU'],
         'khu-e': ['Khu E', 'Bản đồ khu vực E'],
         'khu-f': ['Khu F', 'Bản đồ khu vực F']
     }[mapId] || ['Khu vực', ''];
@@ -720,6 +723,13 @@ function drawInteriorMap(scene, mapId) {
             g.fillStyle(0xe4e7df, 1).fillCircle(400, 300, 100);
             g.fillStyle(0x3299b5, 1).fillCircle(400, 300, 78);
             g.fillStyle(0xb9f3ff, 1).fillCircle(400, 300, 35);
+        } else if (mapId === 'auditorium') {
+            g.fillStyle(0x624b35, 1).fillRoundedRect(235, 210, 330, 185, 10);
+            g.fillStyle(0xe4e7df, 1).fillRoundedRect(250, 225, 300, 155, 6);
+            g.lineStyle(3, 0x829a78, 0.9).strokeRoundedRect(250, 225, 300, 155, 6);
+            scene.add.text(400, 242, '📢 BẢNG THÔNG BÁO', {
+                font: 'bold 18px Arial', color: '#29402d', backgroundColor: '#ffffff99', padding: { x: 8, y: 5 }
+            }).setOrigin(0.5).setDepth(-9);
         } else if (mapId === 'khu-a') {
             g.fillStyle(0xb8884d, 1).fillRoundedRect(220, 210, 160, 95, 8);
             g.fillStyle(0x8292a5, 1).fillRoundedRect(420, 210, 160, 95, 8);
@@ -755,6 +765,7 @@ function switchMapVisuals(mapId) {
     if (mapId === 'campus') drawCampusMap(sceneRef);
     else drawInteriorMap(sceneRef, mapId);
     document.getElementById('map-exit').hidden = mapId === 'campus';
+    document.getElementById('announcements-panel').hidden = mapId !== 'auditorium';
     document.getElementById('interaction-hud').hidden = true;
     document.getElementById('farm-seed-picker').hidden = true;
     document.getElementById('farm-plot-list').hidden = true;
@@ -836,6 +847,59 @@ function renderInventory() {
         .filter(([, count]) => Number(count) > 0)
         .map(([name, count]) => ({ label: name === 'eventGoldCoin' ? '🟡 Đồng vàng sự kiện' : name, count }));
     renderInventorySection('inventory-items', itemEntries, 'Chưa có vật phẩm');
+}
+
+async function loadAnnouncements() {
+    const status = document.getElementById('announcements-status');
+    const list = document.getElementById('announcements-list');
+    if (!status || !list) return;
+    status.textContent = 'Đang tải bài viết mới nhất…';
+    list.replaceChildren();
+    try {
+        const response = await fetch(`${serverUrl}/api/announcements`, { headers: { accept: 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const posts = Array.isArray(data.posts) ? data.posts : [];
+        if (posts.length === 0) {
+            status.textContent = 'Blog chưa có bài viết để hiển thị.';
+            return;
+        }
+        posts.forEach((post) => {
+            let url;
+            try { url = new URL(post.url); } catch { return; }
+            if (url.protocol !== 'https:' || url.hostname !== 'stusinhvien.blogspot.com') return;
+
+            const article = document.createElement('article');
+            article.className = 'announcement-post';
+            const heading = document.createElement('h3');
+            const link = document.createElement('a');
+            link.href = url.href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = String(post.title || 'Bài viết mới');
+            heading.appendChild(link);
+            article.appendChild(heading);
+            if (post.publishedAt) {
+                const date = new Date(post.publishedAt);
+                if (!Number.isNaN(date.getTime())) {
+                    const time = document.createElement('time');
+                    time.dateTime = date.toISOString();
+                    time.textContent = date.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
+                    article.appendChild(time);
+                }
+            }
+            if (post.summary) {
+                const summary = document.createElement('p');
+                summary.textContent = String(post.summary);
+                article.appendChild(summary);
+            }
+            list.appendChild(article);
+        });
+        status.textContent = data.stale ? 'Đang hiển thị bản lưu gần nhất.' : `Bài viết mới nhất từ ${data.source || 'Sinh Viên STU'}`;
+    } catch (error) {
+        status.textContent = 'Không tải được bài viết. Hãy thử tải lại hoặc mở blog Sinh Viên STU.';
+        console.warn('Không tải được bảng thông báo:', error);
+    }
 }
 
 function queueSystemAnnouncement(event) {

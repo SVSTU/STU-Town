@@ -13,6 +13,91 @@ const io = new Server(server, {
   cors: { origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }
 });
 
+const BLOG_FEED_URL = 'https://stusinhvien.blogspot.com/feeds/posts/default?alt=json&max-results=8';
+const BLOG_BASE_URL = 'https://stusinhvien.blogspot.com/';
+let announcementFeedCache = { posts: [], expiresAt: 0 };
+let announcementFeedRequest = null;
+
+function decodeHtmlText(value) {
+  return String(value || '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?\s*>|<\/(?:p|div|li|h[1-6])\s*>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, digits) => String.fromCodePoint(Math.min(0x10ffff, Number(digits))))
+    .replace(/&#x([\da-f]+);/gi, (_, hex) => String.fromCodePoint(Math.min(0x10ffff, parseInt(hex, 16))))
+    .replace(/\s+/g, ' ').trim();
+}
+
+async function fetchAnnouncementPosts() {
+  if (announcementFeedRequest) return announcementFeedRequest;
+  announcementFeedRequest = (async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(BLOG_FEED_URL, {
+        signal: controller.signal,
+        headers: { accept: 'application/json', 'user-agent': 'STU-Town-Announcements/1.0' }
+      });
+      if (!response.ok) throw new Error(`Blogger returned ${response.status}`);
+      const data = await response.json();
+      const entries = Array.isArray(data?.feed?.entry) ? data.feed.entry : [];
+      const posts = entries.map((entry) => {
+        const title = decodeHtmlText(entry?.title?.$t);
+        const urlValue = entry?.link?.find((link) => link.rel === 'alternate')?.href;
+        let url = '';
+        try {
+          const parsedUrl = new URL(urlValue);
+          if (parsedUrl.protocol === 'https:' && parsedUrl.hostname === 'stusinhvien.blogspot.com') url = parsedUrl.href;
+        } catch { /* Skip invalid links. */ }
+        const publishedAt = Date.parse(entry?.published?.$t || entry?.updated?.$t || '');
+        return {
+          title,
+          url,
+          publishedAt: Number.isFinite(publishedAt) ? new Date(publishedAt).toISOString() : '',
+          summary: decodeHtmlText(entry?.summary?.$t || entry?.content?.$t).slice(0, 420)
+        };
+      }).filter((post) => post.title && post.url).slice(0, 8);
+      announcementFeedCache = { posts, expiresAt: Date.now() + 5 * 60_000 };
+      return posts;
+    } finally {
+      clearTimeout(timeout);
+      announcementFeedRequest = null;
+    }
+  })();
+  return announcementFeedRequest;
+}
+
+app.get('/api/announcements', async (req, res) => {
+  const origin = req.get('origin');
+  if (origin) {
+    let allowed = allowedOrigins.has(origin);
+    try {
+      const hostname = new URL(origin).hostname;
+      allowed ||= hostname === 'stu-town.pages.dev' || hostname.endsWith('.stu-town.pages.dev');
+    } catch { allowed = false; }
+    if (!allowed) return res.status(403).json({ error: 'Origin not allowed' });
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+  }
+  if (announcementFeedCache.expiresAt > Date.now()) {
+    return res.set('Cache-Control', 'public, max-age=60').json({ source: BLOG_BASE_URL, posts: announcementFeedCache.posts });
+  }
+  try {
+    const posts = await fetchAnnouncementPosts();
+    return res.set('Cache-Control', 'public, max-age=60').json({ source: BLOG_BASE_URL, posts });
+  } catch (error) {
+    if (announcementFeedCache.posts.length) {
+      return res.set('Cache-Control', 'public, max-age=30').json({ source: BLOG_BASE_URL, stale: true, posts: announcementFeedCache.posts });
+    }
+    console.error('Không tải được feed thông báo STU:', error.message);
+    return res.status(502).json({ error: 'Không tải được bài viết từ blog STU.' });
+  }
+});
+
 const players = {};
 const recentMessages = new Map();
 const recentPrivateMessages = new Map();
@@ -39,8 +124,8 @@ const FOOD_MENU = {
   bao: { coins: 150, reputation: 30, hunger: 15, strength: 15 },
   soda: { coins: 180, reputation: 36, strength: 25, fatigue: -15 }
 };
-const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-e', 'khu-f', 'khu-a', 'canteen']);
-const CLOSED_MAP_IDS = new Set(['khu-c', 'auditorium', 'khu-d']);
+const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-e', 'khu-f', 'khu-a', 'canteen', 'auditorium']);
+const CLOSED_MAP_IDS = new Set(['khu-c', 'khu-d']);
 const CAMPUS_BUILDINGS = [
   { x: 48, y: 72, width: 135, height: 110 },
   { x: 48, y: 278, width: 135, height: 105 },

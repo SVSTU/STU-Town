@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-farm-stage-timer">
+    <link rel="stylesheet" href="style.css?v=20261028-auditorium-board">
 </head>
 <body>
 
@@ -145,8 +145,19 @@
             <div id="zone-service-feedback" role="status"></div>
         </div>
     </section>
+    <section id="announcements-panel" hidden aria-labelledby="announcements-heading">
+        <header class="announcements-header">
+            <div>
+                <strong id="announcements-heading">📢 Bảng thông báo Hội trường A</strong>
+                <a href="https://stusinhvien.blogspot.com/" target="_blank" rel="noopener noreferrer">Sinh Viên STU</a>
+            </div>
+            <button type="button" id="announcements-refresh" aria-label="Tải lại bài viết">↻</button>
+        </header>
+        <p id="announcements-status" role="status">Đang tải bài viết mới nhất…</p>
+        <div id="announcements-list"></div>
+    </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-farm-stage-timer"></script>
+    <script src="game.js?v=20261028-auditorium-board"></script>
 </body>
 </html>
