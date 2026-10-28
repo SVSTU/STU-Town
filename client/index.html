@@ -30,6 +30,11 @@
                 <button type="submit" id="profile-submit">Lưu hồ sơ</button>
             </form>
         </section>
+        <div id="chat-mode-switch" role="tablist" aria-label="Loại cuộc trò chuyện">
+            <button type="button" id="group-mode-button" class="is-active" role="tab" aria-selected="true">Phòng chung</button>
+            <button type="button" id="private-mode-button" role="tab" aria-selected="false">Riêng tư <span id="private-unread" hidden></span></button>
+        </div>
+        <section id="group-chat-view" class="chat-mode-view" role="tabpanel">
         <div id="chat-messages"></div>
         <div id="emoji-picker" aria-label="Chọn emoji">
             <button type="button" data-emoji="😀">😀</button>
@@ -43,6 +48,18 @@
             <button type="button" id="emoji-toggle" aria-label="Mở emoji">😊</button>
             <button type="submit" id="chat-submit">Gửi</button>
         </form>
+        </section>
+        <section id="private-chat-view" class="chat-mode-view" role="tabpanel" hidden>
+            <select id="private-recipient" aria-label="Chọn người để nhắn riêng">
+                <option value="">Chọn người chơi đang online</option>
+            </select>
+            <div id="private-status" role="status">Chọn một người chơi để bắt đầu chat riêng.</div>
+            <div id="private-messages" aria-live="polite"></div>
+            <form id="private-chat-form" onsubmit="sendPrivateMessage(event)">
+                <input type="text" id="private-chat-input" maxlength="300" placeholder="Nhắn tin riêng..." autocomplete="off">
+                <button type="submit">Gửi</button>
+            </form>
+        </section>
         </div>
     </div>
 

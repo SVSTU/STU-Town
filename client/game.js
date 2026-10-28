@@ -9,6 +9,9 @@ const REACTION_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
 let profile = loadProfile();
 
 let players = {};
+let privateConversations = new Map();
+let privateUnreadByPeer = new Map();
+let activePrivatePeerId = '';
 let targetPosition = null;
 let cursors;
 let sceneRef = null;
@@ -36,19 +39,11 @@ function create() {
 
     cursors = sceneRef.input.keyboard.createCursorKeys();
 
-    const chatInput = document.getElementById('chat-input');
-    chatInput.addEventListener('focus', () => {
-        if (sceneRef && sceneRef.input && sceneRef.input.keyboard) {
-            sceneRef.input.keyboard.enabled = false;
-        }
-    });
-    chatInput.addEventListener('blur', () => {
-        if (sceneRef && sceneRef.input && sceneRef.input.keyboard) {
-            sceneRef.input.keyboard.enabled = true;
-        }
-    });
-    chatInput.addEventListener('keydown', (e) => {
-        e.stopPropagation();
+    ['chat-input', 'private-chat-input'].forEach((id) => {
+        const input = document.getElementById(id);
+        input.addEventListener('focus', () => { sceneRef.input.keyboard.enabled = false; });
+        input.addEventListener('blur', () => { sceneRef.input.keyboard.enabled = true; });
+        input.addEventListener('keydown', (event) => event.stopPropagation());
     });
 
     sceneRef.input.on('pointerdown', (pointer) => {
@@ -66,12 +61,14 @@ function create() {
                 createPlayer(sceneRef, serverPlayers[id], id);
             }
         });
+        updatePrivateRecipientList();
     });
 
     socket.on('newPlayer', (playerInfo) => {
         if (!players[playerInfo.id]) {
             createPlayer(sceneRef, playerInfo, playerInfo.id);
         }
+        updatePrivateRecipientList();
     });
 
     socket.on('playerMoved', (playerInfo) => {
@@ -87,12 +84,20 @@ function create() {
         if (!player) return;
         updatePlayerName(player, data.nickname, data.id);
         if (data.avatar) updatePlayerAvatar(sceneRef, player, data.avatar);
+        updatePrivateRecipientList();
     });
 
     socket.on('playerDisconnected', (id) => {
         if (players[id]) {
             players[id].destroy();
             delete players[id];
+        }
+        updatePrivateRecipientList();
+        if (activePrivatePeerId === id) {
+            activePrivatePeerId = '';
+            document.getElementById('private-recipient').value = '';
+            document.getElementById('private-status').textContent = 'Người chơi đã thoát phiên.';
+            renderPrivateMessages();
         }
     });
 
@@ -146,6 +151,22 @@ function create() {
         }
     });
 
+    socket.on('privateChatMessage', (data) => {
+        const peerId = data.peerId;
+        if (!privateConversations.has(peerId)) privateConversations.set(peerId, []);
+        privateConversations.get(peerId).push(data);
+        if (data.id !== socket.id && activePrivatePeerId !== peerId) {
+            privateUnreadByPeer.set(peerId, (privateUnreadByPeer.get(peerId) || 0) + 1);
+            updatePrivateUnreadBadge();
+        }
+        if (activePrivatePeerId === peerId) renderPrivateMessages();
+        if (players[data.id]) showChatBubble(sceneRef, players[data.id], data.message);
+    });
+
+    socket.on('privateMessageError', (message) => {
+        document.getElementById('private-status').textContent = message;
+    });
+
     socket.on('chatReaction', (data) => {
         const line = [...document.querySelectorAll('.chat-line')]
             .find((item) => item.dataset.messageId === data.messageId);
@@ -184,6 +205,17 @@ function create() {
 
     document.getElementById('chat-toggle').addEventListener('click', toggleChat);
     document.getElementById('settings-toggle').addEventListener('click', toggleSettings);
+    document.getElementById('group-mode-button').addEventListener('click', () => setChatMode('group'));
+    document.getElementById('private-mode-button').addEventListener('click', () => setChatMode('private'));
+    document.getElementById('private-recipient').addEventListener('change', (event) => {
+        activePrivatePeerId = event.target.value;
+        privateUnreadByPeer.delete(activePrivatePeerId);
+        updatePrivateUnreadBadge();
+        document.getElementById('private-status').textContent = activePrivatePeerId
+            ? `Đang chat riêng với ${players[activePrivatePeerId]?.playerNickname || 'người chơi'}.`
+            : 'Chọn một người chơi để bắt đầu chat riêng.';
+        renderPrivateMessages();
+    });
     document.getElementById('emoji-toggle').addEventListener('click', () => {
         document.getElementById('emoji-picker').classList.toggle('is-open');
     });
@@ -217,6 +249,7 @@ function createPlayer(scene, info, id) {
     // 1. Nhãn tên hiển thị trên đầu
     const shortId = id.substring(0, 4);
     const labelText = info.nickname || (isMe ? profile.nickname : '') || (isMe ? 'Bạn' : `Khách (${shortId})`);
+    container.playerNickname = info.nickname || (isMe ? profile.nickname : '') || '';
     const textLabel = scene.add.text(0, -28, labelText, {
         font: '13px Arial',
         fill: '#ffffff',
@@ -248,6 +281,7 @@ function createPlayer(scene, info, id) {
 
 function updatePlayerName(player, nickname, id) {
     if (!player.textLabel) return;
+    player.playerNickname = nickname || '';
     const shortId = id.substring(0, 4);
     player.textLabel.setText(nickname || (id === socket.id ? 'Bạn' : `Khách (${shortId})`));
 }
@@ -442,6 +476,76 @@ function sendChat(event) {
     if (text !== "") {
         socket.emit('sendChatMessage', text);
         input.value = "";
+    }
+}
+
+function setChatMode(mode) {
+    const isPrivate = mode === 'private';
+    document.getElementById('group-chat-view').hidden = isPrivate;
+    document.getElementById('private-chat-view').hidden = !isPrivate;
+    document.getElementById('group-mode-button').classList.toggle('is-active', !isPrivate);
+    document.getElementById('private-mode-button').classList.toggle('is-active', isPrivate);
+    document.getElementById('group-mode-button').setAttribute('aria-selected', String(!isPrivate));
+    document.getElementById('private-mode-button').setAttribute('aria-selected', String(isPrivate));
+    if (isPrivate) updatePrivateRecipientList();
+}
+
+function updatePrivateRecipientList() {
+    const select = document.getElementById('private-recipient');
+    if (!select) return;
+    const previousValue = activePrivatePeerId;
+    select.replaceChildren(new Option('Chọn người chơi đang online', ''));
+    Object.entries(players).forEach(([id, player]) => {
+        if (id === socket.id) return;
+        const shortId = id.substring(0, 4);
+        const label = player.playerNickname ? `${player.playerNickname} (${shortId})` : `Khách (${shortId})`;
+        select.add(new Option(label, id));
+    });
+    activePrivatePeerId = players[previousValue] ? previousValue : '';
+    select.value = activePrivatePeerId;
+    if (!activePrivatePeerId) {
+        document.getElementById('private-status').textContent = select.options.length > 1
+            ? 'Chọn một người chơi để bắt đầu chat riêng.'
+            : 'Chưa có người chơi khác trong phiên.';
+    }
+}
+
+function updatePrivateUnreadBadge() {
+    const badge = document.getElementById('private-unread');
+    const unread = [...privateUnreadByPeer.values()].reduce((total, count) => total + count, 0);
+    badge.hidden = unread === 0;
+    badge.textContent = unread ? String(unread) : '';
+}
+
+function renderPrivateMessages() {
+    const container = document.getElementById('private-messages');
+    if (!container) return;
+    container.replaceChildren();
+    const messages = privateConversations.get(activePrivatePeerId) || [];
+    messages.forEach((data) => {
+        const line = document.createElement('div');
+        line.className = `private-message${data.id === socket.id ? ' is-mine' : ''}`;
+        const sender = document.createElement('b');
+        sender.textContent = data.id === socket.id ? (profile.nickname || 'Bạn') : (data.nickname || 'Người chơi');
+        const body = document.createElement('span');
+        body.textContent = ` ${String(data.message).slice(0, 300)}`;
+        line.append(sender, body);
+        container.appendChild(line);
+    });
+    container.scrollTop = container.scrollHeight;
+}
+
+function sendPrivateMessage(event) {
+    event.preventDefault();
+    const input = document.getElementById('private-chat-input');
+    const message = input.value.trim();
+    if (!activePrivatePeerId) {
+        document.getElementById('private-status').textContent = 'Chọn người chơi để gửi tin nhắn riêng.';
+        return;
+    }
+    if (message) {
+        socket.emit('sendPrivateMessage', { to: activePrivatePeerId, message });
+        input.value = '';
     }
 }
 

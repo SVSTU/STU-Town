@@ -72,6 +72,23 @@ io.on('connection', (socket) => {
     io.emit('chatMessage', { id: socket.id, nickname: players[socket.id]?.nickname || '', messageId, message });
   });
 
+  socket.on('sendPrivateMessage', (payload = {}) => {
+    if (!payload || typeof payload !== 'object') return;
+    const { to } = payload;
+    if (typeof to !== 'string' || to === socket.id || !players[to]) {
+      socket.emit('privateMessageError', 'Người chơi này không còn trong phiên.');
+      return;
+    }
+    if (typeof payload.message !== 'string') return;
+    const message = payload.message.trim().slice(0, 300);
+    if (!message) return;
+
+    const messageId = `${socket.id}:private:${++nextMessageId}`;
+    const sender = { id: socket.id, nickname: players[socket.id].nickname || '', messageId, message };
+    socket.to(to).emit('privateChatMessage', { ...sender, peerId: socket.id });
+    socket.emit('privateChatMessage', { ...sender, peerId: to, isMe: true });
+  });
+
   socket.on('reactToMessage', (payload = {}) => {
     if (!payload || typeof payload !== 'object') return;
     const { messageId, emoji } = payload;
