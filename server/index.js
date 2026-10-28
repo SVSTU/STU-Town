@@ -26,8 +26,8 @@ const CAMPUS_BENCH_REST = 10;
 const CAMPUS_BENCH_COOLDOWN_MS = 3_000;
 const CAMPUS_BENCHES = [
   { id: 'bench-1', x: 570, y: 50 }, { id: 'bench-2', x: 625, y: 50 }, { id: 'bench-3', x: 680, y: 50 },
-  { id: 'bench-4', x: 565, y: 285 }, { id: 'bench-5', x: 635, y: 285 },
-  { id: 'bench-6', x: 635, y: 375 }, { id: 'bench-7', x: 555, y: 435 }, { id: 'bench-8', x: 635, y: 435 }
+  { id: 'bench-4', x: 535, y: 285 }, { id: 'bench-5', x: 600, y: 285 }, { id: 'bench-6', x: 665, y: 285 },
+  { id: 'bench-7', x: 570, y: 425 }, { id: 'bench-8', x: 635, y: 425 }
 ];
 const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
 const FARM_CROP_KEYS = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
@@ -63,7 +63,6 @@ function getPlayerState(player) {
   return {
     stats: { ...player.stats },
     coins: player.coins,
-    goldCoins: player.goldCoins,
     reputation: player.reputation,
     farmPlantCount: player.farmPlantCount,
     farmHarvestCount: player.farmHarvestCount
@@ -179,6 +178,10 @@ function announceSystemMessage(message) {
   io.emit('systemChatMessage', { message: String(message).slice(0, 300) });
 }
 
+function announceFarmEvent(message) {
+  io.to('map:farm').emit('farmEventMessage', { message: String(message).slice(0, 300) });
+}
+
 function scheduleFarmMouseBite(mouseId) {
   if (!activeFarmMouse || activeFarmMouse.id !== mouseId) return;
   farmMouseBiteTimer = setTimeout(() => {
@@ -190,7 +193,7 @@ function scheduleFarmMouseBite(mouseId) {
     player.coins = Math.max(0, player.coins - 5);
     emitPlayerState(id);
     const nickname = player.nickname || `Khách (${id.slice(0, 4)})`;
-    announceSystemMessage(`🐭 ${nickname} bị chuột cắn, mất ${lostCoins} tiền đồng!`);
+    announceFarmEvent(`🐭 ${nickname} bị chuột cắn, mất ${lostCoins} tiền đồng!`);
     io.to(id).emit('farmMouseBite', { message: `🐭 Chuột cắn túi, bạn mất ${lostCoins} tiền đồng.` });
     scheduleFarmMouseBite(mouseId);
   }, 15_000 + Math.floor(Math.random() * 25_001));
@@ -208,13 +211,15 @@ function catchFarmMouse(playerId, mouseId) {
   farmMouseBiteTimer = null;
   farmMouseMoveTimer = null;
   player.reputation += 50;
-  player.goldCoins += 1;
+  const inventory = playerInventories.get(playerId);
+  if (inventory) inventory.items.eventGoldCoin = (Number(inventory.items.eventGoldCoin) || 0) + 1;
   player.stats.fatigue = clampStat(player.stats.fatigue + 1);
   player.stats.hunger = clampStat(player.stats.hunger - 1);
   emitPlayerState(playerId);
+  if (inventory) io.to(playerId).emit('inventoryState', inventory);
   const nickname = player.nickname || `Khách (${playerId.slice(0, 4)})`;
-  announceSystemMessage(`🐭 ${nickname} đã bắt được chuột! +50 danh tiếng, +1 đồng vàng, mệt +1, đói −1.`);
-  io.to(playerId).emit('farmInteractionResult', { message: '🐭 Bắt được chuột! +50 danh tiếng, +1 đồng vàng, mệt +1, đói −1.' });
+  announceFarmEvent(`🐭 ${nickname} bắt được chuột! +50 danh tiếng, +1 Đồng vàng sự kiện; mệt +1, đói −1.`);
+  io.to(playerId).emit('farmInteractionResult', { message: '🐭 Bắt được chuột! +50 danh tiếng, +1 Đồng vàng sự kiện, mệt +1, đói −1.' });
   io.to('map:farm').emit('farmMouseState', { active: false });
   scheduleFarmMouse();
   return true;
@@ -235,7 +240,7 @@ function scheduleFarmMouse() {
       updatedAt: Date.now()
     };
     io.to('map:farm').emit('farmMouseState', { active: true, id: activeFarmMouse.id, x: activeFarmMouse.x, y: activeFarmMouse.y });
-    announceSystemMessage('🐭 Chuột phá hoại xuất hiện ở vườn cộng đồng! Hãy đuổi bắt trước khi bị cắn.');
+    announceFarmEvent('🐭 Chuột phá hoại xuất hiện ở vườn cộng đồng! Di chuyển chạm vào chuột để bắt trước khi bị cắn.');
     farmMouseMoveTimer = setInterval(() => {
       if (!activeFarmMouse) return;
       const now = Date.now();
@@ -293,7 +298,6 @@ io.on('connection', (socket) => {
     mapId: 'campus',
     stats: { hunger: 100, strength: 100, fatigue: 0 },
     coins: 1500,
-    goldCoins: 0,
     reputation: 0,
     farmPlantCount: 0,
     farmHarvestCount: 0,
@@ -356,6 +360,9 @@ io.on('connection', (socket) => {
     if (mapId === 'farm') {
       socket.emit('farmState', getFarmSnapshot());
       socket.emit('farmMouseState', { active: Boolean(activeFarmMouse), id: activeFarmMouse?.id, x: activeFarmMouse?.x, y: activeFarmMouse?.y });
+      if (activeFarmMouse) {
+        socket.emit('farmEventMessage', { message: '🐭 Chuột đang phá hoại vườn cộng đồng! Di chuyển chạm vào chuột để bắt trước khi bị cắn.' });
+      }
       scheduleFarmMouse();
     }
   });
