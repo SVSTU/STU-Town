@@ -410,12 +410,16 @@ function create() {
 
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
-    document.getElementById('inventory-collapse').addEventListener('click', (event) => {
-        const button = event.currentTarget;
-        const collapsed = document.getElementById('inventory-panel').classList.toggle('is-collapsed');
-        button.setAttribute('aria-expanded', String(!collapsed));
-        button.setAttribute('aria-label', collapsed ? 'Mở rộng túi đồ' : 'Thu gọn túi đồ');
-        button.textContent = collapsed ? '+' : '−';
+    document.querySelectorAll('[data-collapse-panel]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const panel = document.getElementById(button.dataset.collapsePanel);
+            if (!panel) return;
+            const collapsed = panel.classList.toggle('is-collapsed');
+            button.setAttribute('aria-expanded', String(!collapsed));
+            const panelName = button.getAttribute('aria-label').replace(/^(Thu gọn|Mở rộng) /, '');
+            button.setAttribute('aria-label', `${collapsed ? 'Mở rộng' : 'Thu gọn'} ${panelName}`);
+            button.textContent = collapsed ? '+' : '−';
+        });
     });
     document.getElementById('farm-plot-list').addEventListener('click', (event) => {
         const button = event.target.closest('[data-farm-plot]');

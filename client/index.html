@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-system-banner-slower">
+    <link rel="stylesheet" href="style.css?v=20261028-panels-collapsible">
 </head>
 <body>
 
@@ -23,12 +23,17 @@
 
         <div id="chat-content">
         <section id="settings-panel" aria-label="Cài đặt hồ sơ">
-            <form id="profile-form" onsubmit="saveProfile(event)">
+            <header class="panel-heading">
                 <strong>Thông tin cá nhân</strong>
-                <input type="text" id="nickname-input" maxlength="24" placeholder="Nickname" aria-label="Nickname">
-                <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
-                <button type="submit" id="profile-submit">Lưu hồ sơ</button>
-            </form>
+                <button type="button" data-collapse-panel="settings-panel" aria-controls="settings-content" aria-expanded="true" aria-label="Thu gọn thông tin cá nhân">−</button>
+            </header>
+            <div id="settings-content" class="panel-collapse-content">
+                <form id="profile-form" onsubmit="saveProfile(event)">
+                    <input type="text" id="nickname-input" maxlength="24" placeholder="Nickname" aria-label="Nickname">
+                    <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
+                    <button type="submit" id="profile-submit">Lưu hồ sơ</button>
+                </form>
+            </div>
         </section>
         <div id="chat-mode-switch" role="tablist" aria-label="Loại cuộc trò chuyện">
             <button type="button" id="group-mode-button" class="is-active" role="tab" aria-selected="true">Phòng chung</button>
@@ -75,25 +80,30 @@
 
     <section id="interaction-hud" hidden aria-live="polite">
         <div class="interaction-hud-heading">
-            <strong id="interaction-zone-name"></strong>
-            <span id="interaction-zone-description"></span>
+            <div class="panel-heading">
+                <strong id="interaction-zone-name"></strong>
+                <button type="button" data-collapse-panel="interaction-hud" aria-controls="interaction-content" aria-expanded="true" aria-label="Thu gọn thông tin khu vực">−</button>
+            </div>
+            <span id="interaction-zone-description" class="panel-collapse-content"></span>
         </div>
-        <button type="button" id="interaction-button">Khám phá khu vực (E)</button>
-        <label id="farm-seed-picker" hidden>Hạt giống
-            <select id="farm-seed-type" aria-label="Chọn hạt giống">
-                <option value="carrot">🥕 Cà rốt</option><option value="tomato">🍅 Cà chua</option>
-                <option value="corn">🌽 Bắp</option><option value="strawberry">🍓 Dâu tây</option>
-            </select>
-        </label>
-        <div id="farm-plot-list" hidden aria-label="Các luống cây"></div>
-        <div id="interaction-feedback" role="status"></div>
+        <div id="interaction-content" class="panel-collapse-content">
+            <button type="button" id="interaction-button">Khám phá khu vực (E)</button>
+            <label id="farm-seed-picker" hidden>Hạt giống
+                <select id="farm-seed-type" aria-label="Chọn hạt giống">
+                    <option value="carrot">🥕 Cà rốt</option><option value="tomato">🍅 Cà chua</option>
+                    <option value="corn">🌽 Bắp</option><option value="strawberry">🍓 Dâu tây</option>
+                </select>
+            </label>
+            <div id="farm-plot-list" hidden aria-label="Các luống cây"></div>
+            <div id="interaction-feedback" role="status"></div>
+        </div>
     </section>
     <section id="inventory-panel" aria-label="Túi đồ cá nhân">
         <header class="inventory-heading">
             <strong>🎒 Túi đồ</strong>
-            <button type="button" id="inventory-collapse" aria-controls="inventory-content" aria-expanded="true" aria-label="Thu gọn túi đồ">−</button>
+            <button type="button" data-collapse-panel="inventory-panel" aria-controls="inventory-content" aria-expanded="true" aria-label="Thu gọn túi đồ">−</button>
         </header>
-        <div id="inventory-content">
+        <div id="inventory-content" class="panel-collapse-content">
             <div class="inventory-compartment">
                 <h3>Hạt giống</h3>
                 <div id="inventory-seeds" class="inventory-list" aria-live="polite"></div>
@@ -112,19 +122,29 @@
     <div id="system-announcement-lane" aria-live="polite" aria-atomic="true"></div>
     <button type="button" id="map-exit" hidden>← Trở về sân trường</button>
     <section id="player-stats" aria-label="Chỉ số nhân vật">
-        <strong>Chỉ số</strong>
-        <label>Độ đói <span id="hunger-value">100</span><progress id="hunger-bar" max="100" value="100"></progress></label>
-        <label>Sức mạnh <span id="strength-value">100</span><progress id="strength-bar" max="100" value="100"></progress></label>
-        <label>Độ mệt <span id="fatigue-value">0</span><progress id="fatigue-bar" max="100" value="0"></progress></label>
-        <div id="wallet-summary"></div>
+        <header class="panel-heading">
+            <strong>Chỉ số</strong>
+            <button type="button" data-collapse-panel="player-stats" aria-controls="player-stats-content" aria-expanded="true" aria-label="Thu gọn chỉ số">−</button>
+        </header>
+        <div id="player-stats-content" class="panel-collapse-content">
+            <label>Độ đói <span id="hunger-value">100</span><progress id="hunger-bar" max="100" value="100"></progress></label>
+            <label>Sức mạnh <span id="strength-value">100</span><progress id="strength-bar" max="100" value="100"></progress></label>
+            <label>Độ mệt <span id="fatigue-value">0</span><progress id="fatigue-bar" max="100" value="0"></progress></label>
+            <div id="wallet-summary"></div>
+        </div>
     </section>
     <section id="zone-service-panel" hidden aria-label="Dịch vụ khu vực">
-        <strong id="zone-service-title"></strong>
-        <div id="zone-service-content"></div>
-        <div id="zone-service-feedback" role="status"></div>
+        <header class="panel-heading">
+            <strong id="zone-service-title"></strong>
+            <button type="button" data-collapse-panel="zone-service-panel" aria-controls="zone-service-body" aria-expanded="true" aria-label="Thu gọn dịch vụ khu vực">−</button>
+        </header>
+        <div id="zone-service-body" class="panel-collapse-content">
+            <div id="zone-service-content"></div>
+            <div id="zone-service-feedback" role="status"></div>
+        </div>
     </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-system-banner-inventory-collapse"></script>
+    <script src="game.js?v=20261028-panels-collapsible"></script>
 </body>
 </html>
