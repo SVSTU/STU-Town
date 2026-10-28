@@ -773,7 +773,7 @@ function showNextSystemAnnouncement() {
     const message = systemAnnouncementQueue.shift();
     const banner = document.createElement('div');
     banner.className = 'system-announcement';
-    banner.textContent = `⚙ SYSTEM · ${message}`;
+    banner.textContent = `⚙ SYSTEM: ${message}`;
     systemAnnouncementActive = true;
     banner.addEventListener('animationend', () => {
         banner.remove();
