@@ -21,7 +21,7 @@ const FARM_PLOT_LAYOUT = [
 ];
 const CAMPUS_ZONES = [
     { id: 'canteen', name: 'Căng tin', detail: 'Ẩm thực, thức uống và hồi phục chỉ số.', x: 120, y: 145, radius: 74, bounds: { x: 48, y: 72, width: 135, height: 110 } },
-    { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Khu vực này chưa mở.', x: 355, y: 175, radius: 92, bounds: { x: 232, y: 106, width: 245, height: 112 }, locked: true },
+    { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 355, y: 175, radius: 92, bounds: { x: 232, y: 106, width: 245, height: 112 }, schedule: true },
     { id: 'auditorium', name: 'Hội trường A · Bảng thông báo', detail: 'Xem bài viết mới nhất từ Sinh Viên STU.', x: 585, y: 155, radius: 100, bounds: { x: 530, y: 92, width: 132, height: 120 } },
     { id: 'khu-d', name: 'Khu D · Thang máy', detail: 'Khu vực này chưa mở.', x: 115, y: 330, radius: 95, bounds: { x: 48, y: 278, width: 135, height: 105 }, locked: true },
     { id: 'khu-a', name: 'Khu A · Hành chính & giao dịch', detail: 'Mua hạt giống, bán nông sản và dùng trạm hồi phục.', x: 730, y: 340, radius: 54, bounds: { x: 704, y: 228, width: 54, height: 220 } },
@@ -30,8 +30,8 @@ const CAMPUS_ZONES = [
     { id: 'fountain', name: 'Đài phun nước', detail: 'Điểm hẹn ở sân trung tâm.', x: 570, y: 360, radius: 52 },
     { id: 'dormitory', name: 'Ký túc xá', detail: 'Cần đăng nhập để tạo không gian nghỉ riêng (sẽ bổ sung sau).', x: 135, y: 510, radius: 76, bounds: { x: 48, y: 478, width: 138, height: 70 }, loginRequired: true },
     { id: 'farm', name: 'Nông trại cộng đồng', detail: 'Gieo trồng và thu hoạch cùng người chơi khác.', x: 600, y: 505, radius: 112, bounds: { x: 520, y: 462, width: 168, height: 88 } },
-    { id: 'khu-e', name: 'Khu E', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 376, y: 66, radius: 36, bounds: { x: 276, y: 40, width: 200, height: 52 }, schedule: true },
-    { id: 'khu-f', name: 'Khu F', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 372, y: 541, radius: 36, bounds: { x: 280, y: 520, width: 185, height: 43 }, schedule: true },
+    { id: 'khu-e', name: 'Khu E', detail: 'Khu vực hiện đang khóa.', x: 376, y: 66, radius: 36, bounds: { x: 276, y: 40, width: 200, height: 52 }, locked: true },
+    { id: 'khu-f', name: 'Khu F', detail: 'Khu vực hiện đang khóa.', x: 372, y: 541, radius: 36, bounds: { x: 280, y: 520, width: 185, height: 43 }, locked: true },
     ...CAMPUS_BENCHES.map((bench, index) => ({
         id: bench.id, name: `Ghế nghỉ ${index + 1}`, detail: 'Ngồi nghỉ để giảm 10 điểm mệt.',
         x: bench.x, y: bench.y, radius: 38

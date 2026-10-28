@@ -203,8 +203,8 @@ const FOOD_MENU = {
   bao: { coins: 150, reputation: 30, hunger: 15, strength: 15 },
   soda: { coins: 180, reputation: 36, strength: 25, fatigue: -15 }
 };
-const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-e', 'khu-f', 'khu-a', 'canteen', 'auditorium']);
-const CLOSED_MAP_IDS = new Set(['khu-c', 'khu-d']);
+const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-c', 'khu-a', 'canteen', 'auditorium']);
+const CLOSED_MAP_IDS = new Set(['khu-d', 'khu-e', 'khu-f']);
 const CAMPUS_BUILDINGS = [
   { x: 48, y: 72, width: 135, height: 110 },
   { x: 48, y: 278, width: 135, height: 105 },
@@ -448,7 +448,7 @@ function isValidAvatar(value) {
     /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(value);
 }
 
-function isKhuEFScheduleOpen() {
+function isKhuCScheduleOpen() {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
   }).formatToParts(new Date());
@@ -524,8 +524,8 @@ io.on('connection', (socket) => {
       socket.emit('mapChangeDenied', 'Không tìm thấy bản đồ khu vực này.');
       return;
     }
-    if ((mapId === 'khu-e' || mapId === 'khu-f') && !isKhuEFScheduleOpen()) {
-      socket.emit('mapChangeDenied', 'Khu E/F đang đóng. Lịch mở: 07:00–11:30 và 13:00–17:00 giờ Việt Nam.');
+    if (mapId === 'khu-c' && !isKhuCScheduleOpen()) {
+      socket.emit('mapChangeDenied', 'Khu C đang đóng. Lịch mở: 07:00–11:30 và 13:00–17:00 giờ Việt Nam.');
       return;
     }
     const previousMapId = players[socket.id]?.mapId || 'campus';
