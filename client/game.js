@@ -38,6 +38,7 @@ const CAMPUS_BUILDINGS = [
     { x: 280, y: 520, width: 185, height: 43 }
 ];
 const FARM_GROWTH_MS = 30_000;
+const FARM_WILT_MS = FARM_GROWTH_MS * 10;
 const CROP_INFO = {
     carrot: { icon: '🥕', name: 'Cà rốt', price: 100 },
     tomato: { icon: '🍅', name: 'Cà chua', price: 150 },
@@ -60,6 +61,8 @@ let farmPlots = {};
 let farmGraphics = null;
 let activeInteractionZoneId = '';
 let currentMapId = 'campus';
+let activeFarmMouseId = '';
+let farmMouseMarker = null;
 let mapObjects = [];
 let inventory = { seeds: {}, produce: {}, items: {} };
 let playerStatsState = { stats: { hunger: 100, strength: 100, fatigue: 0 }, coins: 1500, reputation: 0, farmPlantCount: 0 };
@@ -124,6 +127,27 @@ function create() {
     socket.on('farmInteractionResult', (result) => {
         document.getElementById('interaction-feedback').textContent = result?.message || '';
     });
+
+    socket.on('farmMouseState', (state) => {
+        activeFarmMouseId = state?.active && typeof state.id === 'string' ? state.id : '';
+        if (!activeFarmMouseId) {
+            farmMouseMarker?.destroy();
+            farmMouseMarker = null;
+            return;
+        }
+        if (currentMapId !== 'farm' || !sceneRef || !Number.isFinite(state.x) || !Number.isFinite(state.y)) return;
+        if (!farmMouseMarker) {
+            farmMouseMarker = sceneRef.add.text(state.x, state.y, '🐭', {
+                font: '30px Arial', color: '#fff', backgroundColor: '#56351f', padding: { x: 5, y: 2 }
+            }).setOrigin(0.5).setDepth(10);
+        } else farmMouseMarker.setPosition(state.x, state.y);
+    });
+
+    socket.on('farmMouseBite', (event) => {
+        document.getElementById('interaction-feedback').textContent = String(event?.message || '🐭 Chuột vừa cắn túi tiền của bạn.');
+    });
+
+    socket.on('systemChatMessage', appendSystemChatMessage);
 
     socket.on('inventoryState', (state) => {
         inventory = normalizeInventory(state);
@@ -643,6 +667,10 @@ function switchMapVisuals(mapId) {
     document.getElementById('interaction-hud').hidden = mapId !== 'farm';
     document.getElementById('farm-seed-picker').hidden = mapId !== 'farm';
     document.getElementById('farm-plot-list').hidden = mapId !== 'farm';
+    if (mapId !== 'farm') {
+        farmMouseMarker?.destroy();
+        farmMouseMarker = null;
+    }
     document.getElementById('zone-service-panel').hidden = !['khu-a', 'canteen'].includes(mapId);
     document.getElementById('zone-service-feedback').textContent = '';
     zoneServiceView = { screen: 'home', tradeAction: 'buy-seed', cropKey: 'carrot', quantity: 1, itemId: 'bread', currency: 'coins' };
@@ -686,12 +714,15 @@ function updateFarmPlotControls() {
             return;
         }
 
-        const remainingMs = FARM_GROWTH_MS - (Date.now() - state.plantedAt);
-        if (remainingMs <= 0) {
+        const ageMs = Date.now() - state.plantedAt;
+        if (ageMs >= FARM_GROWTH_MS) {
+            const condition = ageMs >= FARM_WILT_MS ? 'wilted' : 'ripe';
+            const yieldCount = condition === 'ripe' ? 3 : condition === 'wilted' ? 1 : 0;
             button.disabled = false;
             button.dataset.action = 'harvest';
-            button.textContent = `🧺 Thu hoạch · Luống ${index + 1}`;
+            button.textContent = `🧺 Thu hoạch · Luống ${index + 1} (${yieldCount}) · ${condition === 'ripe' ? 'khỏe' : 'héo'}`;
         } else {
+            const remainingMs = FARM_GROWTH_MS - ageMs;
             button.disabled = true;
             button.dataset.action = '';
             button.textContent = `🌿 ${state.crop || 'Cây trồng'} · ${Math.ceil(remainingMs / 1000)} giây`;
@@ -714,6 +745,25 @@ function renderInventory() {
         .filter(([, count]) => Number(count) > 0)
         .map(([name, count]) => ({ label: name, count }));
     renderInventorySection('inventory-items', itemEntries, 'Chưa có vật phẩm');
+}
+
+function appendSystemChatMessage(event) {
+    const message = typeof event === 'string' ? event : event?.message;
+    if (typeof message !== 'string' || !message.trim()) return;
+    const chatMessages = document.getElementById('chat-messages');
+    const line = document.createElement('div');
+    line.className = 'chat-line system-chat-line';
+    const time = document.createElement('span');
+    time.className = 'chat-time';
+    time.textContent = `[${new Date().toTimeString().split(' ')[0]}] `;
+    const sender = document.createElement('b');
+    sender.className = 'system-chat-sender';
+    sender.textContent = 'SYSTEM: ';
+    const content = document.createElement('span');
+    content.textContent = message.slice(0, 300);
+    line.append(time, sender, content);
+    chatMessages.appendChild(line);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function normalizeInventory(state) {
@@ -762,7 +812,7 @@ function updatePlayerStats(state) {
         document.getElementById(`${key}-bar`).value = value;
     });
     document.getElementById('wallet-summary').textContent =
-        `🪙 ${playerStatsState.coins} tiền đồng  ·  ⭐ ${playerStatsState.reputation} danh tiếng`;
+        `🪙 ${playerStatsState.coins} tiền đồng  ·  🟡 ${playerStatsState.goldCoins || 0} vàng  ·  ⭐ ${playerStatsState.reputation} danh tiếng`;
     if (['khu-a', 'canteen'].includes(currentMapId)) renderZoneServices(currentMapId);
 }
 
@@ -965,13 +1015,14 @@ function drawFarmPlots(scene) {
         farmGraphics.fillStyle(0x67442d, 1).fillRoundedRect(plot.x, plot.y, plot.width, plot.height, 3);
         farmGraphics.lineStyle(1, 0xd3b17d, 1).strokeRoundedRect(plot.x, plot.y, plot.width, plot.height, 3);
         if (!state?.plantedAt) return;
-        const ready = Date.now() - state.plantedAt >= FARM_GROWTH_MS;
-        const cropColor = ready ? 0xf2c14e : 0x9bd267;
+        const ageMs = Date.now() - state.plantedAt;
+        const condition = ageMs >= FARM_WILT_MS ? 'wilted' : ageMs >= FARM_GROWTH_MS ? 'ripe' : 'growing';
+        const cropColor = condition === 'wilted' ? 0x9b7347 : condition === 'ripe' ? 0xf2c14e : 0x9bd267;
         farmGraphics.fillStyle(cropColor, 1);
         farmGraphics.fillCircle(plot.x + 10, plot.y + 13, 4);
         farmGraphics.fillCircle(plot.x + 20, plot.y + 9, 5);
         farmGraphics.fillCircle(plot.x + 29, plot.y + 15, 4);
-        farmGraphics.lineStyle(2, ready ? 0x498344 : 0x2c6b3f, 1);
+        farmGraphics.lineStyle(2, condition === 'wilted' ? 0x705031 : condition === 'ripe' ? 0x498344 : 0x2c6b3f, 1);
         farmGraphics.lineBetween(plot.x + 20, plot.y + 10, plot.x + 20, plot.y + 20);
     });
 }

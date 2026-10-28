@@ -19,6 +19,9 @@ const recentPrivateMessages = new Map();
 const reactionEmojis = new Set(['❤️', '😂', '👍', '😮', '😢', '🔥']);
 const quickFloatingEmotes = new Set(['👋', '❤️', '😂', '👍', '🔥', '🎉']);
 const FARM_GROWTH_MS = 30_000;
+const FARM_WILT_MS = FARM_GROWTH_MS * 10;
+const FARM_DEATH_MS = FARM_GROWTH_MS * 50;
+const FARM_HARVEST_COST_EVERY = 4;
 const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
 const FARM_CROP_KEYS = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
 const CROP_PRICES = { carrot: 100, tomato: 150, corn: 180, strawberry: 250 };
@@ -44,13 +47,19 @@ const farmPlots = new Map(FARM_PLOT_IDS.map((id) => [id, { crop: '', plantedAt: 
 const playerInventories = new Map();
 const reputationRewardedAt = new Map();
 let nextMessageId = 0;
+let activeFarmMouse = null;
+let farmMouseSpawnTimer = null;
+let farmMouseBiteTimer = null;
+let farmMouseMoveTimer = null;
 
 function getPlayerState(player) {
   return {
     stats: { ...player.stats },
     coins: player.coins,
+    goldCoins: player.goldCoins,
     reputation: player.reputation,
-    farmPlantCount: player.farmPlantCount
+    farmPlantCount: player.farmPlantCount,
+    farmHarvestCount: player.farmHarvestCount
   };
 }
 
@@ -113,9 +122,128 @@ function getFarmSnapshot() {
   const now = Date.now();
   return Object.fromEntries([...farmPlots].map(([id, plot]) => [id, {
     ...plot,
-    ready: Boolean(plot.plantedAt) && now - plot.plantedAt >= FARM_GROWTH_MS,
+    ageMs: plot.plantedAt ? now - plot.plantedAt : 0,
+    condition: getCropCondition(plot, now),
+    yield: getCropYield(plot, now),
     growthMs: FARM_GROWTH_MS
   }]));
+}
+
+function getCropCondition(plot, now = Date.now(), allowDeath = false) {
+  if (!plot?.plantedAt) return 'empty';
+  const ageMs = now - plot.plantedAt;
+  if (ageMs < FARM_GROWTH_MS) return 'growing';
+  if (ageMs < FARM_WILT_MS) return 'ripe';
+  if (allowDeath && ageMs >= FARM_DEATH_MS) return 'dead';
+  return 'wilted';
+}
+
+function getCropYield(plot, now = Date.now()) {
+  const condition = getCropCondition(plot, now);
+  if (condition === 'ripe') return 3;
+  if (condition === 'wilted') return 1;
+  return 0;
+}
+
+function applyFarmWorkCost(player, action) {
+  const counterKey = action === 'plant' ? 'farmPlantCount' : 'farmHarvestCount';
+  if (player[counterKey] < FARM_HARVEST_COST_EVERY) return '';
+  player[counterKey] -= FARM_HARVEST_COST_EVERY;
+  player.stats.strength = clampStat(player.stats.strength - 0.5);
+  player.stats.fatigue = clampStat(player.stats.fatigue + 0.5);
+  player.stats.hunger = clampStat(player.stats.hunger - 0.5);
+  return ' Đủ 4 lần: sức mạnh −0.5, mệt +0.5, đói −0.5.';
+}
+
+function farmMembers() {
+  return Object.entries(players).filter(([, player]) => player.mapId === 'farm');
+}
+
+function clearFarmMouseTimers() {
+  if (farmMouseSpawnTimer) clearTimeout(farmMouseSpawnTimer);
+  if (farmMouseBiteTimer) clearTimeout(farmMouseBiteTimer);
+  if (farmMouseMoveTimer) clearInterval(farmMouseMoveTimer);
+  farmMouseSpawnTimer = null;
+  farmMouseBiteTimer = null;
+  farmMouseMoveTimer = null;
+}
+
+function announceSystemMessage(message) {
+  io.emit('systemChatMessage', { message: String(message).slice(0, 300) });
+}
+
+function scheduleFarmMouseBite(mouseId) {
+  if (!activeFarmMouse || activeFarmMouse.id !== mouseId) return;
+  farmMouseBiteTimer = setTimeout(() => {
+    const currentMembers = farmMembers();
+    if (!activeFarmMouse || activeFarmMouse.id !== mouseId || currentMembers.length === 0) return;
+    const [id] = currentMembers[Math.floor(Math.random() * currentMembers.length)];
+    const player = players[id];
+    const lostCoins = Math.min(5, player.coins);
+    player.coins = Math.max(0, player.coins - 5);
+    emitPlayerState(id);
+    const nickname = player.nickname || `Khách (${id.slice(0, 4)})`;
+    announceSystemMessage(`🐭 ${nickname} bị chuột cắn, mất ${lostCoins} tiền đồng!`);
+    io.to(id).emit('farmMouseBite', { message: `🐭 Chuột cắn túi, bạn mất ${lostCoins} tiền đồng.` });
+    scheduleFarmMouseBite(mouseId);
+  }, 15_000 + Math.floor(Math.random() * 25_001));
+}
+
+function catchFarmMouse(playerId, mouseId) {
+  const player = players[playerId];
+  if (!player || player.mapId !== 'farm' || !activeFarmMouse || mouseId !== activeFarmMouse.id) return false;
+  const dx = player.x - activeFarmMouse.x;
+  const dy = player.y - activeFarmMouse.y;
+  if (dx * dx + dy * dy > 34 * 34) return false;
+  activeFarmMouse = null;
+  if (farmMouseBiteTimer) clearTimeout(farmMouseBiteTimer);
+  if (farmMouseMoveTimer) clearInterval(farmMouseMoveTimer);
+  farmMouseBiteTimer = null;
+  farmMouseMoveTimer = null;
+  player.reputation += 50;
+  player.goldCoins += 1;
+  player.stats.fatigue = clampStat(player.stats.fatigue + 1);
+  player.stats.hunger = clampStat(player.stats.hunger - 1);
+  emitPlayerState(playerId);
+  const nickname = player.nickname || `Khách (${playerId.slice(0, 4)})`;
+  announceSystemMessage(`🐭 ${nickname} đã bắt được chuột! +50 danh tiếng, +1 đồng vàng, mệt +1, đói −1.`);
+  io.to(playerId).emit('farmInteractionResult', { message: '🐭 Bắt được chuột! +50 danh tiếng, +1 đồng vàng, mệt +1, đói −1.' });
+  io.to('map:farm').emit('farmMouseState', { active: false });
+  scheduleFarmMouse();
+  return true;
+}
+
+function scheduleFarmMouse() {
+  if (activeFarmMouse || farmMouseSpawnTimer || farmMembers().length === 0) return;
+  farmMouseSpawnTimer = setTimeout(() => {
+    farmMouseSpawnTimer = null;
+    const members = farmMembers();
+    if (members.length === 0) return;
+    activeFarmMouse = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      x: 95 + Math.random() * 610,
+      y: 105 + Math.random() * 390,
+      vx: (Math.random() < 0.5 ? -1 : 1) * (75 + Math.random() * 55),
+      vy: (Math.random() < 0.5 ? -1 : 1) * (55 + Math.random() * 55),
+      updatedAt: Date.now()
+    };
+    io.to('map:farm').emit('farmMouseState', { active: true, id: activeFarmMouse.id, x: activeFarmMouse.x, y: activeFarmMouse.y });
+    announceSystemMessage('🐭 Chuột phá hoại xuất hiện ở vườn cộng đồng! Hãy đuổi bắt trước khi bị cắn.');
+    farmMouseMoveTimer = setInterval(() => {
+      if (!activeFarmMouse) return;
+      const now = Date.now();
+      const elapsed = Math.min(0.25, (now - activeFarmMouse.updatedAt) / 1000);
+      activeFarmMouse.updatedAt = now;
+      activeFarmMouse.x += activeFarmMouse.vx * elapsed;
+      activeFarmMouse.y += activeFarmMouse.vy * elapsed;
+      if (activeFarmMouse.x < 75 || activeFarmMouse.x > 725) activeFarmMouse.vx *= -1;
+      if (activeFarmMouse.y < 85 || activeFarmMouse.y > 515) activeFarmMouse.vy *= -1;
+      activeFarmMouse.x = Math.max(75, Math.min(725, activeFarmMouse.x));
+      activeFarmMouse.y = Math.max(85, Math.min(515, activeFarmMouse.y));
+      io.to('map:farm').emit('farmMouseState', { active: true, id: activeFarmMouse.id, x: activeFarmMouse.x, y: activeFarmMouse.y });
+    }, 150);
+    scheduleFarmMouseBite(activeFarmMouse.id);
+  }, 90_000 + Math.floor(Math.random() * 90_001));
 }
 
 function isBlockedPosition(x, y) {
@@ -158,8 +286,10 @@ io.on('connection', (socket) => {
     mapId: 'campus',
     stats: { hunger: 100, strength: 100, fatigue: 0 },
     coins: 1500,
+    goldCoins: 0,
     reputation: 0,
     farmPlantCount: 0,
+    farmHarvestCount: 0,
     hungerElapsed: 0,
     fatigueElapsed: 0,
     weaknessElapsed: 0,
@@ -216,7 +346,11 @@ io.on('connection', (socket) => {
     socket.join(`map:${mapId}`);
     socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
     socket.to(`map:${mapId}`).emit('newPlayer', { id: socket.id, ...players[socket.id] });
-    if (mapId === 'farm') socket.emit('farmState', getFarmSnapshot());
+    if (mapId === 'farm') {
+      socket.emit('farmState', getFarmSnapshot());
+      socket.emit('farmMouseState', { active: Boolean(activeFarmMouse), id: activeFarmMouse?.id, x: activeFarmMouse?.x, y: activeFarmMouse?.y });
+      scheduleFarmMouse();
+    }
   });
 
   socket.on('returnToCampus', () => {
@@ -228,6 +362,11 @@ io.on('connection', (socket) => {
     socket.join('map:campus');
     socket.emit('mapChanged', { mapId: 'campus', players: getMapPlayers('campus') });
     socket.to('map:campus').emit('newPlayer', { id: socket.id, ...players[socket.id] });
+    if (previousMapId === 'farm' && farmMembers().length === 0) {
+      clearFarmMouseTimers();
+      activeFarmMouse = null;
+      io.to('map:farm').emit('farmMouseState', { active: false });
+    }
   });
 
   // 2. Lắng nghe di chuyển của người chơi
@@ -245,6 +384,11 @@ io.on('connection', (socket) => {
         x,
         y
       });
+      if (players[socket.id].mapId === 'farm' && activeFarmMouse) {
+        const dx = x - activeFarmMouse.x;
+        const dy = y - activeFarmMouse.y;
+        if (dx * dx + dy * dy <= 34 * 34) catchFarmMouse(socket.id, activeFarmMouse.id);
+      }
     }
   });
 
@@ -285,14 +429,7 @@ io.on('connection', (socket) => {
       plot.plantedAt = Date.now();
       plot.plantedBy = players[socket.id].nickname || 'Một sinh viên';
       player.farmPlantCount += 1;
-      let farmCostMessage = '';
-      if (player.farmPlantCount >= 4) {
-        player.farmPlantCount -= 4;
-        player.stats.strength = clampStat(player.stats.strength - 0.5);
-        player.stats.fatigue = clampStat(player.stats.fatigue + 0.5);
-        player.stats.hunger = clampStat(player.stats.hunger - 0.5);
-        farmCostMessage = ' Đủ 4 ô: sức mạnh −0.5, mệt +0.5, đói −0.5.';
-      }
+      const farmCostMessage = applyFarmWorkCost(player, 'plant');
       socket.emit('farmInteractionResult', { message: `Bạn đã gieo ${plot.crop}. Cây sẽ lớn sau 30 giây.${farmCostMessage}` });
       emitPlayerState(socket.id);
     } else {
@@ -300,22 +437,33 @@ io.on('connection', (socket) => {
         socket.emit('farmInteractionResult', { message: 'Luống này chưa được gieo hạt.' });
         return;
       }
-      const remainingMs = FARM_GROWTH_MS - (Date.now() - plot.plantedAt);
-      if (remainingMs > 0) {
+      const condition = getCropCondition(plot);
+      if (condition === 'growing') {
+        const remainingMs = FARM_GROWTH_MS - (Date.now() - plot.plantedAt);
         socket.emit('farmInteractionResult', { message: `Cây cần thêm ${Math.ceil(remainingMs / 1000)} giây để lớn.` });
         return;
       }
       const harvestedCrop = plot.crop;
       const cropKey = plot.cropKey;
-      if (Object.hasOwn(inventory.produce, cropKey)) inventory.produce[cropKey] += 1;
+      const yieldCount = getCropYield(plot);
+      if (Object.hasOwn(inventory.produce, cropKey)) inventory.produce[cropKey] += yieldCount;
+      player.farmHarvestCount += 1;
+      const farmCostMessage = applyFarmWorkCost(player, 'harvest');
       plot.crop = '';
       plot.cropKey = '';
       plot.plantedAt = 0;
       plot.plantedBy = '';
-      socket.emit('farmInteractionResult', { message: `Đã thu hoạch ${harvestedCrop}! Luống đã sẵn sàng gieo lại.` });
+      socket.emit('farmInteractionResult', { message: condition === 'dead'
+        ? `Cây ${harvestedCrop} đã chết, thu hoạch được 0.${farmCostMessage}`
+        : `Đã thu hoạch ${yieldCount} ${harvestedCrop} (${condition === 'wilted' ? 'cây héo' : 'cây khỏe'}).${farmCostMessage}` });
     }
+    emitPlayerState(socket.id);
     socket.emit('inventoryState', inventory);
     io.to('map:farm').emit('farmState', getFarmSnapshot());
+  });
+
+  socket.on('catchFarmMouse', (mouseId) => {
+    catchFarmMouse(socket.id, mouseId);
   });
 
   socket.on('farmShopAction', (payload = {}) => {
@@ -494,6 +642,11 @@ io.on('connection', (socket) => {
     console.log('Người chơi thoát:', socket.id);
     const mapId = players[socket.id]?.mapId || 'campus';
     delete players[socket.id];
+    if (mapId === 'farm' && farmMembers().length === 0) {
+      clearFarmMouseTimers();
+      activeFarmMouse = null;
+      io.to('map:farm').emit('farmMouseState', { active: false });
+    }
     for (const [messageId, message] of recentMessages) {
       for (const [emoji, users] of message.reactions) {
         if (users.delete(socket.id)) {

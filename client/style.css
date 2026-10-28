@@ -397,6 +397,9 @@ canvas {
     word-break: break-word;
 }
 
+.system-chat-line { border: 1px solid rgba(255, 205, 64, 0.5); background: rgba(111, 78, 12, 0.42); color: #ffe08a; }
+.system-chat-sender { color: #ffd044; }
+
 .chat-time { color: #aaa; font-size: 11px; }
 
 .chat-message-content { display: inline; }
