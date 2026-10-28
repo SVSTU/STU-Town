@@ -205,6 +205,7 @@ const FOOD_MENU = {
 };
 const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-c', 'khu-a', 'canteen', 'auditorium']);
 const CLOSED_MAP_IDS = new Set(['khu-d', 'khu-e', 'khu-f']);
+const HALLOWEEN_BOX_COUNT = 50;
 const CAMPUS_BUILDINGS = [
   { x: 48, y: 72, width: 135, height: 110 },
   { x: 48, y: 278, width: 135, height: 105 },
@@ -217,6 +218,8 @@ const CAMPUS_BUILDINGS = [
 ];
 const farmPlots = new Map(FARM_PLOT_IDS.map((id) => [id, { crop: '', plantedAt: 0, plantedBy: '' }]));
 const playerInventories = new Map();
+const halloweenProgress = new Map();
+const halloweenFinders = new Map();
 const reputationRewardedAt = new Map();
 let nextMessageId = 0;
 let activeFarmMouse = null;
@@ -237,6 +240,28 @@ function getPlayerState(player) {
 function emitPlayerState(id) {
   const player = players[id];
   if (player) io.to(id).emit('playerState', getPlayerState(player));
+  emitSessionLeaderboard();
+}
+
+function getSessionLeaderboard() {
+  const connectedPlayers = Object.entries(players).map(([id, player]) => ({
+    id,
+    nickname: player.nickname || `Khách (${id.slice(0, 4)})`,
+    coins: Number(player.coins) || 0,
+    reputation: Number(player.reputation) || 0
+  }));
+  const byScore = (key) => [...connectedPlayers]
+    .sort((a, b) => b[key] - a[key] || a.nickname.localeCompare(b.nickname, 'vi'))
+    .map(({ nickname, [key]: score }) => ({ nickname, score }));
+  return {
+    reputation: byScore('reputation'),
+    coins: byScore('coins'),
+    event: getHalloweenLeaderboard().map(({ nickname, count }) => ({ nickname, score: count, unit: 'bí ngô Halloween' }))
+  };
+}
+
+function emitSessionLeaderboard() {
+  if (io) io.to('map:khu-c').emit('sessionLeaderboard', getSessionLeaderboard());
 }
 
 function getCampusBenchOccupants() {
@@ -296,6 +321,10 @@ function tickPlayerStats() {
     } else player.weaknessElapsed = 0;
     const statsAfter = `${player.stats.hunger}|${player.stats.strength}|${player.stats.fatigue}`;
     if (statsAfter !== statsBefore) emitPlayerState(id);
+    if (player.mapId.startsWith('halloween:') && hasDepletedHalloweenStat(player)) {
+      const playerSocket = io.sockets.sockets.get(id);
+      if (playerSocket) returnHalloweenToCanteen(playerSocket, 'Một chỉ số đã về 0. Lượt Halloween kết thúc.');
+    }
   }
 }
 
@@ -455,11 +484,76 @@ function isKhuCScheduleOpen() {
   const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
   const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
   const time = hour * 60 + minute;
-  return (time >= 420 && time <= 690) || (time >= 780 && time <= 1020);
+  return (time >= 420 && time < 690) || (time >= 780 && time < 1020);
+}
+
+function getVietnamTimeMinutes() {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(new Date());
+  return Number(parts.find((part) => part.type === 'hour')?.value || 0) * 60
+    + Number(parts.find((part) => part.type === 'minute')?.value || 0);
+}
+
+function isHalloweenNight() {
+  const minutes = getVietnamTimeMinutes();
+  return minutes >= 18 * 60 || minutes < 6 * 60;
+}
+
+function ensureHalloweenProgress(id) {
+  if (!halloweenProgress.has(id)) {
+    halloweenProgress.set(id, {
+      opened: new Set(), pumpkinFound: false, pendingPumpkins: 0,
+      pumpkinBox: Math.floor(Math.random() * HALLOWEEN_BOX_COUNT)
+    });
+  }
+  return halloweenProgress.get(id);
 }
 
 function getMapPlayers(mapId) {
   return Object.fromEntries(Object.entries(players).filter(([, player]) => player.mapId === mapId));
+}
+
+function hasDepletedHalloweenStat(player) {
+  const stats = player?.stats || {};
+  // Hunger and strength run out at 0; fatigue is exhausted at its 100-point cap.
+  // Fatigue starts at 0, so treating every zero as depletion would eject players immediately.
+  return Number(stats.hunger) <= 0 || Number(stats.strength) <= 0 || Number(stats.fatigue) >= 100;
+}
+
+function getHalloweenLeaderboard() {
+  return [...halloweenFinders.values()]
+    .map((finder) => ({ ...finder, count: finder.count + (Number(halloweenProgress.get(finder.id)?.pendingPumpkins) || 0) }))
+    .filter((finder) => finder.count > 0)
+    .sort((a, b) => b.count - a.count || a.foundAt - b.foundAt)
+    .map(({ nickname, id, count }) => ({ nickname, id: id.slice(0, 4), count }));
+}
+
+function returnHalloweenToCanteen(socket, reason = '') {
+  const player = players[socket.id];
+  const inventory = playerInventories.get(socket.id);
+  const progress = halloweenProgress.get(socket.id);
+  if (!player || !inventory || !player.mapId.startsWith('halloween:')) return false;
+  const oldMapId = player.mapId;
+  const banked = Math.max(0, Number(progress?.pendingPumpkins) || 0);
+  if (banked) {
+    inventory.items.halloweenPumpkin = (Number(inventory.items.halloweenPumpkin) || 0) + banked;
+    const finder = halloweenFinders.get(socket.id);
+    if (finder) finder.count += banked;
+  }
+  halloweenProgress.delete(socket.id);
+  socket.leave(`map:${oldMapId}`);
+  socket.to(`map:${oldMapId}`).emit('playerLeftMap', socket.id);
+  Object.assign(player, { x: 650, y: 410, mapId: 'canteen' });
+  socket.join('map:canteen');
+  socket.emit('mapChanged', { mapId: 'canteen', players: getMapPlayers('canteen') });
+  socket.to('map:canteen').emit('newPlayer', { id: socket.id, ...player });
+  socket.emit('inventoryState', inventory);
+  emitPlayerState(socket.id);
+  if (halloweenFinders.size) io.emit('halloweenLeaderboard', getHalloweenLeaderboard());
+  const summary = `${reason ? `${reason} ` : ''}Đã gửi ${banked} bí ngô Halloween vào túi. Tổng túi: ${inventory.items.halloweenPumpkin || 0}.`;
+  socket.emit('systemChatMessage', { message: summary });
+  return true;
 }
 
 io.on('connection', (socket) => {
@@ -498,6 +592,8 @@ io.on('connection', (socket) => {
   socket.emit('inventoryState', playerInventories.get(socket.id));
   socket.emit('playerState', getPlayerState(players[socket.id]));
   socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
+  if (halloweenFinders.size) socket.emit('halloweenLeaderboard', getHalloweenLeaderboard());
+  emitSessionLeaderboard();
   
   // Thông báo cho các người chơi khác về sự xuất hiện của người mới (kèm avatar mặc định)
   socket.to('map:campus').emit('newPlayer', {
@@ -539,6 +635,8 @@ io.on('connection', (socket) => {
     socket.join(`map:${mapId}`);
     socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
     socket.to(`map:${mapId}`).emit('newPlayer', { id: socket.id, ...players[socket.id] });
+    if (mapId === 'khu-c') socket.emit('sessionLeaderboard', getSessionLeaderboard());
+    emitSessionLeaderboard();
     if (mapId === 'farm') {
       socket.emit('farmState', getFarmSnapshot());
       socket.emit('farmMouseState', { active: Boolean(activeFarmMouse), id: activeFarmMouse?.id, x: activeFarmMouse?.x, y: activeFarmMouse?.y });
@@ -552,10 +650,15 @@ io.on('connection', (socket) => {
   socket.on('returnToCampus', () => {
     const previousMapId = players[socket.id]?.mapId || 'campus';
     if (previousMapId === 'campus') return;
+    if (previousMapId.startsWith('halloween:')) {
+      returnHalloweenToCanteen(socket, 'Bạn rời tầng Halloween.');
+      return;
+    }
     socket.leave(`map:${previousMapId}`);
     socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
     Object.assign(players[socket.id], { x: 400, y: 250, mapId: 'campus' });
     socket.join('map:campus');
+    emitSessionLeaderboard();
     socket.emit('mapChanged', { mapId: 'campus', players: getMapPlayers('campus') });
     socket.to('map:campus').emit('newPlayer', { id: socket.id, ...players[socket.id] });
     if (previousMapId === 'farm' && farmMembers().length === 0) {
@@ -682,12 +785,14 @@ io.on('connection', (socket) => {
       if (player.coins < total) return socket.emit('serviceResult', { message: `Bạn cần ${total} tiền đồng để mua ${quantity} gói.` });
       player.coins -= total;
       inventory.seeds[cropKey] = (inventory.seeds[cropKey] || 0) + quantity;
+      emitSessionLeaderboard();
       socket.emit('serviceResult', { message: `Đã mua ${quantity} gói hạt ${crop}, tổng ${total} tiền đồng.`, state: getPlayerState(player), inventory });
     } else if (action === 'sell-crop') {
       if ((inventory.produce[cropKey] || 0) < quantity) return socket.emit('serviceResult', { message: `Bạn không đủ ${quantity} ${crop} trong túi.` });
       const total = price * quantity;
       inventory.produce[cropKey] -= quantity;
       player.coins += total;
+      emitSessionLeaderboard();
       socket.emit('serviceResult', { message: `Đã bán ${quantity} ${crop}, nhận ${total} tiền đồng.`, state: getPlayerState(player), inventory });
     }
   });
@@ -700,6 +805,7 @@ io.on('connection', (socket) => {
     player.stats.hunger = clampStat(player.stats.hunger + 50);
     player.stats.strength = clampStat(player.stats.strength + 50);
     player.stats.fatigue = clampStat(player.stats.fatigue - 50);
+    emitSessionLeaderboard();
     socket.emit('serviceResult', { message: 'Đã dùng gói hồi phục: +50 đói, +50 sức mạnh, -50 mệt.', state: getPlayerState(player) });
   });
 
@@ -731,7 +837,9 @@ io.on('connection', (socket) => {
 
   socket.on('canteenPurchase', (payload = {}) => {
     const player = players[socket.id];
+    const inventory = playerInventories.get(socket.id);
     if (!player || player.mapId !== 'canteen') return socket.emit('serviceResult', { message: 'Hãy đến Căn tin để mua thực phẩm.' });
+    if (!inventory) return;
     const { itemId, currency } = payload || {};
     const quantity = Number(payload?.quantity);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
@@ -739,13 +847,163 @@ io.on('connection', (socket) => {
     }
     const item = Object.hasOwn(FOOD_MENU, itemId) ? FOOD_MENU[itemId] : null;
     if (!item || !['coins', 'reputation'].includes(currency)) return;
+    const ownedCount = Number(inventory.items[itemId]) || 0;
+    if (ownedCount + quantity > 10) return socket.emit('serviceResult', { message: `Túi chỉ chứa tối đa 10 món ${itemId} mỗi loại. Bạn đang có ${ownedCount}.` });
     const cost = item[currency] * quantity;
     if (player[currency] < cost) return socket.emit('serviceResult', { message: `Bạn không đủ ${currency === 'coins' ? 'tiền đồng' : 'danh tiếng'}.` });
     player[currency] -= cost;
-    if (item.hunger) player.stats.hunger = clampStat(player.stats.hunger + item.hunger * quantity);
-    if (item.strength) player.stats.strength = clampStat(player.stats.strength + item.strength * quantity);
-    if (item.fatigue) player.stats.fatigue = clampStat(player.stats.fatigue + item.fatigue * quantity);
-    socket.emit('serviceResult', { message: `Đã mua ${quantity} phần. ${item.hunger ? `Đói ${item.hunger > 0 ? '+' : ''}${item.hunger * quantity}. ` : ''}${item.strength ? `Sức mạnh +${item.strength * quantity}. ` : ''}${item.fatigue ? `Mệt ${item.fatigue * quantity}.` : ''}`, state: getPlayerState(player) });
+    inventory.items[itemId] = ownedCount + quantity;
+    emitSessionLeaderboard();
+    socket.emit('serviceResult', {
+      message: `Đã mua ${quantity} ${itemId} và cất vào túi (${inventory.items[itemId]}/10). Dùng vật phẩm trong túi để hồi chỉ số.`,
+      state: getPlayerState(player), inventory
+    });
+  });
+
+  socket.on('buyElevatorTicket', () => {
+    const player = players[socket.id];
+    const inventory = playerInventories.get(socket.id);
+    if (!player || player.mapId !== 'canteen' || !inventory) return socket.emit('serviceResult', { message: 'Máy bán thẻ chỉ dùng được tại Căng tin.' });
+    if (Math.hypot(player.x - 650, player.y - 350) > 85) return socket.emit('serviceResult', { message: 'Hãy đến gần máy bán thẻ trong Căng tin.' });
+    if (isKhuCScheduleOpen()) return socket.emit('serviceResult', { message: 'Máy chỉ hoạt động ngoài giờ giảng đường: 11:30–13:00 và sau 17:00.' });
+    if ((Number(inventory.items.eventGoldCoin) || 0) < 1) return socket.emit('serviceResult', { message: 'Cần 1 đồng vàng sự kiện để đổi thẻ thang máy.' });
+    inventory.items.eventGoldCoin -= 1;
+    inventory.items.elevatorTicket = (Number(inventory.items.elevatorTicket) || 0) + 1;
+    socket.emit('serviceResult', { message: 'Đổi thành công 1 thẻ thang máy. Thẻ dùng được một lần.', inventory });
+  });
+
+  socket.on('useElevatorTicket', () => {
+    const player = players[socket.id];
+    const inventory = playerInventories.get(socket.id);
+    if (!player || player.mapId !== 'canteen' || !inventory) return socket.emit('serviceResult', { message: 'Hãy đến máy bán thẻ ở Căng tin.' });
+    if (Math.hypot(player.x - 650, player.y - 350) > 85) return socket.emit('serviceResult', { message: 'Hãy đến gần máy bán thẻ trong Căng tin.' });
+    if (isKhuCScheduleOpen()) return socket.emit('serviceResult', { message: 'Thang máy sự kiện chỉ hoạt động ngoài giờ giảng đường.' });
+    if ((Number(inventory.items.elevatorTicket) || 0) < 1) return socket.emit('serviceResult', { message: 'Bạn chưa có thẻ thang máy.' });
+    inventory.items.elevatorTicket -= 1;
+
+    if (isHalloweenNight()) {
+      const previousMapId = player.mapId;
+      const mapId = `halloween:${socket.id}`;
+      const wasSittingAtBench = Boolean(player.sittingAtBench);
+      player.sittingAtBench = '';
+      socket.leave(`map:${previousMapId}`);
+      socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
+      if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();
+      Object.assign(player, { x: 400, y: 500, mapId });
+      socket.join(`map:${mapId}`);
+      socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
+      const progress = ensureHalloweenProgress(socket.id);
+      socket.emit('halloweenState', { opened: [...progress.opened], total: HALLOWEEN_BOX_COUNT });
+      socket.emit('inventoryState', inventory);
+      socket.emit('systemChatMessage', { message: 'Thẻ đã được sử dụng. Bạn đã vào tầng sự kiện Halloween riêng với 50 hộp quà.' });
+      return;
+    }
+
+    const minutes = getVietnamTimeMinutes();
+    let message;
+    if (minutes >= 11 * 60 + 30 && minutes < 13 * 60) {
+      inventory.items.recoveryMeal = (Number(inventory.items.recoveryMeal) || 0) + 1;
+      message = 'Thẻ đã dùng một lần: nhận 1 phần ăn hồi phục (+20 đói, +10 sức mạnh khi sử dụng).';
+    } else if (minutes >= 6 * 60 && minutes < 7 * 60) {
+      inventory.items.recoveryDrink = (Number(inventory.items.recoveryDrink) || 0) + 1;
+      message = 'Thẻ đã dùng một lần: nhận 1 nước hồi phục (−20 mệt khi sử dụng).';
+    } else {
+      inventory.items.eventLantern = (Number(inventory.items.eventLantern) || 0) + 1;
+      message = 'Thẻ đã dùng một lần: nhận 1 đèn lồng sự kiện.';
+    }
+    emitPlayerState(socket.id);
+    socket.emit('serviceResult', { message, state: getPlayerState(player), inventory });
+  });
+
+  socket.on('useInventoryItem', (itemId) => {
+    const player = players[socket.id];
+    const inventory = playerInventories.get(socket.id);
+    if (!player || !inventory || ![...Object.keys(FOOD_MENU), 'recoveryMeal', 'recoveryDrink'].includes(itemId)) return;
+    if ((Number(inventory.items[itemId]) || 0) < 1) return socket.emit('serviceResult', { message: 'Bạn không còn vật phẩm hồi phục này.' });
+    inventory.items[itemId] -= 1;
+    const item = FOOD_MENU[itemId];
+    if (item) {
+      if (item.hunger) player.stats.hunger = clampStat(player.stats.hunger + item.hunger);
+      if (item.strength) player.stats.strength = clampStat(player.stats.strength + item.strength);
+      if (item.fatigue) player.stats.fatigue = clampStat(player.stats.fatigue + item.fatigue);
+    } else if (itemId === 'recoveryMeal') {
+      player.stats.hunger = clampStat(player.stats.hunger + 20);
+      player.stats.strength = clampStat(player.stats.strength + 10);
+    } else {
+      player.stats.fatigue = clampStat(player.stats.fatigue - 20);
+    }
+    emitPlayerState(socket.id);
+    const itemNames = { bread: 'bánh mì', water: 'nước suối', bao: 'bánh bao', soda: 'nước ngọt', recoveryMeal: 'phần ăn hồi phục', recoveryDrink: 'nước hồi phục' };
+    socket.emit('serviceResult', {
+      message: itemId === 'recoveryMeal' ? 'Đã dùng phần ăn hồi phục: +20 đói, +10 sức mạnh.'
+        : itemId === 'recoveryDrink' ? 'Đã dùng nước hồi phục: −20 mệt.'
+          : `Đã dùng ${itemNames[itemId] || itemId}. ${item.hunger ? `Đói +${item.hunger}. ` : ''}${item.strength ? `Sức mạnh +${item.strength}. ` : ''}${item.fatigue ? `Mệt ${item.fatigue}.` : ''}`,
+      state: getPlayerState(player), inventory
+    });
+  });
+
+  socket.on('openHalloweenBox', (boxIndex) => {
+    const player = players[socket.id];
+    const inventory = playerInventories.get(socket.id);
+    const progress = halloweenProgress.get(socket.id);
+    if (!player || !inventory || !progress || player.mapId !== `halloween:${socket.id}`) return;
+    if (!Number.isInteger(boxIndex) || boxIndex < 0 || boxIndex >= HALLOWEEN_BOX_COUNT) return;
+    const boxX = 112 + (boxIndex % 10) * 64;
+    const boxY = 242 + Math.floor(boxIndex / 10) * 54;
+    if (Math.hypot(player.x - boxX, player.y - boxY) > 58) return;
+    if (progress.opened.has(boxIndex)) return socket.emit('halloweenBoxResult', { message: 'Hộp này đã được mở rồi.' });
+    progress.opened.add(boxIndex);
+    const statKeys = ['hunger', 'strength', 'fatigue'];
+    const statKey = statKeys[Math.floor(Math.random() * statKeys.length)];
+    const change = Math.random() < 0.5 ? 1 : -2;
+    player.stats[statKey] = clampStat(player.stats[statKey] + change);
+    const statNames = { hunger: 'đói', strength: 'sức mạnh', fatigue: 'mệt' };
+    let message = `Mở hộp ${boxIndex + 1}: ${statNames[statKey]} ${change > 0 ? '+1' : '−2'}.`;
+    let foundPumpkin = false;
+    if (!progress.pumpkinFound && progress.pumpkinBox === boxIndex) {
+      progress.pumpkinFound = true;
+      progress.pendingPumpkins = (Number(progress.pendingPumpkins) || 0) + 1;
+      foundPumpkin = true;
+      const finder = halloweenFinders.get(socket.id) || {
+        nickname: player.nickname || `Khách (${socket.id.slice(0, 4)})`, id: socket.id, count: 0, foundAt: Date.now()
+      };
+      finder.nickname = player.nickname || finder.nickname;
+      halloweenFinders.set(socket.id, finder);
+      message += ' Bạn tìm thấy Bí ngô Halloween!';
+      io.emit('systemChatMessage', { message: `🎃 ${finder.nickname} đã tìm thấy Bí ngô Halloween trong sự kiện thang máy!` });
+      io.emit('halloweenLeaderboard', getHalloweenLeaderboard());
+    }
+
+    const spiderAppeared = Math.random() < 0.05;
+    let spiderStolePumpkin = false;
+    if (spiderAppeared) {
+      const spiderStatKey = statKeys[Math.floor(Math.random() * statKeys.length)];
+      const spiderLoss = Math.random() < 0.5 ? 1 : 2;
+      player.stats[spiderStatKey] = clampStat(player.stats[spiderStatKey] - spiderLoss);
+      message += ` 🕷️ Nhện xuất hiện, trừ ${spiderLoss} điểm ${statNames[spiderStatKey]}.`;
+      if (progress.pendingPumpkins > 0) {
+        progress.pendingPumpkins = 0;
+        progress.pumpkinFound = false;
+        spiderStolePumpkin = true;
+        message += ' Nhện lấy mất bí ngô của lượt này!';
+      }
+    }
+
+    emitPlayerState(socket.id);
+    if (hasDepletedHalloweenStat(player)) {
+      socket.emit('halloweenBoxResult', { message: `${message} Có chỉ số về 0, bạn được đưa về Căng tin.`, foundPumpkin, spider: spiderAppeared, spiderStolePumpkin });
+      returnHalloweenToCanteen(socket, 'Một chỉ số đã về 0. Lượt Halloween kết thúc.');
+      return;
+    }
+    if (spiderAppeared) {
+      progress.opened.clear();
+      progress.pumpkinFound = false;
+      progress.pendingPumpkins = 0;
+      progress.pumpkinBox = Math.floor(Math.random() * HALLOWEEN_BOX_COUNT);
+      message += ' Các chỉ số còn trên 0; bản đồ đã làm mới với 50 hộp mới.';
+    }
+    socket.emit('halloweenState', { opened: [...progress.opened], total: HALLOWEEN_BOX_COUNT });
+    socket.emit('halloweenBoxResult', { message, foundPumpkin, spider: spiderAppeared, spiderStolePumpkin });
   });
 
   socket.on('sendPlayerEmote', (emoji) => {
@@ -846,6 +1104,7 @@ io.on('connection', (socket) => {
     players[socket.id].nickname = nickname;
     players[socket.id].avatar = avatar;
     io.to(`map:${players[socket.id].mapId}`).emit('playerProfileUpdated', { id: socket.id, nickname, avatar });
+    emitSessionLeaderboard();
   });
 
   // 4. Lắng nghe sự kiện thay đổi avatar của người chơi
@@ -867,6 +1126,9 @@ io.on('connection', (socket) => {
     console.log('Người chơi thoát:', socket.id);
     const mapId = players[socket.id]?.mapId || 'campus';
     delete players[socket.id];
+    halloweenFinders.delete(socket.id);
+    halloweenProgress.delete(socket.id);
+    emitSessionLeaderboard();
     if (mapId === 'campus') emitCampusBenchOccupants();
     if (mapId === 'farm' && farmMembers().length === 0) {
       clearFarmMouseTimers();

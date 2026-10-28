@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-environment-icon">
+    <link rel="stylesheet" href="style.css?v=20261028-session-rankings">
 </head>
 <body>
 
@@ -121,6 +121,25 @@
     </section>
     <div id="system-announcement-lane" aria-live="polite" aria-atomic="true"></div>
     <div id="farm-event-lane" aria-live="polite" aria-atomic="true"></div>
+    <aside id="halloween-leaderboard" hidden aria-label="Bảng xếp hạng tìm bí ngô Halloween">
+        <strong>🎃 Người tìm thấy bí ngô Halloween</strong>
+        <ol id="halloween-leaderboard-list"></ol>
+    </aside>
+    <aside id="session-leaderboard" hidden aria-label="Bảng xếp hạng phiên hiện tại">
+        <header class="session-leaderboard-heading">
+            <div><strong>🏆 Bảng xếp hạng</strong><small>Phiên hiện tại · người chơi đang online</small></div>
+            <button type="button" id="session-leaderboard-toggle" aria-label="Thu gọn bảng xếp hạng" aria-expanded="true">−</button>
+        </header>
+        <div id="session-leaderboard-content">
+            <div class="session-leaderboard-tabs" role="tablist" aria-label="Phân loại bảng xếp hạng">
+                <button type="button" role="tab" data-ranking="reputation" aria-selected="true">Danh tiếng</button>
+                <button type="button" role="tab" data-ranking="coins" aria-selected="false">Tiền đồng</button>
+                <button type="button" role="tab" data-ranking="event" aria-selected="false">Sự kiện</button>
+            </div>
+            <ol id="session-leaderboard-list" aria-live="polite"></ol>
+            <div class="session-leaderboard-future"><span>Web: sẽ mở sau</span><span>Thành viên đã định danh: sẽ mở sau</span></div>
+        </div>
+    </aside>
       <aside id="environment-hud" class="is-collapsed" aria-label="Thời gian và thời tiết tại Chánh Hưng">
           <button type="button" id="environment-toggle" aria-label="Mở thông tin thời gian và thời tiết" aria-expanded="false" title="Thời gian và thời tiết">🌤️</button>
           <div class="environment-details">
@@ -174,6 +193,6 @@
     </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-environment-icon"></script>
+    <script src="game.js?v=20261028-session-rankings"></script>
 </body>
 </html>

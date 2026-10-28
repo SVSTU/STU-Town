@@ -19,6 +19,10 @@ const FARM_PLOT_LAYOUT = [
     { id: 'plot-3', x: 420, y: 290, width: 78, height: 42 },
     { id: 'plot-4', x: 530, y: 290, width: 78, height: 42 }
 ];
+const HALLOWEEN_BOX_POSITIONS = Array.from({ length: 50 }, (_, index) => ({
+    x: 112 + (index % 10) * 64,
+    y: 242 + Math.floor(index / 10) * 54
+}));
 const CAMPUS_ZONES = [
     { id: 'canteen', name: 'Căng tin', detail: 'Ẩm thực, thức uống và hồi phục chỉ số.', x: 120, y: 145, radius: 74, bounds: { x: 48, y: 72, width: 135, height: 110 } },
     { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 355, y: 175, radius: 92, bounds: { x: 232, y: 106, width: 245, height: 112 }, schedule: true },
@@ -44,7 +48,8 @@ const INTERIOR_OBJECTS = {
         { id: 'recovery', name: 'Trạm hồi phục', detail: 'Gói hồi phục giá 500 tiền đồng.', x: 400, y: 378, radius: 70, bounds: { x: 300, y: 350, width: 200, height: 55 } }
     ],
     canteen: [
-        { id: 'canteen-counter', name: 'Quầy ẩm thực', detail: 'Tới gần quầy để chọn món ăn hoặc thức uống.', x: 400, y: 242, radius: 82, bounds: { x: 220, y: 205, width: 360, height: 75 } }
+        { id: 'canteen-counter', name: 'Quầy ẩm thực', detail: 'Tới gần quầy để chọn món ăn hoặc thức uống.', x: 400, y: 242, radius: 82, bounds: { x: 220, y: 205, width: 360, height: 75 } },
+        { id: 'elevator-vending', name: 'Máy bán thẻ thang máy', detail: 'Đổi 1 đồng vàng sự kiện lấy thẻ dùng một lần. Máy hoạt động ngoài giờ giảng đường.', x: 650, y: 345, radius: 58, bounds: { x: 610, y: 300, width: 80, height: 100 } }
     ]
 };
 const CAMPUS_BUILDINGS = [
@@ -91,6 +96,13 @@ let interactedFarmPlotId = '';
 let currentMapId = 'campus';
 let activeFarmMouseId = '';
 let farmMouseMarker = null;
+let halloweenOpenedBoxes = new Set();
+let activeHalloweenBox = -1;
+let halloweenBoxResultMessage = '';
+let halloweenBoxGraphics = null;
+let halloweenBoxLabels = [];
+let sessionLeaderboard = { reputation: [], coins: [], event: [] };
+let activeRankingCategory = 'reputation';
 const systemAnnouncementQueue = [];
 let systemAnnouncementActive = false;
 const farmEventQueue = [];
@@ -192,6 +204,34 @@ function create() {
 
     socket.on('systemChatMessage', queueSystemAnnouncement);
     socket.on('farmEventMessage', queueFarmEvent);
+    socket.on('halloweenState', (state) => {
+        halloweenOpenedBoxes = new Set(Array.isArray(state?.opened) ? state.opened : []);
+        drawHalloweenBoxStates();
+        const feedback = document.getElementById('interaction-feedback');
+        if (state?.total && currentMapId.startsWith('halloween:')) {
+            feedback.textContent = `Đã mở ${halloweenOpenedBoxes.size}/${state.total} hộp quà.`;
+            if (players[socket.id]) updateHalloweenBoxInteraction(players[socket.id]);
+        }
+    });
+    socket.on('halloweenBoxResult', (result) => {
+        halloweenBoxResultMessage = String(result?.message || '');
+        document.getElementById('interaction-feedback').textContent = halloweenBoxResultMessage;
+        if (result?.foundPumpkin) document.getElementById('halloween-leaderboard').hidden = false;
+        if (result?.spider && players[socket.id] && sceneRef) {
+            const spider = sceneRef.add.text(players[socket.id].x, players[socket.id].y - 32, '🕷️', {
+                font: '30px Arial', backgroundColor: '#321d1d', padding: { x: 4, y: 2 }
+            }).setOrigin(0.5).setDepth(20);
+            sceneRef.tweens.add({
+                targets: spider, y: spider.y - 42, alpha: 0, duration: 1500,
+                onComplete: () => spider.destroy()
+            });
+        }
+    });
+    socket.on('halloweenLeaderboard', (finders) => renderHalloweenLeaderboard(finders));
+    socket.on('sessionLeaderboard', (data) => {
+        sessionLeaderboard = data && typeof data === 'object' ? data : { reputation: [], coins: [], event: [] };
+        renderSessionLeaderboard();
+    });
 
     socket.on('inventoryState', (state) => {
         inventory = normalizeInventory(state);
@@ -231,7 +271,10 @@ function create() {
         players = {};
         targetPosition = null;
         activeInteractionZoneId = '';
+        activeHalloweenBox = -1;
         switchMapVisuals(currentMapId);
+        document.getElementById('session-leaderboard').hidden = currentMapId !== 'khu-c';
+        if (currentMapId === 'khu-c') renderSessionLeaderboard();
         if (currentMapId === 'auditorium') loadAnnouncements();
         Object.entries(mapPlayers || {}).forEach(([id, info]) => createPlayer(sceneRef, info, id));
         updatePrivateRecipientList();
@@ -463,6 +506,19 @@ function create() {
 
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
+    document.querySelector('.session-leaderboard-tabs').addEventListener('click', (event) => {
+        const tab = event.target.closest('[data-ranking]');
+        if (!tab) return;
+        activeRankingCategory = tab.dataset.ranking;
+        renderSessionLeaderboard();
+    });
+    document.getElementById('session-leaderboard-toggle').addEventListener('click', (event) => {
+        const panel = document.getElementById('session-leaderboard');
+        const collapsed = panel.classList.toggle('is-collapsed');
+        event.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+        event.currentTarget.setAttribute('aria-label', collapsed ? 'Mở bảng xếp hạng' : 'Thu gọn bảng xếp hạng');
+        event.currentTarget.textContent = collapsed ? '+' : '−';
+    });
     document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
     document.getElementById('announcements-zoom-out').addEventListener('click', () => setAnnouncementZoom(announcementZoom - 0.1));
     document.getElementById('announcements-zoom-in').addEventListener('click', () => setAnnouncementZoom(announcementZoom + 0.1));
@@ -491,6 +547,10 @@ function create() {
         });
     });
     document.getElementById('farm-seed-type').addEventListener('change', updateFarmPlotControls);
+    document.getElementById('inventory-items').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-use-item]');
+        if (button && socket.connected) socket.emit('useInventoryItem', button.dataset.useItem);
+    });
     document.getElementById('zone-service-content').addEventListener('click', (event) => {
         const button = event.target.closest('[data-service-action]');
         if (!button) return;
@@ -529,6 +589,10 @@ function create() {
                 currency: zoneServiceView.currency,
                 quantity: zoneServiceView.quantity
             });
+        } else if (action === 'buy-elevator-ticket') {
+            if (socket.connected) socket.emit('buyElevatorTicket');
+        } else if (action === 'use-elevator-ticket') {
+            if (socket.connected) socket.emit('useElevatorTicket');
         }
     });
     document.getElementById('zone-service-content').addEventListener('input', (event) => {
@@ -706,7 +770,7 @@ function drawCampusBenches(scene) {
 
 function drawInteriorMap(scene, mapId) {
     const firstMapChild = scene.children.list.length;
-    const labels = {
+    const labels = mapId.startsWith('halloween:') ? ['Tầng Halloween', '50 hộp quà · Mỗi hộp chỉ mở một lần'] : ({
         sports: ['Sân thể thao', 'Sân bóng và khu vực vận động'],
         fountain: ['Đài phun nước', 'Quảng trường và điểm hẹn'],
         farm: ['Nông trại cộng đồng', 'Bốn luống dùng chung · túi đồ riêng cho từng người'],
@@ -715,7 +779,7 @@ function drawInteriorMap(scene, mapId) {
         auditorium: ['Hội trường A · Bảng thông báo', 'Bài viết mới nhất từ Sinh Viên STU'],
         'khu-e': ['Khu E', 'Bản đồ khu vực E'],
         'khu-f': ['Khu F', 'Bản đồ khu vực F']
-    }[mapId] || ['Khu vực', ''];
+    }[mapId] || ['Khu vực', '']);
     const g = scene.add.graphics().setDepth(-10);
     g.fillStyle(0x29402d, 1).fillRect(0, 0, 800, 600);
     g.fillStyle(0x6f9d5a, 1).fillRoundedRect(28, 28, 744, 544, 20);
@@ -758,6 +822,11 @@ function drawInteriorMap(scene, mapId) {
             g.fillStyle(0x806a48, 1).fillRoundedRect(250, 340, 100, 50, 8);
             g.fillStyle(0x806a48, 1).fillRoundedRect(450, 340, 100, 50, 8);
             scene.add.text(400, 242, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
+            g.fillStyle(0x3c5364, 1).fillRoundedRect(620, 300, 60, 100, 8);
+            g.fillStyle(0x9ed2d1, 1).fillRoundedRect(628, 309, 44, 30, 4);
+            g.fillStyle(0x243b2d, 1).fillRoundedRect(628, 345, 44, 38, 4);
+            scene.add.text(650, 324, '🎫', { font: '20px Arial' }).setOrigin(0.5).setDepth(-9);
+            scene.add.text(650, 393, 'MÁY THẺ', { font: 'bold 9px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
         } else {
             g.lineStyle(3, 0xc9e6a8, 0.8).strokeRoundedRect(240, 220, 320, 150, 8);
         }
@@ -770,17 +839,43 @@ function drawInteriorMap(scene, mapId) {
         farmGraphics = scene.add.graphics().setDepth(-8);
         drawFarmPlots(scene);
     } else farmGraphics = null;
+    if (mapId.startsWith('halloween:')) drawHalloweenMap(scene);
     mapObjects = scene.children.list.slice(firstMapChild);
+}
+
+function drawHalloweenMap(scene) {
+    const floor = scene.add.graphics().setDepth(-8.5);
+    floor.fillStyle(0x422a20, 0.72).fillRoundedRect(70, 205, 660, 320, 14);
+    halloweenBoxGraphics = scene.add.graphics().setDepth(-7.5);
+    halloweenBoxLabels = HALLOWEEN_BOX_POSITIONS.map(({ x, y }, index) => scene.add.text(x, y + 1, '', {
+        font: '16px Arial', color: '#fff'
+    }).setOrigin(0.5).setDepth(-7));
+    drawHalloweenBoxStates();
+}
+
+function drawHalloweenBoxStates() {
+    if (!halloweenBoxGraphics) return;
+    halloweenBoxGraphics.clear();
+    HALLOWEEN_BOX_POSITIONS.forEach(({ x, y }, index) => {
+        const opened = halloweenOpenedBoxes.has(index);
+        halloweenBoxGraphics.fillStyle(opened ? 0x64534a : 0x9a5b28, 1).fillRoundedRect(x - 17, y - 15, 34, 30, 5);
+        halloweenBoxGraphics.lineStyle(2, opened ? 0x9f9083 : 0xffd06a, 1).strokeRoundedRect(x - 17, y - 15, 34, 30, 5);
+        halloweenBoxGraphics.lineStyle(3, opened ? 0x84766d : 0x633a1d, 1).lineBetween(x - 17, y - 2, x + 17, y - 2);
+        halloweenBoxLabels[index]?.setText(opened ? '·' : '🎁');
+    });
 }
 
 function switchMapVisuals(mapId) {
     mapObjects.forEach((object) => object.destroy());
     mapObjects = [];
     farmGraphics = null;
+    halloweenBoxGraphics = null;
+    halloweenBoxLabels = [];
     campusBenchGraphics = null;
     if (mapId === 'campus') drawCampusMap(sceneRef);
     else drawInteriorMap(sceneRef, mapId);
     document.getElementById('map-exit').hidden = mapId === 'campus';
+    document.getElementById('map-exit').textContent = mapId.startsWith('halloween:') ? '← Trở về Căng tin' : '← Trở về sân trường';
     document.getElementById('announcements-panel').hidden = mapId !== 'auditorium';
     document.getElementById('interaction-hud').hidden = true;
     document.getElementById('farm-seed-picker').hidden = true;
@@ -859,9 +954,15 @@ function renderInventory() {
         label: `${CROP_INFO[key].icon} ${CROP_INFO[key].name}`,
         count: inventory.produce[key]
     })), 'Chưa có nông sản');
+    const itemNames = {
+        eventGoldCoin: '🟡 Đồng vàng sự kiện', elevatorTicket: '🎫 Thẻ thang máy',
+        recoveryMeal: '🥪 Phần ăn hồi phục', recoveryDrink: '🧃 Nước hồi phục',
+        eventLantern: '🏮 Đèn lồng sự kiện', halloweenPumpkin: '🎃 Bí ngô Halloween',
+        bread: '🥖 Bánh mì', bao: '🥟 Bánh bao', water: '💧 Nước suối', soda: '🥤 Nước ngọt'
+    };
     const itemEntries = Object.entries(inventory.items)
         .filter(([, count]) => Number(count) > 0)
-        .map(([name, count]) => ({ label: name === 'eventGoldCoin' ? '🟡 Đồng vàng sự kiện' : name, count }));
+        .map(([name, count]) => ({ label: itemNames[name] || name, count, itemId: name }));
     renderInventorySection('inventory-items', itemEntries, 'Chưa có vật phẩm');
 }
 
@@ -1139,7 +1240,7 @@ function renderInventorySection(id, entries, emptyMessage) {
         container.append(empty);
         return;
     }
-    visibleEntries.forEach(({ label, count }) => {
+    visibleEntries.forEach(({ label, count, itemId }) => {
         const row = document.createElement('div');
         row.className = 'inventory-entry';
         const itemName = document.createElement('span');
@@ -1147,6 +1248,14 @@ function renderInventorySection(id, entries, emptyMessage) {
         const itemCount = document.createElement('strong');
         itemCount.textContent = `×${Math.max(0, Number(count) || 0)}`;
         row.append(itemName, itemCount);
+        if (['recoveryMeal', 'recoveryDrink', 'bread', 'bao', 'water', 'soda'].includes(itemId)) {
+            const useButton = document.createElement('button');
+            useButton.type = 'button';
+            useButton.className = 'inventory-use-item';
+            useButton.dataset.useItem = itemId;
+            useButton.textContent = 'Dùng';
+            row.append(useButton);
+        }
         container.append(row);
     });
 }
@@ -1214,12 +1323,33 @@ function renderZoneServices(mapId) {
         }
         return;
     }
+    if (zoneServiceView.target === 'elevator-vending') {
+        title.textContent = 'Máy bán thẻ thang máy';
+        const ticketCount = Number(inventory.items?.elevatorTicket) || 0;
+        const coinCount = Number(inventory.items?.eventGoldCoin) || 0;
+        const closedForClasses = isLectureHoursNow();
+        const description = document.createElement('p');
+        description.textContent = `${closedForClasses ? 'Máy đang đóng trong giờ giảng đường.' : 'Máy đang hoạt động.'} Đổi 1 đồng vàng sự kiện lấy 1 thẻ một lần. Dùng thẻ ban đêm để vào tầng Halloween riêng có 50 hộp; các khung giờ khác nhận vật phẩm theo thời điểm. Bạn có ${ticketCount} thẻ.`;
+        content.appendChild(description);
+        addServiceButton(content, `🎫 Đổi thẻ · 1 đồng vàng sự kiện (${coinCount} có)`, 'buy-elevator-ticket', {}, closedForClasses || coinCount < 1);
+        addServiceButton(content, `🛗 Dùng thẻ thang máy (${ticketCount})`, 'use-elevator-ticket', {}, closedForClasses || ticketCount < 1);
+        return;
+    }
     if (zoneServiceView.screen === 'food-order') {
         renderFoodOrder(content, title);
         return;
     }
     title.textContent = 'Quầy ẩm thực';
     addServiceButton(content, '🍽️ Chọn món ăn / thức uống', 'open-food-order');
+}
+
+function isLectureHoursNow() {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(new Date());
+    const minutes = Number(parts.find((part) => part.type === 'hour')?.value || 0) * 60
+        + Number(parts.find((part) => part.type === 'minute')?.value || 0);
+    return (minutes >= 420 && minutes < 690) || (minutes >= 780 && minutes < 1020);
 }
 
 function syncTradeDraftFromForm() {
@@ -1308,9 +1438,10 @@ function updateFoodSummary() {
     if (!item || !summary || !submit) return;
     const cost = item[zoneServiceView.currency] * quantity;
     const balance = Number(playerStatsState[zoneServiceView.currency]) || 0;
+    const ownedCount = Number(inventory.items?.[zoneServiceView.itemId]) || 0;
     const currencyName = zoneServiceView.currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
-    summary.textContent = `${item.icon} ${item.effect} · Tổng: ${cost} ${currencyName} · Đang có: ${balance}`;
-    submit.disabled = cost > balance;
+    summary.textContent = `${item.icon} ${item.effect} · Túi: ${ownedCount}/10 · Tổng: ${cost} ${currencyName} · Đang có: ${balance}`;
+    submit.disabled = cost > balance || ownedCount + quantity > 10;
 }
 
 function renderFoodOrder(content, title) {
@@ -1395,6 +1526,10 @@ function isWithinInteractionArea(player, target, padding = 20) {
 }
 
 function updateInteractionZone(player) {
+    if (currentMapId.startsWith('halloween:')) {
+        updateHalloweenBoxInteraction(player);
+        return;
+    }
     if (currentMapId === 'farm') {
         updateFarmPlotInteraction(player);
         return;
@@ -1488,6 +1623,82 @@ function updateFarmPlotInteraction(player) {
     interactionButton.textContent = `Tương tác luống ${plotNumber} (E)`;
 }
 
+function updateHalloweenBoxInteraction(player) {
+    const nearest = HALLOWEEN_BOX_POSITIONS
+        .map((box, index) => ({ box, index, distance: Phaser.Math.Distance.Between(player.x, player.y, box.x, box.y) }))
+        .filter(({ distance }) => distance <= 38)
+        .sort((a, b) => a.distance - b.distance)[0];
+    const nextIndex = nearest?.index ?? -1;
+    const nextZoneId = nextIndex >= 0 ? `halloween-box:${nextIndex}` : '';
+    if (nextIndex === activeHalloweenBox) {
+        if (nearest && halloweenOpenedBoxes.has(nextIndex)) {
+            document.getElementById('interaction-zone-description').textContent = 'Hộp quà này đã được mở.';
+            document.getElementById('interaction-button').hidden = true;
+        }
+        return;
+    }
+    activeHalloweenBox = nextIndex;
+    activeInteractionZoneId = nextZoneId;
+    const hud = document.getElementById('interaction-hud');
+    const button = document.getElementById('interaction-button');
+    hud.hidden = !nearest;
+    if (!nearest) return;
+    const isOpened = halloweenOpenedBoxes.has(nextIndex);
+    document.getElementById('interaction-zone-name').textContent = `Hộp quà ${nextIndex + 1}`;
+    document.getElementById('interaction-zone-description').textContent = isOpened
+        ? 'Hộp quà này đã được mở.' : 'Tiến lại gần và nhấn E để mở. Mỗi hộp chỉ mở được một lần.';
+    document.getElementById('farm-seed-picker').hidden = true;
+    document.getElementById('farm-plot-list').hidden = true;
+    button.hidden = isOpened;
+    button.disabled = isOpened;
+    button.textContent = '🎁 Mở hộp quà (E)';
+}
+
+function renderHalloweenLeaderboard(finders) {
+    const panel = document.getElementById('halloween-leaderboard');
+    const list = document.getElementById('halloween-leaderboard-list');
+    if (!panel || !list) return;
+    if (!Array.isArray(finders) || finders.length === 0) {
+        panel.hidden = true;
+        list.replaceChildren();
+        return;
+    }
+    panel.hidden = false;
+    list.replaceChildren();
+    finders.forEach((finder, index) => {
+        const row = document.createElement('li');
+        row.textContent = `${index + 1}. ${String(finder.nickname || `Khách (${finder.id || '????'})`)} · ${Number(finder.count) || 0} bí ngô`;
+        list.appendChild(row);
+    });
+}
+
+function renderSessionLeaderboard() {
+    const list = document.getElementById('session-leaderboard-list');
+    if (!list) return;
+    document.querySelectorAll('.session-leaderboard-tabs [data-ranking]').forEach((tab) => {
+        tab.setAttribute('aria-selected', String(tab.dataset.ranking === activeRankingCategory));
+    });
+    const rows = Array.isArray(sessionLeaderboard[activeRankingCategory]) ? sessionLeaderboard[activeRankingCategory] : [];
+    list.replaceChildren();
+    if (rows.length === 0) {
+        const empty = document.createElement('li');
+        empty.textContent = activeRankingCategory === 'event'
+            ? 'Chưa có thành tích sự kiện trong phiên này.'
+            : 'Chưa có người chơi trong phiên.';
+        list.append(empty);
+        return;
+    }
+    rows.slice(0, 10).forEach((entry, index) => {
+        const row = document.createElement('li');
+        const score = Number(entry.score) || 0;
+        const unit = activeRankingCategory === 'reputation' ? 'danh tiếng'
+            : activeRankingCategory === 'coins' ? 'tiền đồng'
+                : String(entry.unit || 'bí ngô Halloween');
+        row.textContent = `${index + 1}. ${String(entry.nickname || 'Người chơi')} · ${score.toLocaleString('vi-VN')} ${unit}`;
+        list.append(row);
+    });
+}
+
 function formatFarmTime(milliseconds) {
     const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
     if (totalSeconds < 60) return `${totalSeconds} giây`;
@@ -1525,6 +1736,10 @@ function updateInteriorInteraction(player) {
 }
 
 function interactWithCurrentZone() {
+    if (currentMapId.startsWith('halloween:') && activeHalloweenBox >= 0) {
+        if (!halloweenOpenedBoxes.has(activeHalloweenBox) && socket.connected) socket.emit('openHalloweenBox', activeHalloweenBox);
+        return;
+    }
     if (currentMapId === 'farm' && activeFarmPlotId && activeInteractionZoneId === `farm-plot:${activeFarmPlotId}`) {
         interactedFarmPlotId = activeFarmPlotId;
         document.getElementById('interaction-button').hidden = true;
@@ -1538,6 +1753,7 @@ function interactWithCurrentZone() {
         const screen = target === 'merchant' ? 'merchant-home'
             : target === 'recovery' ? 'recovery'
                 : target === 'professor' ? 'professor'
+                    : target === 'elevator-vending' ? 'elevator-machine'
                     : 'food-order';
         zoneServiceView = { ...zoneServiceView, screen, target, quantity: 1 };
         document.getElementById('zone-service-feedback').textContent = '';
