@@ -14,10 +14,16 @@ canvas {
     cursor: pointer;
 }
 
-#environment-hud { position: fixed; z-index: 8; display: grid; gap: 3px; min-width: 160px; max-width: min(240px, calc(100vw - 24px)); padding: 8px 10px; transform: translate(-100%, -100%); border: 1px solid rgba(202, 221, 191, 0.55); border-radius: 8px; background: rgba(17, 28, 22, 0.82); color: #eff5e9; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); font-size: 12px; pointer-events: auto; }
+#environment-hud { position: fixed; z-index: 8; display: grid; gap: 3px; min-width: 160px; max-width: min(240px, calc(100vw - 24px)); padding: 8px 10px; transform: translate(-100%, -100%); border: 1px solid rgba(202, 221, 191, 0.55); border-radius: 8px; background: rgba(17, 28, 22, 0.88); color: #eff5e9; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); font-size: 12px; pointer-events: auto; }
+#environment-hud.is-collapsed { display: grid; place-items: center; width: 32px; height: 32px; min-width: 0; max-width: none; padding: 0; border-radius: 50%; }
+.environment-details { display: grid; gap: 3px; padding-right: 25px; }
+#environment-toggle { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid rgba(202, 221, 191, 0.45); border-radius: 6px; background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+#environment-hud.is-collapsed #environment-toggle { position: static; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; font-size: 18px; }
+#environment-toggle:hover { background: rgba(255, 255, 255, 0.22); }
 #environment-clock { color: #d9f4bd; font-size: 17px; font-variant-numeric: tabular-nums; }
 #environment-location { color: #c3ccbf; font-size: 10px; }
 #environment-hud a { color: #b8d8ff; font-size: 10px; }
+#environment-hud.is-collapsed .environment-details { display: none; }
 
 #chat-container {
     position: absolute;

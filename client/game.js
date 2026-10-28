@@ -151,6 +151,10 @@ function create() {
     window.setInterval(updateEnvironmentClock, 1000);
     window.setInterval(loadEnvironmentConditions, 10 * 60 * 1000);
     window.addEventListener('resize', positionEnvironmentHud);
+      document.getElementById('environment-toggle')?.addEventListener('click', () => {
+          document.getElementById('environment-hud')?.classList.toggle('is-collapsed');
+          updateEnvironmentIcon();
+      });
 
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
@@ -879,6 +883,29 @@ function updateEnvironmentClock() {
     clock.textContent = now.toLocaleTimeString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
     });
+      updateEnvironmentIcon();
+  }
+
+  function updateEnvironmentIcon() {
+      const hud = document.getElementById('environment-hud');
+      const button = document.getElementById('environment-toggle');
+      if (!hud || !button) return;
+      const collapsed = hud.classList.contains('is-collapsed');
+      const hour = Number(new Intl.DateTimeFormat('en', {
+          timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', hourCycle: 'h23'
+      }).format(new Date()));
+      const isDay = typeof environmentConditions?.isDay === 'boolean' ? environmentConditions.isDay : hour >= 6 && hour < 18;
+      const code = Number(environmentConditions?.weatherCode);
+      let icon = isDay ? '☀️' : '🌙';
+      if ([45, 48].includes(code)) icon = '🌫️';
+      else if (code >= 95) icon = '⛈️';
+      else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) icon = '🌧️';
+      else if (code === 2 || code === 3) icon = '☁️';
+      else if (code === 1) icon = '🌤️';
+      button.textContent = collapsed ? icon : '−';
+      button.setAttribute('aria-expanded', String(!collapsed));
+      button.setAttribute('aria-label', collapsed ? 'Mở thông tin thời gian và thời tiết' : 'Thu gọn thông tin thời gian và thời tiết');
+      button.title = `${document.getElementById('environment-clock')?.textContent || ''} · ${document.getElementById('environment-condition')?.textContent || 'Thời tiết'}`;
 }
 
 function positionEnvironmentHud() {
@@ -917,8 +944,10 @@ async function loadEnvironmentConditions() {
         document.getElementById('environment-location').textContent = environmentConditions.stale
             ? 'Chánh Hưng · dữ liệu thời tiết lưu gần nhất'
             : 'Chánh Hưng · TP. Hồ Chí Minh';
+          updateEnvironmentIcon();
     } catch (error) {
         condition.textContent = 'Chưa tải được thời tiết';
+          updateEnvironmentIcon();
         console.warn('Không tải được thời tiết Chánh Hưng:', error);
     }
 }

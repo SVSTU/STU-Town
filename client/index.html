@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-real-environment">
+    <link rel="stylesheet" href="style.css?v=20261028-environment-icon">
 </head>
 <body>
 
@@ -121,11 +121,14 @@
     </section>
     <div id="system-announcement-lane" aria-live="polite" aria-atomic="true"></div>
     <div id="farm-event-lane" aria-live="polite" aria-atomic="true"></div>
-    <aside id="environment-hud" aria-label="Thời gian và thời tiết tại Chánh Hưng">
-        <strong id="environment-clock">--:--</strong>
-        <span id="environment-condition">Đang tải thời tiết…</span>
-        <small id="environment-location">Chánh Hưng · TP. Hồ Chí Minh</small>
-        <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Thời tiết: Open-Meteo</a>
+      <aside id="environment-hud" class="is-collapsed" aria-label="Thời gian và thời tiết tại Chánh Hưng">
+          <button type="button" id="environment-toggle" aria-label="Mở thông tin thời gian và thời tiết" aria-expanded="false" title="Thời gian và thời tiết">🌤️</button>
+          <div class="environment-details">
+              <strong id="environment-clock">--:--</strong>
+              <span id="environment-condition">Đang tải thời tiết…</span>
+              <small id="environment-location">Chánh Hưng · TP. Hồ Chí Minh</small>
+              <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Thời tiết: Open-Meteo</a>
+          </div>
     </aside>
     <button type="button" id="map-exit" hidden>← Trở về sân trường</button>
     <section id="player-stats" aria-label="Chỉ số nhân vật">
@@ -171,6 +174,6 @@
     </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-real-environment"></script>
+    <script src="game.js?v=20261028-environment-icon"></script>
 </body>
 </html>
