@@ -300,6 +300,34 @@ function loadProfile() {
     }
 }
 
+function compressAvatar(image, maxBytes = 180 * 1024) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const webpSupported = canvas.toDataURL('image/webp').startsWith('data:image/webp;');
+    const mimeType = webpSupported ? 'image/webp' : 'image/jpeg';
+    const sourceSide = Math.min(image.width, image.height);
+    const sourceX = (image.width - sourceSide) / 2;
+    const sourceY = (image.height - sourceSide) / 2;
+
+    for (const size of [256, 192, 128, 96]) {
+        canvas.width = size;
+        canvas.height = size;
+        if (!webpSupported) {
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, size, size);
+        }
+        context.drawImage(image, sourceX, sourceY, sourceSide, sourceSide, 0, 0, size, size);
+        for (const quality of [0.82, 0.68, 0.54]) {
+            const dataUrl = canvas.toDataURL(mimeType, quality);
+            const payload = dataUrl.slice(dataUrl.indexOf(',') + 1);
+            const byteSize = Math.ceil(payload.length * 3 / 4);
+            if (byteSize <= maxBytes) return dataUrl;
+        }
+    }
+
+    throw new Error('Không thể nén ảnh avatar xuống dung lượng cho phép.');
+}
+
 function saveProfile(event) {
     event.preventDefault();
     const fileInput = document.getElementById('avatar-input');
@@ -329,8 +357,8 @@ function saveProfile(event) {
         return;
     }
 
-    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type) || file.size > 1.5 * 1024 * 1024) {
-        alert('Chọn ảnh PNG, JPEG, WebP hoặc GIF tối đa 1,5 MB để lưu được trong trình duyệt.');
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type) || file.size > 15 * 1024 * 1024) {
+        alert('Chọn ảnh PNG, JPEG, WebP hoặc GIF tối đa 15 MB.');
         return;
     }
 
@@ -339,13 +367,17 @@ function saveProfile(event) {
         const base64String = e.target.result;
         const image = new Image();
         image.onload = function() {
-            if (image.width > 2048 || image.height > 2048) {
-                alert('Kích thước ảnh tối đa là 2048 × 2048.');
+            if (image.width > 8192 || image.height > 8192) {
+                alert('Kích thước ảnh tối đa là 8192 × 8192.');
                 return;
             }
-            profile.avatar = base64String;
-            applyProfile();
-            fileInput.value = '';
+            try {
+                profile.avatar = compressAvatar(image);
+                applyProfile();
+                fileInput.value = '';
+            } catch (error) {
+                alert(error.message);
+            }
         };
         image.onerror = () => alert('Tệp ảnh không hợp lệ.');
         image.src = base64String;
