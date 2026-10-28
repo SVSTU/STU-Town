@@ -770,17 +770,32 @@ function queueSystemAnnouncement(event) {
 function showNextSystemAnnouncement() {
     if (systemAnnouncementActive || systemAnnouncementQueue.length === 0) return;
     const lane = document.getElementById('system-announcement-lane');
+    positionSystemAnnouncementLane();
     const message = systemAnnouncementQueue.shift();
     const banner = document.createElement('div');
-    banner.className = 'system-announcement';
+    banner.className = 'system-announcement is-blinking';
     banner.textContent = `⚙ SYSTEM: ${message}`;
     systemAnnouncementActive = true;
+    lane.appendChild(banner);
+    if (banner.scrollWidth > lane.clientWidth) {
+        banner.classList.replace('is-blinking', 'is-scrolling');
+    }
     banner.addEventListener('animationend', () => {
         banner.remove();
         systemAnnouncementActive = false;
         showNextSystemAnnouncement();
     }, { once: true });
-    lane.appendChild(banner);
+}
+
+function positionSystemAnnouncementLane() {
+    const lane = document.getElementById('system-announcement-lane');
+    const mapCanvas = document.querySelector('#game-container canvas, canvas');
+    if (!lane || !mapCanvas) return;
+    const bounds = mapCanvas.getBoundingClientRect();
+    const inset = Math.min(12, bounds.width * 0.02);
+    lane.style.left = `${bounds.left + inset}px`;
+    lane.style.top = `${bounds.top + 5}px`;
+    lane.style.width = `${Math.max(0, bounds.width - inset * 2)}px`;
 }
 
 function normalizeInventory(state) {
