@@ -72,6 +72,7 @@ const FOOD_INFO = {
     soda: { icon: '🥤', name: 'Nước ngọt', coins: 180, reputation: 36, effect: '+25 sức mạnh, -15 mệt' }
 };
 let profile = loadProfile();
+let announcementZoom = 1;
 
 let players = {};
 let privateConversations = new Map();
@@ -450,6 +451,8 @@ function create() {
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
     document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
+    document.getElementById('announcements-zoom-out').addEventListener('click', () => setAnnouncementZoom(announcementZoom - 0.1));
+    document.getElementById('announcements-zoom-in').addEventListener('click', () => setAnnouncementZoom(announcementZoom + 0.1));
     document.getElementById('zone-service-close').addEventListener('click', () => {
         zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
         renderZoneServices(currentMapId);
@@ -849,6 +852,17 @@ function renderInventory() {
     renderInventorySection('inventory-items', itemEntries, 'Chưa có vật phẩm');
 }
 
+function setAnnouncementZoom(value) {
+    announcementZoom = Math.max(0.8, Math.min(1.6, Math.round(value * 10) / 10));
+    const panel = document.getElementById('announcements-panel');
+    if (!panel) return;
+    panel.querySelector('#announcements-status').style.fontSize = `${13 * announcementZoom}px`;
+    panel.querySelectorAll('.announcement-post h3').forEach((element) => { element.style.fontSize = `${14 * announcementZoom}px`; });
+    panel.querySelectorAll('.announcement-post time').forEach((element) => { element.style.fontSize = `${11 * announcementZoom}px`; });
+    panel.querySelectorAll('.announcement-post p').forEach((element) => { element.style.fontSize = `${12 * announcementZoom}px`; });
+    panel.querySelectorAll('.announcement-post img').forEach((element) => { element.style.maxHeight = `${190 * announcementZoom}px`; });
+}
+
 async function loadAnnouncements() {
     const status = document.getElementById('announcements-status');
     const list = document.getElementById('announcements-list');
@@ -911,6 +925,7 @@ async function loadAnnouncements() {
             }
             list.appendChild(article);
         });
+        setAnnouncementZoom(announcementZoom);
         status.textContent = data.stale ? 'Đang hiển thị bản lưu gần nhất.' : `Bài viết mới nhất từ ${data.source || 'Sinh Viên STU'}`;
     } catch (error) {
         status.textContent = 'Không tải được bài viết. Hãy thử tải lại hoặc mở blog Sinh Viên STU.';

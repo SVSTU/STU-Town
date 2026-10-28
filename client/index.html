@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-auditorium-board-images">
+    <link rel="stylesheet" href="style.css?v=20261028-announcement-zoom">
 </head>
 <body>
 
@@ -147,17 +147,24 @@
     </section>
     <section id="announcements-panel" hidden aria-labelledby="announcements-heading">
         <header class="announcements-header">
-            <div>
-                <strong id="announcements-heading">📢 Bảng thông báo Hội trường A</strong>
-                <a href="https://stusinhvien.blogspot.com/" target="_blank" rel="noopener noreferrer">Sinh Viên STU</a>
-            </div>
-            <button type="button" id="announcements-refresh" aria-label="Tải lại bài viết">↻</button>
+            <strong id="announcements-heading">📢 Bảng thông báo Hội trường A</strong>
+            <button type="button" data-collapse-panel="announcements-panel" aria-controls="announcements-body" aria-expanded="true" aria-label="Thu gọn bảng thông báo">−</button>
         </header>
-        <p id="announcements-status" role="status">Đang tải bài viết mới nhất…</p>
-        <div id="announcements-list"></div>
+        <div id="announcements-body" class="panel-collapse-content">
+            <div class="announcements-toolbar">
+                <a href="https://stusinhvien.blogspot.com/" target="_blank" rel="noopener noreferrer">Mở blog Sinh Viên STU</a>
+                <div class="announcements-controls" aria-label="Điều chỉnh hiển thị bảng thông báo">
+                    <button type="button" id="announcements-zoom-out" aria-label="Thu nhỏ nội dung thông báo">−</button>
+                    <button type="button" id="announcements-zoom-in" aria-label="Phóng to nội dung thông báo">+</button>
+                    <button type="button" id="announcements-refresh" aria-label="Tải lại bài viết">↻</button>
+                </div>
+            </div>
+            <p id="announcements-status" role="status">Đang tải bài viết mới nhất…</p>
+            <div id="announcements-list"></div>
+        </div>
     </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-auditorium-board-images"></script>
+    <script src="game.js?v=20261028-announcement-zoom"></script>
 </body>
 </html>
