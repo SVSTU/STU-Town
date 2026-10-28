@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261028-farm-mouse-chase">
+    <link rel="stylesheet" href="style.css?v=20261028-system-banner-inventory-collapse">
 </head>
 <body>
 
@@ -89,21 +89,27 @@
         <div id="interaction-feedback" role="status"></div>
     </section>
     <section id="inventory-panel" aria-label="Túi đồ cá nhân">
-        <strong>🎒 Túi đồ</strong>
-        <div class="inventory-compartment">
-            <h3>Hạt giống</h3>
-            <div id="inventory-seeds" class="inventory-list" aria-live="polite"></div>
+        <header class="inventory-heading">
+            <strong>🎒 Túi đồ</strong>
+            <button type="button" id="inventory-collapse" aria-controls="inventory-content" aria-expanded="true" aria-label="Thu gọn túi đồ">−</button>
+        </header>
+        <div id="inventory-content">
+            <div class="inventory-compartment">
+                <h3>Hạt giống</h3>
+                <div id="inventory-seeds" class="inventory-list" aria-live="polite"></div>
+            </div>
+            <div class="inventory-compartment">
+                <h3>Nông sản</h3>
+                <div id="inventory-produce" class="inventory-list" aria-live="polite"></div>
+            </div>
+            <div class="inventory-compartment">
+                <h3>Vật phẩm</h3>
+                <div id="inventory-items" class="inventory-list" aria-live="polite"></div>
+            </div>
+            <small>Túi đồ được lưu trong phiên hiện tại.</small>
         </div>
-        <div class="inventory-compartment">
-            <h3>Nông sản</h3>
-            <div id="inventory-produce" class="inventory-list" aria-live="polite"></div>
-        </div>
-        <div class="inventory-compartment">
-            <h3>Vật phẩm</h3>
-            <div id="inventory-items" class="inventory-list" aria-live="polite"></div>
-        </div>
-        <small>Túi đồ được lưu trong phiên hiện tại.</small>
     </section>
+    <div id="system-announcement-lane" aria-live="polite" aria-atomic="true"></div>
     <button type="button" id="map-exit" hidden>← Trở về sân trường</button>
     <section id="player-stats" aria-label="Chỉ số nhân vật">
         <strong>Chỉ số</strong>
@@ -119,6 +125,6 @@
     </section>
 
     <!-- Nhúng file Logic Game riêng -->
-    <script src="game.js?v=20261028-farm-mouse-chase"></script>
+    <script src="game.js?v=20261028-system-banner-inventory-collapse"></script>
 </body>
 </html>

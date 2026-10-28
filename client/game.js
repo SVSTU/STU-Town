@@ -63,6 +63,8 @@ let activeInteractionZoneId = '';
 let currentMapId = 'campus';
 let activeFarmMouseId = '';
 let farmMouseMarker = null;
+const systemAnnouncementQueue = [];
+let systemAnnouncementActive = false;
 let mapObjects = [];
 let inventory = { seeds: {}, produce: {}, items: {} };
 let playerStatsState = { stats: { hunger: 100, strength: 100, fatigue: 0 }, coins: 1500, reputation: 0, farmPlantCount: 0 };
@@ -147,7 +149,7 @@ function create() {
         document.getElementById('interaction-feedback').textContent = String(event?.message || '🐭 Chuột vừa cắn túi tiền của bạn.');
     });
 
-    socket.on('systemChatMessage', appendSystemChatMessage);
+    socket.on('systemChatMessage', queueSystemAnnouncement);
 
     socket.on('inventoryState', (state) => {
         inventory = normalizeInventory(state);
@@ -408,6 +410,13 @@ function create() {
 
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
+    document.getElementById('inventory-collapse').addEventListener('click', (event) => {
+        const button = event.currentTarget;
+        const collapsed = document.getElementById('inventory-panel').classList.toggle('is-collapsed');
+        button.setAttribute('aria-expanded', String(!collapsed));
+        button.setAttribute('aria-label', collapsed ? 'Mở rộng túi đồ' : 'Thu gọn túi đồ');
+        button.textContent = collapsed ? '+' : '−';
+    });
     document.getElementById('farm-plot-list').addEventListener('click', (event) => {
         const button = event.target.closest('[data-farm-plot]');
         if (!button || !socket.connected || currentMapId !== 'farm') return;
@@ -747,23 +756,27 @@ function renderInventory() {
     renderInventorySection('inventory-items', itemEntries, 'Chưa có vật phẩm');
 }
 
-function appendSystemChatMessage(event) {
+function queueSystemAnnouncement(event) {
     const message = typeof event === 'string' ? event : event?.message;
     if (typeof message !== 'string' || !message.trim()) return;
-    const chatMessages = document.getElementById('chat-messages');
-    const line = document.createElement('div');
-    line.className = 'chat-line system-chat-line';
-    const time = document.createElement('span');
-    time.className = 'chat-time';
-    time.textContent = `[${new Date().toTimeString().split(' ')[0]}] `;
-    const sender = document.createElement('b');
-    sender.className = 'system-chat-sender';
-    sender.textContent = 'SYSTEM: ';
-    const content = document.createElement('span');
-    content.textContent = message.slice(0, 300);
-    line.append(time, sender, content);
-    chatMessages.appendChild(line);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    systemAnnouncementQueue.push(message.slice(0, 300));
+    showNextSystemAnnouncement();
+}
+
+function showNextSystemAnnouncement() {
+    if (systemAnnouncementActive || systemAnnouncementQueue.length === 0) return;
+    const lane = document.getElementById('system-announcement-lane');
+    const message = systemAnnouncementQueue.shift();
+    const banner = document.createElement('div');
+    banner.className = 'system-announcement';
+    banner.textContent = `⚙ SYSTEM · ${message}`;
+    systemAnnouncementActive = true;
+    banner.addEventListener('animationend', () => {
+        banner.remove();
+        systemAnnouncementActive = false;
+        showNextSystemAnnouncement();
+    }, { once: true });
+    lane.appendChild(banner);
 }
 
 function normalizeInventory(state) {

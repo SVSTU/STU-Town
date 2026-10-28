@@ -186,7 +186,11 @@ canvas {
 }
 #map-exit { position: fixed; z-index: 20; top: 12px; right: 12px; padding: 9px 12px; border: 1px solid #777; border-radius: 8px; background: #263b2c; color: #fff; cursor: pointer; }
 #inventory-panel { position: fixed; z-index: 20; top: 12px; right: 12px; width: 230px; max-height: min(62vh, 520px); overflow: auto; padding: 12px; border: 1px solid #557154; border-radius: 9px; background: #151b18f2; color: #fff; }
-#inventory-panel > strong { display: block; margin-bottom: 8px; font-size: 14px; }
+.inventory-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.inventory-heading strong { font-size: 14px; }
+#inventory-collapse { width: 26px; height: 26px; border: 1px solid #637765; border-radius: 5px; background: #2a332c; color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+#inventory-panel.is-collapsed { width: max-content; min-width: 150px; padding: 8px 10px; overflow: visible; }
+#inventory-panel.is-collapsed #inventory-content { display: none; }
 .inventory-compartment { margin-top: 8px; padding: 7px; border: 1px solid #3c5940; border-radius: 7px; background: #1d2921; }
 .inventory-compartment h3 { margin: 0 0 5px; color: #b9f29c; font-size: 12px; }
 .inventory-list { display: grid; gap: 4px; }
@@ -397,8 +401,12 @@ canvas {
     word-break: break-word;
 }
 
-.system-chat-line { border: 1px solid rgba(255, 205, 64, 0.5); background: rgba(111, 78, 12, 0.42); color: #ffe08a; }
-.system-chat-sender { color: #ffd044; }
+#system-announcement-lane { position: fixed; z-index: 1000; top: clamp(82px, 18vh, 150px); left: 0; width: 100vw; overflow: hidden; pointer-events: none; }
+.system-announcement { width: max-content; max-width: 90vw; margin: 0; padding: 10px 18px; border: 1px solid #e2b53d; border-radius: 8px; background: rgba(39, 32, 11, 0.96); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45); color: #ffe08a; font-size: clamp(13px, 2vw, 17px); font-weight: 700; text-align: center; white-space: normal; animation: system-announcement-run 3.6s linear 3; }
+@keyframes system-announcement-run {
+    from { transform: translateX(100vw); }
+    to { transform: translateX(calc(-100% - 100vw)); }
+}
 
 .chat-time { color: #aaa; font-size: 11px; }
 
@@ -483,6 +491,7 @@ canvas {
         max-height: 42vh;
         padding: 8px;
     }
+    #inventory-panel.is-collapsed { width: max-content; min-width: 145px; }
     #map-exit {
         top: auto;
         right: 8px;
