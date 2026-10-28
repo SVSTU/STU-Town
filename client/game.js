@@ -20,18 +20,18 @@ const FARM_PLOT_LAYOUT = [
     { id: 'plot-4', x: 530, y: 290, width: 78, height: 42 }
 ];
 const CAMPUS_ZONES = [
-    { id: 'canteen', name: 'Căng tin', detail: 'Ẩm thực, thức uống và hồi phục chỉ số.', x: 120, y: 145, radius: 74 },
-    { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Khu vực này chưa mở.', x: 355, y: 175, radius: 92, locked: true },
-    { id: 'auditorium', name: 'Hội trường A · Bảng thông báo', detail: 'Xem bài viết mới nhất từ Sinh Viên STU.', x: 585, y: 155, radius: 100 },
-    { id: 'khu-d', name: 'Khu D · Thang máy', detail: 'Khu vực này chưa mở.', x: 115, y: 330, radius: 95, locked: true },
-    { id: 'khu-a', name: 'Khu A · Hành chính & giao dịch', detail: 'Mua hạt giống, bán nông sản và dùng trạm hồi phục.', x: 730, y: 340, radius: 54 },
-    { id: 'personal-farm', name: 'Nông trại cá nhân · Khu A', detail: 'Cần đăng nhập để mở không gian nông trại cá nhân.', x: 734, y: 510, radius: 40, loginRequired: true },
-    { id: 'sports', name: 'Sân thể thao', detail: 'Sân bóng và khu vận động ngoài trời.', x: 365, y: 365, radius: 116 },
+    { id: 'canteen', name: 'Căng tin', detail: 'Ẩm thực, thức uống và hồi phục chỉ số.', x: 120, y: 145, radius: 74, bounds: { x: 48, y: 72, width: 135, height: 110 } },
+    { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Khu vực này chưa mở.', x: 355, y: 175, radius: 92, bounds: { x: 232, y: 106, width: 245, height: 112 }, locked: true },
+    { id: 'auditorium', name: 'Hội trường A · Bảng thông báo', detail: 'Xem bài viết mới nhất từ Sinh Viên STU.', x: 585, y: 155, radius: 100, bounds: { x: 530, y: 92, width: 132, height: 120 } },
+    { id: 'khu-d', name: 'Khu D · Thang máy', detail: 'Khu vực này chưa mở.', x: 115, y: 330, radius: 95, bounds: { x: 48, y: 278, width: 135, height: 105 }, locked: true },
+    { id: 'khu-a', name: 'Khu A · Hành chính & giao dịch', detail: 'Mua hạt giống, bán nông sản và dùng trạm hồi phục.', x: 730, y: 340, radius: 54, bounds: { x: 704, y: 228, width: 54, height: 220 } },
+    { id: 'personal-farm', name: 'Nông trại cá nhân · Khu A', detail: 'Cần đăng nhập để mở không gian nông trại cá nhân.', x: 734, y: 510, radius: 40, bounds: { x: 696, y: 456, width: 76, height: 96 }, loginRequired: true },
+    { id: 'sports', name: 'Sân thể thao', detail: 'Sân bóng và khu vận động ngoài trời.', x: 365, y: 365, radius: 116, bounds: { x: 180, y: 250, width: 330, height: 200 } },
     { id: 'fountain', name: 'Đài phun nước', detail: 'Điểm hẹn ở sân trung tâm.', x: 570, y: 360, radius: 52 },
-    { id: 'dormitory', name: 'Ký túc xá', detail: 'Cần đăng nhập để tạo không gian nghỉ riêng (sẽ bổ sung sau).', x: 135, y: 510, radius: 76, loginRequired: true },
-    { id: 'farm', name: 'Nông trại cộng đồng', detail: 'Gieo trồng và thu hoạch cùng người chơi khác.', x: 600, y: 505, radius: 112 },
-    { id: 'khu-e', name: 'Khu E', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 250, y: 65, radius: 36, schedule: true },
-    { id: 'khu-f', name: 'Khu F', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 250, y: 540, radius: 36, schedule: true },
+    { id: 'dormitory', name: 'Ký túc xá', detail: 'Cần đăng nhập để tạo không gian nghỉ riêng (sẽ bổ sung sau).', x: 135, y: 510, radius: 76, bounds: { x: 48, y: 478, width: 138, height: 70 }, loginRequired: true },
+    { id: 'farm', name: 'Nông trại cộng đồng', detail: 'Gieo trồng và thu hoạch cùng người chơi khác.', x: 600, y: 505, radius: 112, bounds: { x: 520, y: 462, width: 168, height: 88 } },
+    { id: 'khu-e', name: 'Khu E', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 376, y: 66, radius: 36, bounds: { x: 276, y: 40, width: 200, height: 52 }, schedule: true },
+    { id: 'khu-f', name: 'Khu F', detail: 'Mở 07:00–11:30 và 13:00–17:00 (giờ Việt Nam).', x: 372, y: 541, radius: 36, bounds: { x: 280, y: 520, width: 185, height: 43 }, schedule: true },
     ...CAMPUS_BENCHES.map((bench, index) => ({
         id: bench.id, name: `Ghế nghỉ ${index + 1}`, detail: 'Ngồi nghỉ để giảm 10 điểm mệt.',
         x: bench.x, y: bench.y, radius: 38
@@ -39,12 +39,12 @@ const CAMPUS_ZONES = [
 ];
 const INTERIOR_OBJECTS = {
     'khu-a': [
-        { id: 'merchant', name: 'Thương nhân trồng trọt', detail: 'Tới gần và tương tác để mua hạt giống hoặc bán nông sản.', x: 300, y: 255, radius: 80 },
-        { id: 'professor', name: 'Giáo sư', detail: 'Nhiệm vụ chưa mở.', x: 500, y: 255, radius: 78 },
-        { id: 'recovery', name: 'Trạm hồi phục', detail: 'Gói hồi phục giá 500 tiền đồng.', x: 400, y: 378, radius: 70 }
+        { id: 'merchant', name: 'Thương nhân trồng trọt', detail: 'Tới gần và tương tác để mua hạt giống hoặc bán nông sản.', x: 300, y: 255, radius: 80, bounds: { x: 220, y: 210, width: 160, height: 95 } },
+        { id: 'professor', name: 'Giáo sư', detail: 'Nhiệm vụ chưa mở.', x: 500, y: 255, radius: 78, bounds: { x: 420, y: 210, width: 160, height: 95 } },
+        { id: 'recovery', name: 'Trạm hồi phục', detail: 'Gói hồi phục giá 500 tiền đồng.', x: 400, y: 378, radius: 70, bounds: { x: 300, y: 350, width: 200, height: 55 } }
     ],
     canteen: [
-        { id: 'canteen-counter', name: 'Quầy ẩm thực', detail: 'Tới gần quầy để chọn món ăn hoặc thức uống.', x: 400, y: 242, radius: 82 }
+        { id: 'canteen-counter', name: 'Quầy ẩm thực', detail: 'Tới gần quầy để chọn món ăn hoặc thức uống.', x: 400, y: 242, radius: 82, bounds: { x: 220, y: 205, width: 360, height: 75 } }
     ]
 };
 const CAMPUS_BUILDINGS = [
@@ -73,6 +73,8 @@ const FOOD_INFO = {
 };
 let profile = loadProfile();
 let announcementZoom = 1;
+let environmentConditions = null;
+let environmentOverlay = null;
 
 let players = {};
 let privateConversations = new Map();
@@ -123,6 +125,7 @@ function preload() { this.load.image('avatar-default-source', 'stu.png'); }
 function create() {
     sceneRef = this;
     drawCampusMap(sceneRef);
+    environmentOverlay = sceneRef.add.graphics().setDepth(-0.5);
     createFarmPlotControls();
     renderInventory();
     createCircularTexture(sceneRef, 'avatar-default', sceneRef.textures.get('avatar-default-source').getSourceImage());
@@ -142,6 +145,12 @@ function create() {
     });
     sceneRef.input.keyboard.on('keydown-E', interactWithCurrentZone);
     window.setInterval(updateFarmPlotControls, 1000);
+    updateEnvironmentClock();
+    positionEnvironmentHud();
+    loadEnvironmentConditions();
+    window.setInterval(updateEnvironmentClock, 1000);
+    window.setInterval(loadEnvironmentConditions, 10 * 60 * 1000);
+    window.addEventListener('resize', positionEnvironmentHud);
 
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
@@ -860,7 +869,81 @@ function setAnnouncementZoom(value) {
     panel.querySelectorAll('.announcement-post h3').forEach((element) => { element.style.fontSize = `${14 * announcementZoom}px`; });
     panel.querySelectorAll('.announcement-post time').forEach((element) => { element.style.fontSize = `${11 * announcementZoom}px`; });
     panel.querySelectorAll('.announcement-post p').forEach((element) => { element.style.fontSize = `${12 * announcementZoom}px`; });
-    panel.querySelectorAll('.announcement-post img').forEach((element) => { element.style.maxHeight = `${190 * announcementZoom}px`; });
+    panel.querySelectorAll('.announcement-post img').forEach((element) => { element.style.maxHeight = `min(${320 * announcementZoom}px, 42vh)`; });
+}
+
+function updateEnvironmentClock() {
+    const now = new Date();
+    const clock = document.getElementById('environment-clock');
+    if (!clock) return;
+    clock.textContent = now.toLocaleTimeString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    });
+}
+
+function positionEnvironmentHud() {
+    const hud = document.getElementById('environment-hud');
+    const canvas = document.querySelector('canvas');
+    if (!hud || !canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    hud.style.left = `${bounds.right - 10}px`;
+    hud.style.top = `${bounds.bottom - 10}px`;
+}
+
+function describeWeather(code) {
+    if (code === 0) return '☀️ Trời quang';
+    if ([1, 2].includes(code)) return '🌤️ Có mây';
+    if (code === 3) return '☁️ Nhiều mây';
+    if ([45, 48].includes(code)) return '🌫️ Sương mù';
+    if (code >= 51 && code <= 57) return '🌦️ Mưa phùn';
+    if (code >= 61 && code <= 67) return '🌧️ Có mưa';
+    if (code >= 71 && code <= 77) return '❄️ Có tuyết';
+    if (code >= 80 && code <= 82) return '🌧️ Mưa rào';
+    if ([85, 86].includes(code)) return '🌨️ Mưa tuyết';
+    if (code >= 95) return '⛈️ Dông';
+    return '🌤️ Thời tiết hiện tại';
+}
+
+async function loadEnvironmentConditions() {
+    const condition = document.getElementById('environment-condition');
+    if (!condition) return;
+    try {
+        const response = await fetch(`${serverUrl}/api/environment`, { headers: { accept: 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        environmentConditions = await response.json();
+        const temperature = Number.isFinite(environmentConditions.temperature)
+            ? ` · ${Math.round(environmentConditions.temperature)}°C` : '';
+        condition.textContent = `${describeWeather(environmentConditions.weatherCode)}${temperature}`;
+        document.getElementById('environment-location').textContent = environmentConditions.stale
+            ? 'Chánh Hưng · dữ liệu thời tiết lưu gần nhất'
+            : 'Chánh Hưng · TP. Hồ Chí Minh';
+    } catch (error) {
+        condition.textContent = 'Chưa tải được thời tiết';
+        console.warn('Không tải được thời tiết Chánh Hưng:', error);
+    }
+}
+
+function renderEnvironmentOverlay(time, delta) {
+    if (!environmentOverlay) return;
+    environmentOverlay.clear();
+    const hour = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+    const isDay = typeof environmentConditions?.isDay === 'boolean' ? environmentConditions.isDay : hour >= 6 && hour < 18;
+    if (!isDay) environmentOverlay.fillStyle(0x101a39, 0.25).fillRect(0, 0, 800, 600);
+    else if (environmentConditions?.cloudCover >= 65) {
+        environmentOverlay.fillStyle(0x53616b, Math.min(0.18, environmentConditions.cloudCover / 600)).fillRect(0, 0, 800, 600);
+    }
+
+    const code = Number(environmentConditions?.weatherCode);
+    const isWet = (environmentConditions?.rain || 0) > 0 || (environmentConditions?.showers || 0) > 0
+        || (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+    if (!isWet || !['campus', 'sports', 'fountain', 'farm'].includes(currentMapId)) return;
+    const offset = (time * 0.22) % 850;
+    environmentOverlay.lineStyle(1, isDay ? 0xb8d9e8 : 0x8197c0, 0.42);
+    for (let index = 0; index < 75; index++) {
+        const x = (index * 137 + offset) % 820 - 10;
+        const y = (index * 83 + offset * 1.7) % 620 - 10;
+        environmentOverlay.lineBetween(x, y, x - 5, y + 13);
+    }
 }
 
 async function loadAnnouncements() {
@@ -1272,6 +1355,16 @@ function drawFarmPlots(scene) {
     });
 }
 
+function isWithinInteractionArea(player, target, padding = 20) {
+    const bounds = target.bounds || (Number.isFinite(target.width) && Number.isFinite(target.height) ? target : null);
+    if (bounds) {
+        const { x, y, width, height } = bounds;
+        return player.x >= x - padding && player.x <= x + width + padding
+            && player.y >= y - padding && player.y <= y + height + padding;
+    }
+    return Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y) <= target.radius;
+}
+
 function updateInteractionZone(player) {
     if (currentMapId === 'farm') {
         updateFarmPlotInteraction(player);
@@ -1284,7 +1377,7 @@ function updateInteractionZone(player) {
     if (currentMapId !== 'campus') return;
     const nearestZone = CAMPUS_ZONES
         .map((zone) => ({ zone, distance: Phaser.Math.Distance.Between(player.x, player.y, zone.x, zone.y) }))
-        .filter(({ zone, distance }) => distance <= zone.radius)
+        .filter(({ zone }) => isWithinInteractionArea(player, zone, 20))
         .sort((a, b) => a.distance - b.distance)[0]?.zone || null;
     const nextZoneId = nearestZone?.id || '';
     if (nextZoneId === activeInteractionZoneId) {
@@ -1325,10 +1418,8 @@ function updateBenchInteractionState(bench) {
 
 function updateFarmPlotInteraction(player) {
     const nearestPlot = FARM_PLOT_LAYOUT
-        .map((plot) => ({ plot, distance: Phaser.Math.Distance.Between(
-            player.x, player.y, plot.x + plot.width / 2, plot.y + plot.height / 2
-        ) }))
-        .filter(({ distance }) => distance <= 64)
+        .map((plot) => ({ plot, distance: Phaser.Math.Distance.Between(player.x, player.y, plot.x + plot.width / 2, plot.y + plot.height / 2) }))
+        .filter(({ plot }) => isWithinInteractionArea(player, plot, 18))
         .sort((a, b) => a.distance - b.distance)[0]?.plot || null;
     const nextPlotId = nearestPlot?.id || '';
     if (nextPlotId !== activeFarmPlotId) {
@@ -1379,7 +1470,7 @@ function formatFarmTime(milliseconds) {
 function updateInteriorInteraction(player) {
     const nearestObject = (INTERIOR_OBJECTS[currentMapId] || [])
         .map((object) => ({ object, distance: Phaser.Math.Distance.Between(player.x, player.y, object.x, object.y) }))
-        .filter(({ object, distance }) => distance <= object.radius)
+        .filter(({ object }) => isWithinInteractionArea(player, object, 20))
         .sort((a, b) => a.distance - b.distance)[0]?.object || null;
     const nextObjectId = nearestObject?.id || '';
     if (nextObjectId === activeInteriorObjectId) return;
@@ -1845,7 +1936,8 @@ function sendPrivateMessage(event) {
     }
 }
 
-function update() {
+function update(time, delta) {
+    renderEnvironmentOverlay(time, delta);
     if (!socket.id || !players[socket.id]) return;
 
     const p = players[socket.id];

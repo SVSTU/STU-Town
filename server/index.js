@@ -17,6 +17,9 @@ const BLOG_FEED_URL = 'https://stusinhvien.blogspot.com/feeds/posts/default?alt=
 const BLOG_BASE_URL = 'https://stusinhvien.blogspot.com/';
 let announcementFeedCache = { posts: [], expiresAt: 0 };
 let announcementFeedRequest = null;
+const ENVIRONMENT_API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=10.745&longitude=106.67583&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,weather_code,cloud_cover,wind_speed_10m&timezone=Asia%2FHo_Chi_Minh';
+let environmentCache = { data: null, expiresAt: 0 };
+let environmentRequest = null;
 
 function decodeHtmlText(value) {
   return String(value || '')
@@ -86,6 +89,41 @@ async function fetchAnnouncementPosts() {
   return announcementFeedRequest;
 }
 
+async function fetchEnvironmentConditions() {
+  if (environmentRequest) return environmentRequest;
+  environmentRequest = (async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(ENVIRONMENT_API_URL, { signal: controller.signal, headers: { accept: 'application/json' } });
+      if (!response.ok) throw new Error(`Open-Meteo returned ${response.status}`);
+      const result = await response.json();
+      const current = result?.current;
+      if (!current || !Number.isFinite(Number(current.weather_code))) throw new Error('Invalid weather response');
+      const data = {
+        location: 'Chánh Hưng, TP. Hồ Chí Minh',
+        time: current.time,
+        temperature: Number.isFinite(Number(current.temperature_2m)) ? Number(current.temperature_2m) : null,
+        apparentTemperature: Number.isFinite(Number(current.apparent_temperature)) ? Number(current.apparent_temperature) : null,
+        humidity: Number.isFinite(Number(current.relative_humidity_2m)) ? Number(current.relative_humidity_2m) : null,
+        isDay: Number(current.is_day) === 1,
+        precipitation: Number.isFinite(Number(current.precipitation)) ? Number(current.precipitation) : 0,
+        rain: Number.isFinite(Number(current.rain)) ? Number(current.rain) : 0,
+        showers: Number.isFinite(Number(current.showers)) ? Number(current.showers) : 0,
+        weatherCode: Number(current.weather_code),
+        cloudCover: Number.isFinite(Number(current.cloud_cover)) ? Number(current.cloud_cover) : 0,
+        windSpeed: Number.isFinite(Number(current.wind_speed_10m)) ? Number(current.wind_speed_10m) : null
+      };
+      environmentCache = { data, expiresAt: Date.now() + 10 * 60_000 };
+      return data;
+    } finally {
+      clearTimeout(timeout);
+      environmentRequest = null;
+    }
+  })();
+  return environmentRequest;
+}
+
 app.get('/api/announcements', async (req, res) => {
   const origin = req.get('origin');
   if (origin) {
@@ -110,6 +148,32 @@ app.get('/api/announcements', async (req, res) => {
     }
     console.error('Không tải được feed thông báo STU:', error.message);
     return res.status(502).json({ error: 'Không tải được bài viết từ blog STU.' });
+  }
+});
+
+app.get('/api/environment', async (req, res) => {
+  const origin = req.get('origin');
+  if (origin) {
+    let allowed = allowedOrigins.has(origin);
+    try {
+      const hostname = new URL(origin).hostname;
+      allowed ||= hostname === 'stu-town.pages.dev' || hostname.endsWith('.stu-town.pages.dev');
+    } catch { allowed = false; }
+    if (!allowed) return res.status(403).json({ error: 'Origin not allowed' });
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+  }
+  if (environmentCache.data && environmentCache.expiresAt > Date.now()) {
+    return res.set('Cache-Control', 'public, max-age=300').json(environmentCache.data);
+  }
+  try {
+    return res.set('Cache-Control', 'public, max-age=300').json(await fetchEnvironmentConditions());
+  } catch (error) {
+    if (environmentCache.data) {
+      return res.set('Cache-Control', 'public, max-age=60').json({ ...environmentCache.data, stale: true });
+    }
+    console.error('Không tải được thời tiết Chánh Hưng:', error.message);
+    return res.status(502).json({ error: 'Không tải được dữ liệu thời tiết.' });
   }
 });
 
