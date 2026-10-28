@@ -22,6 +22,13 @@ const FARM_GROWTH_MS = 30_000;
 const FARM_WILT_MS = FARM_GROWTH_MS * 10;
 const FARM_DEATH_MS = FARM_GROWTH_MS * 50;
 const FARM_HARVEST_COST_EVERY = 4;
+const CAMPUS_BENCH_REST = 10;
+const CAMPUS_BENCH_COOLDOWN_MS = 3_000;
+const CAMPUS_BENCHES = [
+  { id: 'bench-1', x: 570, y: 50 }, { id: 'bench-2', x: 625, y: 50 }, { id: 'bench-3', x: 680, y: 50 },
+  { id: 'bench-4', x: 565, y: 285 }, { id: 'bench-5', x: 635, y: 285 },
+  { id: 'bench-6', x: 635, y: 375 }, { id: 'bench-7', x: 555, y: 435 }, { id: 'bench-8', x: 635, y: 435 }
+];
 const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
 const FARM_CROP_KEYS = { carrot: '🥕', tomato: '🍅', corn: '🌽', strawberry: '🍓' };
 const CROP_PRICES = { carrot: 100, tomato: 150, corn: 180, strawberry: 250 };
@@ -502,6 +509,25 @@ io.on('connection', (socket) => {
     player.stats.strength = clampStat(player.stats.strength + 50);
     player.stats.fatigue = clampStat(player.stats.fatigue - 50);
     socket.emit('serviceResult', { message: 'Đã dùng gói hồi phục: +50 đói, +50 sức mạnh, -50 mệt.', state: getPlayerState(player) });
+  });
+
+  socket.on('restAtCampusBench', (benchId) => {
+    const player = players[socket.id];
+    const bench = CAMPUS_BENCHES.find((item) => item.id === benchId);
+    if (!player || player.mapId !== 'campus' || !bench) {
+      return socket.emit('benchRestResult', { message: 'Ghế nghỉ chỉ dùng được tại sân trường.' });
+    }
+    const distance = Math.hypot(player.x - bench.x, player.y - bench.y);
+    if (distance > 55) return socket.emit('benchRestResult', { message: 'Hãy đến gần ghế để ngồi nghỉ.' });
+    const now = Date.now();
+    if (now - (player.lastBenchRestAt || 0) < CAMPUS_BENCH_COOLDOWN_MS) {
+      return socket.emit('benchRestResult', { message: 'Bạn vừa nghỉ xong, hãy chờ một chút.' });
+    }
+    player.lastBenchRestAt = now;
+    const rested = Math.min(CAMPUS_BENCH_REST, player.stats.fatigue);
+    if (rested <= 0) return socket.emit('benchRestResult', { message: 'Bạn chưa mệt, không cần nghỉ lúc này.', state: getPlayerState(player) });
+    player.stats.fatigue = clampStat(player.stats.fatigue - CAMPUS_BENCH_REST);
+    socket.emit('benchRestResult', { message: `Bạn ngồi nghỉ và giảm ${rested} điểm mệt.`, state: getPlayerState(player) });
   });
 
   socket.on('canteenPurchase', (payload = {}) => {
