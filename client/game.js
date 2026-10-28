@@ -97,6 +97,7 @@ function create() {
             activePrivatePeerId = '';
             document.getElementById('private-recipient').value = '';
             document.getElementById('private-status').textContent = 'Người chơi đã thoát phiên.';
+            document.getElementById('private-conversation-title').textContent = 'Người nhận đã thoát phiên';
             renderPrivateMessages();
         }
     });
@@ -214,6 +215,9 @@ function create() {
         document.getElementById('private-status').textContent = activePrivatePeerId
             ? `Đang chat riêng với ${players[activePrivatePeerId]?.playerNickname || 'người chơi'}.`
             : 'Chọn một người chơi để bắt đầu chat riêng.';
+        document.getElementById('private-conversation-title').textContent = activePrivatePeerId
+            ? `🔒 Chat riêng · ${players[activePrivatePeerId]?.playerNickname || 'Người chơi'} (${activePrivatePeerId.substring(0, 4)})`
+            : 'Chưa chọn người nhận';
         renderPrivateMessages();
     });
     document.getElementById('emoji-toggle').addEventListener('click', () => {
@@ -524,12 +528,21 @@ function renderPrivateMessages() {
     const messages = privateConversations.get(activePrivatePeerId) || [];
     messages.forEach((data) => {
         const line = document.createElement('div');
-        line.className = `private-message${data.id === socket.id ? ' is-mine' : ''}`;
+        const isMine = data.id === socket.id;
+        line.className = `private-message ${isMine ? 'is-mine' : 'is-theirs'}`;
         const sender = document.createElement('b');
-        sender.textContent = data.id === socket.id ? (profile.nickname || 'Bạn') : (data.nickname || 'Người chơi');
+        sender.className = 'private-message-sender';
+        sender.textContent = isMine ? 'Bạn' : `Từ ${data.nickname || 'Người chơi'} (${data.id.substring(0, 4)})`;
         const body = document.createElement('span');
-        body.textContent = ` ${String(data.message).slice(0, 300)}`;
-        line.append(sender, body);
+        body.className = 'private-message-body';
+        body.textContent = String(data.message).slice(0, 300);
+        const time = document.createElement('time');
+        time.className = 'private-message-time';
+        const sentAt = new Date(data.sentAt);
+        const validSentAt = Number.isNaN(sentAt.getTime()) ? new Date() : sentAt;
+        time.dateTime = validSentAt.toISOString();
+        time.textContent = validSentAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        line.append(sender, body, time);
         container.appendChild(line);
     });
     container.scrollTop = container.scrollHeight;

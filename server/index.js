@@ -84,7 +84,13 @@ io.on('connection', (socket) => {
     if (!message) return;
 
     const messageId = `${socket.id}:private:${++nextMessageId}`;
-    const sender = { id: socket.id, nickname: players[socket.id].nickname || '', messageId, message };
+    const sender = {
+      id: socket.id,
+      nickname: players[socket.id].nickname || '',
+      messageId,
+      message,
+      sentAt: new Date().toISOString()
+    };
     socket.to(to).emit('privateChatMessage', { ...sender, peerId: socket.id });
     socket.emit('privateChatMessage', { ...sender, peerId: to, isMe: true });
   });
