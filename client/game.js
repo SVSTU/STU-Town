@@ -888,6 +888,22 @@ async function loadAnnouncements() {
                     article.appendChild(time);
                 }
             }
+            if (post.image) {
+                let imageUrl;
+                try { imageUrl = new URL(post.image); } catch { imageUrl = null; }
+                const host = imageUrl?.hostname || '';
+                const isBloggerImageHost = host === 'blogger.googleusercontent.com'
+                    || host.endsWith('.blogger.googleusercontent.com')
+                    || /^\d+\.bp\.blogspot\.com$/.test(host);
+                if (imageUrl?.protocol === 'https:' && isBloggerImageHost) {
+                    const image = document.createElement('img');
+                    image.src = imageUrl.href;
+                    image.alt = String(post.title || 'Ảnh bài viết');
+                    image.loading = 'lazy';
+                    image.referrerPolicy = 'no-referrer';
+                    article.appendChild(image);
+                }
+            }
             if (post.summary) {
                 const summary = document.createElement('p');
                 summary.textContent = String(post.summary);

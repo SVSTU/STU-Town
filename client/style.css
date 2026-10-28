@@ -238,6 +238,7 @@ canvas {
 .announcement-post h3 a { color: #e6f2de; text-decoration: none; }
 .announcement-post h3 a:hover { text-decoration: underline; }
 .announcement-post time { color: #aebaac; font-size: 11px; }
+.announcement-post img { display: block; width: 100%; max-height: 190px; margin-top: 7px; border-radius: 6px; background: #151b18; object-fit: cover; }
 .announcement-post p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 5px 0 0; color: #d5ddd2; font-size: 12px; line-height: 1.45; }
 
 .interaction-hud-heading {

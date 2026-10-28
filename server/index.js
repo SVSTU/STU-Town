@@ -32,6 +32,17 @@ function decodeHtmlText(value) {
     .replace(/\s+/g, ' ').trim();
 }
 
+function safeBloggerImage(value) {
+  try {
+    const imageUrl = new URL(String(value || '').replace(/&amp;/gi, '&'));
+    const host = imageUrl.hostname;
+    const isBloggerImageHost = host === 'blogger.googleusercontent.com'
+      || host.endsWith('.blogger.googleusercontent.com')
+      || /^\d+\.bp\.blogspot\.com$/.test(host);
+    return imageUrl.protocol === 'https:' && isBloggerImageHost ? imageUrl.href : '';
+  } catch { return ''; }
+}
+
 async function fetchAnnouncementPosts() {
   if (announcementFeedRequest) return announcementFeedRequest;
   announcementFeedRequest = (async () => {
@@ -54,11 +65,15 @@ async function fetchAnnouncementPosts() {
           if (parsedUrl.protocol === 'https:' && parsedUrl.hostname === 'stusinhvien.blogspot.com') url = parsedUrl.href;
         } catch { /* Skip invalid links. */ }
         const publishedAt = Date.parse(entry?.published?.$t || entry?.updated?.$t || '');
+        const contentHtml = String(entry?.content?.$t || '');
+        const contentImage = contentHtml.match(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)/i)?.[1];
+        const image = safeBloggerImage(contentImage || entry?.media$thumbnail?.url);
         return {
           title,
           url,
+          image,
           publishedAt: Number.isFinite(publishedAt) ? new Date(publishedAt).toISOString() : '',
-          summary: decodeHtmlText(entry?.summary?.$t || entry?.content?.$t).slice(0, 420)
+          summary: decodeHtmlText(entry?.summary?.$t || contentHtml).slice(0, 420)
         };
       }).filter((post) => post.title && post.url).slice(0, 8);
       announcementFeedCache = { posts, expiresAt: Date.now() + 5 * 60_000 };
@@ -188,8 +203,9 @@ function tickPlayerStats() {
     const elapsed = now - player.statsTickAt;
     player.statsTickAt = now;
     const statsBefore = `${player.stats.hunger}|${player.stats.strength}|${player.stats.fatigue}`;
-    const safeForHunger = ['khu-a', 'canteen'].includes(player.mapId);
-    const safeForMovementFatigue = ['khu-a', 'farm'].includes(player.mapId);
+    const isAuditorium = player.mapId === 'auditorium';
+    const safeForHunger = ['khu-a', 'canteen', 'auditorium'].includes(player.mapId);
+    const safeForMovementFatigue = ['khu-a', 'farm', 'auditorium'].includes(player.mapId);
     if (!safeForHunger) {
       player.hungerElapsed += elapsed;
       while (player.hungerElapsed >= 300_000) {
@@ -205,7 +221,8 @@ function tickPlayerStats() {
         player.stats.fatigue = clampStat(player.stats.fatigue + 1);
       }
     }
-    if (player.stats.hunger === 0) {
+    if (isAuditorium) player.weaknessElapsed = 0;
+    else if (player.stats.hunger === 0) {
       player.weaknessElapsed += elapsed;
       while (player.weaknessElapsed >= 60_000) {
         player.weaknessElapsed -= 60_000;
