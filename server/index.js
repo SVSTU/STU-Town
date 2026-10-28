@@ -18,7 +18,39 @@ const recentMessages = new Map();
 const recentPrivateMessages = new Map();
 const reactionEmojis = new Set(['❤️', '😂', '👍', '😮', '😢', '🔥']);
 const quickFloatingEmotes = new Set(['👋', '❤️', '😂', '👍', '🔥', '🎉']);
+const FARM_GROWTH_MS = 30_000;
+const FARM_PLOT_IDS = ['plot-1', 'plot-2', 'plot-3', 'plot-4'];
+const FARM_CROPS = ['🥕', '🍅', '🌽', '🍓'];
+const FARM_ZONE = { x: 600, y: 505, radius: 112 };
+const CAMPUS_BUILDINGS = [
+  { x: 48, y: 72, width: 135, height: 110 },
+  { x: 48, y: 278, width: 135, height: 105 },
+  { x: 48, y: 478, width: 138, height: 70 },
+  { x: 276, y: 40, width: 200, height: 52 },
+  { x: 232, y: 106, width: 245, height: 112 },
+  { x: 530, y: 92, width: 132, height: 120 },
+  { x: 704, y: 228, width: 54, height: 220 },
+  { x: 280, y: 520, width: 185, height: 43 }
+];
+const farmPlots = new Map(FARM_PLOT_IDS.map((id) => [id, { crop: '', plantedAt: 0, plantedBy: '' }]));
 let nextMessageId = 0;
+
+function getFarmSnapshot() {
+  const now = Date.now();
+  return Object.fromEntries([...farmPlots].map(([id, plot]) => [id, {
+    ...plot,
+    ready: Boolean(plot.plantedAt) && now - plot.plantedAt >= FARM_GROWTH_MS,
+    growthMs: FARM_GROWTH_MS
+  }]));
+}
+
+function isBlockedPosition(x, y) {
+  const padding = 14;
+  return CAMPUS_BUILDINGS.some((building) =>
+    x >= building.x - padding && x <= building.x + building.width + padding &&
+    y >= building.y - padding && y <= building.y + building.height + padding
+  );
+}
 
 function isValidAvatar(value) {
   return typeof value === 'string' && value.length <= 2_800_000 &&
@@ -31,8 +63,8 @@ io.on('connection', (socket) => {
 
   // 1. Khởi tạo thông tin người chơi (gồm tọa độ và avatar mặc định là null)
   players[socket.id] = {
-    x: Math.floor(Math.random() * 400) + 100,
-    y: Math.floor(Math.random() * 400) + 100,
+    x: Math.floor(Math.random() * 70) + 330,
+    y: Math.floor(Math.random() * 70) + 320,
     avatar: null,
     nickname: ''
   };
@@ -53,6 +85,7 @@ io.on('connection', (socket) => {
     if (players[socket.id] && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
       const x = Math.max(15, Math.min(785, data.x));
       const y = Math.max(15, Math.min(585, data.y));
+      if (isBlockedPosition(x, y)) return;
       players[socket.id].x = x;
       players[socket.id].y = y;
       
@@ -62,6 +95,51 @@ io.on('connection', (socket) => {
         y
       });
     }
+  });
+
+  socket.on('getFarmState', () => {
+    socket.emit('farmState', getFarmSnapshot());
+  });
+
+  socket.on('interactFarmPlot', (payload = {}) => {
+    if (!payload || typeof payload !== 'object') return;
+    const { plotId, action } = payload;
+    const player = players[socket.id];
+    const plot = farmPlots.get(plotId);
+    if (!player || !plot || !['plant', 'harvest'].includes(action)) return;
+
+    const distance = Math.hypot(player.x - FARM_ZONE.x, player.y - FARM_ZONE.y);
+    if (distance > FARM_ZONE.radius) {
+      socket.emit('farmInteractionResult', { message: 'Hãy đến gần nông trại để tương tác.' });
+      return;
+    }
+
+    if (action === 'plant') {
+      if (plot.plantedAt) {
+        socket.emit('farmInteractionResult', { message: 'Luống này đang có cây trồng.' });
+        return;
+      }
+      plot.crop = FARM_CROPS[Math.floor(Math.random() * FARM_CROPS.length)];
+      plot.plantedAt = Date.now();
+      plot.plantedBy = players[socket.id].nickname || 'Một sinh viên';
+      socket.emit('farmInteractionResult', { message: `Bạn đã gieo ${plot.crop}. Cây sẽ lớn sau 30 giây.` });
+    } else {
+      if (!plot.plantedAt) {
+        socket.emit('farmInteractionResult', { message: 'Luống này chưa được gieo hạt.' });
+        return;
+      }
+      const remainingMs = FARM_GROWTH_MS - (Date.now() - plot.plantedAt);
+      if (remainingMs > 0) {
+        socket.emit('farmInteractionResult', { message: `Cây cần thêm ${Math.ceil(remainingMs / 1000)} giây để lớn.` });
+        return;
+      }
+      const harvestedCrop = plot.crop;
+      plot.crop = '';
+      plot.plantedAt = 0;
+      plot.plantedBy = '';
+      socket.emit('farmInteractionResult', { message: `Đã thu hoạch ${harvestedCrop}! Luống đã sẵn sàng gieo lại.` });
+    }
+    io.emit('farmState', getFarmSnapshot());
   });
 
   socket.on('sendPlayerEmote', (emoji) => {

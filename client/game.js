@@ -7,12 +7,42 @@ const socket = io(serverUrl, { autoConnect: false });
 const PROFILE_STORAGE_KEY = 'stu-town-profile';
 const REACTION_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
 const QUICK_FLOATING_EMOTES = ['👋', '❤️', '😂', '👍', '🔥', '🎉'];
+const FARM_PLOT_LAYOUT = [
+    { id: 'plot-1', x: 516, y: 484, width: 38, height: 24 },
+    { id: 'plot-2', x: 560, y: 484, width: 38, height: 24 },
+    { id: 'plot-3', x: 604, y: 484, width: 38, height: 24 },
+    { id: 'plot-4', x: 648, y: 484, width: 38, height: 24 }
+];
+const CAMPUS_ZONES = [
+    { id: 'canteen', name: 'Căng tin', detail: 'Khu ăn uống và gặp gỡ bạn bè.', x: 120, y: 145, radius: 74 },
+    { id: 'khu-c', name: 'Khu C · Giảng đường', detail: 'Khu lớp học và thang máy.', x: 355, y: 175, radius: 92 },
+    { id: 'auditorium', name: 'Hội trường A · Khu B', detail: 'Không gian sinh hoạt và sự kiện của trường.', x: 585, y: 155, radius: 76 },
+    { id: 'khu-a', name: 'Khu A · Phòng dịch vụ', detail: 'Khu hành chính và hỗ trợ sinh viên.', x: 710, y: 310, radius: 66 },
+    { id: 'sports', name: 'Sân thể thao', detail: 'Sân bóng và khu vận động ngoài trời.', x: 365, y: 365, radius: 116 },
+    { id: 'fountain', name: 'Đài phun nước', detail: 'Điểm hẹn ở sân trung tâm.', x: 570, y: 360, radius: 52 },
+    { id: 'dormitory', name: 'Ký túc xá', detail: 'Khu lưu trú của sinh viên.', x: 135, y: 510, radius: 76 },
+    { id: 'farm', name: 'Nông trại cộng đồng', detail: 'Gieo trồng và thu hoạch cùng người chơi khác.', x: 600, y: 505, radius: 112 }
+];
+const CAMPUS_BUILDINGS = [
+    { x: 48, y: 72, width: 135, height: 110 },
+    { x: 48, y: 278, width: 135, height: 105 },
+    { x: 48, y: 478, width: 138, height: 70 },
+    { x: 276, y: 40, width: 200, height: 52 },
+    { x: 232, y: 106, width: 245, height: 112 },
+    { x: 530, y: 92, width: 132, height: 120 },
+    { x: 704, y: 228, width: 54, height: 220 },
+    { x: 280, y: 520, width: 185, height: 43 }
+];
+const FARM_GROWTH_MS = 30_000;
 let profile = loadProfile();
 
 let players = {};
 let privateConversations = new Map();
 let privateUnreadByPeer = new Map();
 let activePrivatePeerId = '';
+let farmPlots = {};
+let farmGraphics = null;
+let activeInteractionZoneId = '';
 let targetPosition = null;
 let cursors;
 let sceneRef = null;
@@ -35,6 +65,8 @@ function preload() { this.load.image('avatar-default-source', 'stu.png'); }
 
 function create() {
     sceneRef = this;
+    drawCampusMap(sceneRef);
+    createFarmPlotControls();
     createCircularTexture(sceneRef, 'avatar-default', sceneRef.textures.get('avatar-default-source').getSourceImage());
     console.log("SCENE CREATED SUCCESSFULLY!");
 
@@ -50,10 +82,22 @@ function create() {
     sceneRef.input.on('pointerdown', (pointer) => {
         targetPosition = { x: pointer.x, y: pointer.y };
     });
+    sceneRef.input.keyboard.on('keydown-E', interactWithCurrentZone);
+    window.setInterval(updateFarmPlotControls, 1000);
 
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
         socket.emit('updateProfile', profile);
+        socket.emit('getFarmState');
+    });
+
+    socket.on('farmState', (state) => {
+        farmPlots = state && typeof state === 'object' ? state : {};
+        updateFarmPlotControls();
+    });
+
+    socket.on('farmInteractionResult', (result) => {
+        document.getElementById('interaction-feedback').textContent = result?.message || '';
     });
 
     socket.on('currentPlayers', (serverPlayers) => {
@@ -265,6 +309,16 @@ function create() {
         socket.emit('sendPlayerEmote', button.dataset.playerEmote);
     });
 
+    document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
+    document.getElementById('farm-plot-list').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-farm-plot]');
+        if (!button || !socket.connected || activeInteractionZoneId !== 'farm') return;
+        socket.emit('interactFarmPlot', {
+            plotId: button.dataset.farmPlot,
+            action: button.dataset.action
+        });
+    });
+
     document.getElementById('chat-toggle').addEventListener('click', toggleChat);
     document.getElementById('settings-toggle').addEventListener('click', toggleSettings);
     document.getElementById('group-mode-button').addEventListener('click', () => setChatMode('group'));
@@ -296,6 +350,176 @@ function create() {
 
     // Đăng ký toàn bộ listener trước khi kết nối để không bỏ lỡ currentPlayers.
     socket.connect();
+}
+
+function drawCampusMap(scene) {
+    const map = scene.add.graphics().setDepth(-10);
+    map.fillStyle(0x6f9d5a, 1).fillRect(0, 0, 800, 600);
+    map.fillStyle(0xd8cfb6, 1).fillRoundedRect(18, 18, 764, 564, 20);
+    map.fillStyle(0x82ad65, 1).fillRoundedRect(30, 30, 740, 540, 15);
+
+    // Lối đi chính và sân trung tâm theo bố cục sơ đồ trường.
+    map.fillStyle(0xe5dcc7, 1);
+    map.fillRect(30, 238, 740, 24);
+    map.fillRect(196, 30, 24, 540);
+    map.fillRect(495, 30, 22, 540);
+    map.fillRect(30, 446, 740, 22);
+    map.fillRect(240, 30, 22, 185);
+    map.fillRect(680, 30, 22, 540);
+
+    const drawBuilding = (x, y, width, height, label, color) => {
+        map.fillStyle(0xc5b99b, 1).fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 7);
+        map.fillStyle(color, 1).fillRoundedRect(x, y, width, height, 5);
+        map.lineStyle(2, 0xffffff, 0.8).strokeRoundedRect(x, y, width, height, 5);
+        scene.add.text(x + width / 2, y + height / 2, label, {
+            font: 'bold 14px Arial',
+            color: '#35402d',
+            align: 'center',
+            wordWrap: { width: width - 14 },
+            backgroundColor: '#ffffff88',
+            padding: { x: 5, y: 3 }
+        }).setOrigin(0.5).setDepth(-9);
+    };
+
+    drawBuilding(48, 72, 135, 110, 'CĂNG TIN', 0xdac49a);
+    drawBuilding(48, 278, 135, 105, 'KHU D\nTHANG MÁY', 0xd7b18a);
+    drawBuilding(48, 478, 138, 70, 'KÝ TÚC XÁ', 0x9eb8ca);
+    drawBuilding(276, 40, 200, 52, 'KHU E', 0xb9c5d2);
+    drawBuilding(232, 106, 245, 112, 'KHU C\nGIẢNG ĐƯỜNG', 0xdba7a8);
+    drawBuilding(530, 92, 132, 120, 'HỘI TRƯỜNG A\nKHU B', 0xe2d1aa);
+    drawBuilding(704, 228, 54, 220, 'KHU A', 0x91adcc);
+    drawBuilding(280, 520, 185, 43, 'KHU F', 0xb7c3d2);
+
+    // Sân thể thao và đài phun nước ở khoảng sân giữa các khu.
+    map.fillStyle(0x5f9a61, 1).fillRoundedRect(238, 278, 244, 153, 8);
+    map.lineStyle(2, 0xd5e6c2, 0.85).strokeRoundedRect(250, 288, 220, 132, 3);
+    map.lineBetween(360, 289, 360, 419);
+    map.strokeCircle(360, 354, 22);
+    map.strokeRect(250, 324, 32, 60);
+    map.strokeRect(438, 324, 32, 60);
+    scene.add.text(360, 404, 'SÂN THỂ THAO', {
+        font: 'bold 12px Arial', color: '#fff', backgroundColor: '#37663d', padding: { x: 4, y: 2 }
+    }).setOrigin(0.5).setDepth(-9);
+
+    map.fillStyle(0xe4e7df, 1).fillCircle(570, 350, 35);
+    map.fillStyle(0x3299b5, 1).fillCircle(570, 350, 26);
+    map.fillStyle(0xb9f3ff, 1).fillCircle(570, 350, 12);
+
+    // Mảng xanh dành cho vườn cộng đồng.
+    map.fillStyle(0x60964d, 1).fillRoundedRect(500, 462, 198, 94, 10);
+    map.lineStyle(2, 0xc9e6a8, 0.9).strokeRoundedRect(500, 462, 198, 94, 10);
+    scene.add.text(599, 470, 'VƯỜN CỘNG ĐỒNG', {
+        font: 'bold 11px Arial', color: '#fff', backgroundColor: '#355b36', padding: { x: 4, y: 2 }
+    }).setOrigin(0.5).setDepth(-9);
+
+    // Cây xanh viền sân trường.
+    [[54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195]].forEach(([x, y]) => {
+        map.fillStyle(0x477b48, 1).fillCircle(x, y, 13);
+        map.fillStyle(0x78b35d, 1).fillCircle(x - 3, y - 4, 9);
+    });
+
+    farmGraphics = scene.add.graphics().setDepth(-8);
+    drawFarmPlots(scene);
+}
+
+function createFarmPlotControls() {
+    const list = document.getElementById('farm-plot-list');
+    list.replaceChildren();
+    FARM_PLOT_LAYOUT.forEach((plot, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.farmPlot = plot.id;
+        button.textContent = `Gieo hạt · Luống ${index + 1}`;
+        list.appendChild(button);
+    });
+}
+
+function updateFarmPlotControls() {
+    const list = document.getElementById('farm-plot-list');
+    if (!list) return;
+    FARM_PLOT_LAYOUT.forEach((plot, index) => {
+        const button = list.querySelector(`[data-farm-plot="${plot.id}"]`);
+        if (!button) return;
+        const state = farmPlots[plot.id];
+        if (!state?.plantedAt) {
+            button.disabled = false;
+            button.dataset.action = 'plant';
+            button.textContent = `🌱 Gieo hạt · Luống ${index + 1}`;
+            return;
+        }
+
+        const remainingMs = FARM_GROWTH_MS - (Date.now() - state.plantedAt);
+        if (remainingMs <= 0) {
+            button.disabled = false;
+            button.dataset.action = 'harvest';
+            button.textContent = `🧺 Thu hoạch · Luống ${index + 1}`;
+        } else {
+            button.disabled = true;
+            button.dataset.action = '';
+            button.textContent = `🌿 ${state.crop || 'Cây trồng'} · ${Math.ceil(remainingMs / 1000)} giây`;
+        }
+    });
+    drawFarmPlots(sceneRef);
+}
+
+function drawFarmPlots(scene) {
+    if (!farmGraphics || !scene) return;
+    farmGraphics.clear();
+    FARM_PLOT_LAYOUT.forEach((plot) => {
+        const state = farmPlots[plot.id];
+        farmGraphics.fillStyle(0x67442d, 1).fillRoundedRect(plot.x, plot.y, plot.width, plot.height, 3);
+        farmGraphics.lineStyle(1, 0xd3b17d, 1).strokeRoundedRect(plot.x, plot.y, plot.width, plot.height, 3);
+        if (!state?.plantedAt) return;
+        const ready = Date.now() - state.plantedAt >= FARM_GROWTH_MS;
+        const cropColor = ready ? 0xf2c14e : 0x9bd267;
+        farmGraphics.fillStyle(cropColor, 1);
+        farmGraphics.fillCircle(plot.x + 10, plot.y + 13, 4);
+        farmGraphics.fillCircle(plot.x + 20, plot.y + 9, 5);
+        farmGraphics.fillCircle(plot.x + 29, plot.y + 15, 4);
+        farmGraphics.lineStyle(2, ready ? 0x498344 : 0x2c6b3f, 1);
+        farmGraphics.lineBetween(plot.x + 20, plot.y + 10, plot.x + 20, plot.y + 20);
+    });
+}
+
+function updateInteractionZone(player) {
+    const nearestZone = CAMPUS_ZONES
+        .map((zone) => ({ zone, distance: Phaser.Math.Distance.Between(player.x, player.y, zone.x, zone.y) }))
+        .filter(({ zone, distance }) => distance <= zone.radius)
+        .sort((a, b) => a.distance - b.distance)[0]?.zone || null;
+    const nextZoneId = nearestZone?.id || '';
+    if (nextZoneId === activeInteractionZoneId) return;
+
+    activeInteractionZoneId = nextZoneId;
+    const hud = document.getElementById('interaction-hud');
+    const farmList = document.getElementById('farm-plot-list');
+    const interactionButton = document.getElementById('interaction-button');
+    document.getElementById('interaction-feedback').textContent = '';
+    hud.hidden = !nearestZone;
+    if (!nearestZone) return;
+
+    document.getElementById('interaction-zone-name').textContent = nearestZone.name;
+    document.getElementById('interaction-zone-description').textContent = nearestZone.detail;
+    const isFarm = nearestZone.id === 'farm';
+    farmList.hidden = !isFarm;
+    interactionButton.hidden = isFarm;
+    if (isFarm) {
+        document.getElementById('interaction-feedback').textContent = 'Chọn một luống để gieo hoặc thu hoạch.';
+        updateFarmPlotControls();
+    }
+}
+
+function interactWithCurrentZone() {
+    const zone = CAMPUS_ZONES.find((item) => item.id === activeInteractionZoneId);
+    if (!zone || zone.id === 'farm') return;
+    document.getElementById('interaction-feedback').textContent = `Bạn đang khám phá ${zone.name}.`;
+}
+
+function isBlockedPosition(x, y) {
+    const padding = 14;
+    return CAMPUS_BUILDINGS.some((building) =>
+        x >= building.x - padding && x <= building.x + building.width + padding
+        && y >= building.y - padding && y <= building.y + building.height + padding
+    );
 }
 
 function createPlayer(scene, info, id) {
@@ -698,6 +922,8 @@ function update() {
     if (!socket.id || !players[socket.id]) return;
 
     const p = players[socket.id];
+    const previousX = p.x;
+    const previousY = p.y;
     let speed = 4;
     let isMoved = false;
 
@@ -730,7 +956,15 @@ function update() {
         }
     }
 
+    if (isBlockedPosition(p.x, p.y)) {
+        p.x = previousX;
+        p.y = previousY;
+        targetPosition = null;
+        isMoved = false;
+    }
+
     if (isMoved) {
         socket.emit('playerMovement', { x: p.x, y: p.y });
     }
+    updateInteractionZone(p);
 }
