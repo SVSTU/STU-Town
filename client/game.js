@@ -156,9 +156,12 @@ function create() {
         const peerId = data.peerId;
         if (!privateConversations.has(peerId)) privateConversations.set(peerId, []);
         privateConversations.get(peerId).push(data);
-        if (data.id !== socket.id && activePrivatePeerId !== peerId) {
+        const isViewingConversation = !document.getElementById('private-chat-view').hidden
+            && activePrivatePeerId === peerId;
+        if (data.id !== socket.id && !isViewingConversation) {
             privateUnreadByPeer.set(peerId, (privateUnreadByPeer.get(peerId) || 0) + 1);
             updatePrivateUnreadBadge();
+            updatePrivateRecipientList();
         }
         if (activePrivatePeerId === peerId) renderPrivateMessages();
         if (players[data.id]) showChatBubble(sceneRef, players[data.id], data.message);
@@ -212,6 +215,7 @@ function create() {
         activePrivatePeerId = event.target.value;
         privateUnreadByPeer.delete(activePrivatePeerId);
         updatePrivateUnreadBadge();
+        updatePrivateRecipientList();
         document.getElementById('private-status').textContent = activePrivatePeerId
             ? `Đang chat riêng với ${players[activePrivatePeerId]?.playerNickname || 'người chơi'}.`
             : 'Chọn một người chơi để bắt đầu chat riêng.';
@@ -502,7 +506,11 @@ function updatePrivateRecipientList() {
     Object.entries(players).forEach(([id, player]) => {
         if (id === socket.id) return;
         const shortId = id.substring(0, 4);
-        const label = player.playerNickname ? `${player.playerNickname} (${shortId})` : `Khách (${shortId})`;
+        const playerName = player.playerNickname || `Khách (${shortId})`;
+        const unread = privateUnreadByPeer.get(id) || 0;
+        const label = unread
+            ? `${playerName}  🔴 ${unread} tin chưa đọc`
+            : playerName;
         select.add(new Option(label, id));
     });
     activePrivatePeerId = players[previousValue] ? previousValue : '';
