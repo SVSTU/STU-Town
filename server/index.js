@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -12,6 +13,53 @@ const io = new Server(server, {
   maxHttpBufferSize: 3 * 1024 * 1024,
   cors: { origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }
 });
+
+const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+if (!isSupabaseConfigured) {
+  console.warn('Supabase chưa được cấu hình; hồ sơ người chơi hiện chỉ tồn tại trong phiên server này.');
+}
+const pendingProfileSaves = new Map();
+const profileSaveTimers = new Map();
+
+function hashPlayerToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function validPlayerToken(token) {
+  return typeof token === 'string' && /^[A-Za-z0-9_-]{40,100}$/.test(token);
+}
+
+async function supabaseRequest(pathname, options = {}) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${pathname}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    },
+    signal: AbortSignal.timeout(10_000)
+  });
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    throw new Error(`Supabase ${response.status}: ${detail}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function loadSavedProfile(tokenHash) {
+  if (!isSupabaseConfigured) return null;
+  const query = new URLSearchParams({
+    select: 'coins,reputation,stats,inventory,farm_plant_count,farm_harvest_count',
+    token_hash: `eq.${tokenHash}`,
+    limit: '1'
+  });
+  const rows = await supabaseRequest(`player_profiles?${query}`);
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
 
 const BLOG_FEED_URL = 'https://stusinhvien.blogspot.com/feeds/posts/default?alt=json&max-results=8';
 const BLOG_BASE_URL = 'https://stusinhvien.blogspot.com/';
@@ -227,6 +275,69 @@ let farmMouseSpawnTimer = null;
 let farmMouseBiteTimer = null;
 let farmMouseMoveTimer = null;
 
+function getPersistentPlayerSnapshot(id) {
+  const player = players[id];
+  const inventory = playerInventories.get(id);
+  const tokenHash = io.sockets.sockets.get(id)?.data?.playerTokenHash;
+  if (!player || !inventory || !tokenHash || !isSupabaseConfigured) return null;
+  return {
+    token_hash: tokenHash,
+    coins: Math.max(0, Math.floor(Number(player.coins) || 0)),
+    reputation: Math.max(0, Math.floor(Number(player.reputation) || 0)),
+    stats: {
+      hunger: clampStat(player.stats.hunger),
+      strength: clampStat(player.stats.strength),
+      fatigue: clampStat(player.stats.fatigue)
+    },
+    inventory,
+    farm_plant_count: Math.max(0, Math.floor(Number(player.farmPlantCount) || 0)),
+    farm_harvest_count: Math.max(0, Math.floor(Number(player.farmHarvestCount) || 0)),
+    updated_at: new Date().toISOString()
+  };
+}
+
+function persistPlayer(id) {
+  const snapshot = getPersistentPlayerSnapshot(id);
+  if (!snapshot) return Promise.resolve();
+  const previous = pendingProfileSaves.get(snapshot.token_hash) || Promise.resolve();
+  const next = previous.catch(() => {}).then(() => supabaseRequest('player_profiles?on_conflict=token_hash', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(snapshot)
+  }));
+  pendingProfileSaves.set(snapshot.token_hash, next);
+  return next.catch((error) => {
+    console.error('Không lưu được hồ sơ người chơi vào Supabase:', error.message);
+  }).finally(() => {
+    if (pendingProfileSaves.get(snapshot.token_hash) === next) pendingProfileSaves.delete(snapshot.token_hash);
+  });
+}
+
+function schedulePlayerSave(id) {
+  if (!isSupabaseConfigured || !players[id]) return;
+  clearTimeout(profileSaveTimers.get(id));
+  profileSaveTimers.set(id, setTimeout(() => {
+    profileSaveTimers.delete(id);
+    void persistPlayer(id);
+  }, 1_500));
+}
+
+io.use(async (socket, next) => {
+  try {
+    const suppliedToken = socket.handshake.auth?.playerToken;
+    const token = validPlayerToken(suppliedToken) ? suppliedToken : crypto.randomBytes(32).toString('base64url');
+    const tokenHash = hashPlayerToken(token);
+    const savedProfile = await loadSavedProfile(tokenHash);
+    socket.data.playerToken = token;
+    socket.data.playerTokenHash = tokenHash;
+    socket.data.savedProfile = savedProfile;
+    next();
+  } catch (error) {
+    console.error('Không tải được hồ sơ Supabase; từ chối kết nối để tránh tạo dữ liệu mới:', error.message);
+    next(new Error('Không thể tải dữ liệu người chơi. Hãy thử kết nối lại sau.'));
+  }
+});
+
 function getPlayerState(player) {
   return {
     stats: { ...player.stats },
@@ -239,7 +350,10 @@ function getPlayerState(player) {
 
 function emitPlayerState(id) {
   const player = players[id];
-  if (player) io.to(id).emit('playerState', getPlayerState(player));
+  if (player) {
+    io.to(id).emit('playerState', getPlayerState(player));
+    schedulePlayerSave(id);
+  }
   emitSessionLeaderboard();
 }
 
@@ -329,6 +443,9 @@ function tickPlayerStats() {
 }
 
 setInterval(tickPlayerStats, 10_000);
+setInterval(() => {
+  for (const id of Object.keys(players)) schedulePlayerSave(id);
+}, 60_000);
 
 function getFarmSnapshot() {
   const now = Date.now();
@@ -397,6 +514,7 @@ function scheduleFarmMouseBite(mouseId) {
     const player = players[id];
     const lostCoins = Math.min(5, player.coins);
     player.coins = Math.max(0, player.coins - 5);
+    schedulePlayerSave(id);
     emitPlayerState(id);
     const nickname = player.nickname || `Khách (${id.slice(0, 4)})`;
     announceFarmEvent(`🐭 ${nickname} bị chuột cắn, mất ${lostCoins} tiền đồng!`);
@@ -559,6 +677,28 @@ function returnHalloweenToCanteen(socket, reason = '') {
 io.on('connection', (socket) => {
   console.log('Người chơi kết nối:', socket.id);
   let lastFloatingEmoteAt = 0;
+  const savedProfile = socket.data.savedProfile;
+  const savedStats = savedProfile?.stats && typeof savedProfile.stats === 'object' ? savedProfile.stats : {};
+  const savedInventory = savedProfile?.inventory && typeof savedProfile.inventory === 'object' ? savedProfile.inventory : {};
+  const defaultInventory = {
+    seeds: { carrot: 3, tomato: 3, corn: 3, strawberry: 3 },
+    produce: { carrot: 0, tomato: 0, corn: 0, strawberry: 0 },
+    items: {}
+  };
+  const restoredInventory = {
+    seeds: { ...defaultInventory.seeds },
+    produce: { ...defaultInventory.produce },
+    items: {}
+  };
+  for (const key of Object.keys(restoredInventory.seeds)) {
+    restoredInventory.seeds[key] = Math.max(0, Math.floor(Number(savedInventory.seeds?.[key] ?? restoredInventory.seeds[key]) || 0));
+    restoredInventory.produce[key] = Math.max(0, Math.floor(Number(savedInventory.produce?.[key]) || 0));
+  }
+  if (savedInventory.items && typeof savedInventory.items === 'object') {
+    for (const [key, value] of Object.entries(savedInventory.items)) {
+      if (/^[A-Za-z0-9_-]{1,48}$/.test(key)) restoredInventory.items[key] = Math.max(0, Math.floor(Number(value) || 0));
+    }
+  }
 
   // 1. Khởi tạo thông tin người chơi (gồm tọa độ và avatar mặc định là null)
   players[socket.id] = {
@@ -567,11 +707,15 @@ io.on('connection', (socket) => {
     avatar: null,
     nickname: '',
     mapId: 'campus',
-    stats: { hunger: 100, strength: 100, fatigue: 0 },
-    coins: 1500,
-    reputation: 0,
-    farmPlantCount: 0,
-    farmHarvestCount: 0,
+    stats: {
+      hunger: clampStat(Number(savedStats.hunger ?? 100)),
+      strength: clampStat(Number(savedStats.strength ?? 100)),
+      fatigue: clampStat(Number(savedStats.fatigue ?? 0))
+    },
+    coins: Math.max(0, Math.floor(Number(savedProfile?.coins ?? 1500) || 0)),
+    reputation: Math.max(0, Math.floor(Number(savedProfile?.reputation) || 0)),
+    farmPlantCount: Math.max(0, Math.floor(Number(savedProfile?.farm_plant_count) || 0)),
+    farmHarvestCount: Math.max(0, Math.floor(Number(savedProfile?.farm_harvest_count) || 0)),
     hungerElapsed: 0,
     fatigueElapsed: 0,
     weaknessElapsed: 0,
@@ -581,14 +725,11 @@ io.on('connection', (socket) => {
     lastFarmActionAt: 0
   };
   socket.join('map:campus');
-  playerInventories.set(socket.id, {
-    seeds: { carrot: 3, tomato: 3, corn: 3, strawberry: 3 },
-    produce: { carrot: 0, tomato: 0, corn: 0, strawberry: 0 },
-    items: {}
-  });
+  playerInventories.set(socket.id, restoredInventory);
 
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
   socket.emit('currentPlayers', getMapPlayers('campus'));
+  socket.emit('playerIdentity', { token: socket.data.playerToken });
   socket.emit('inventoryState', playerInventories.get(socket.id));
   socket.emit('playerState', getPlayerState(players[socket.id]));
   socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
@@ -787,6 +928,7 @@ io.on('connection', (socket) => {
       inventory.seeds[cropKey] = (inventory.seeds[cropKey] || 0) + quantity;
       emitSessionLeaderboard();
       socket.emit('serviceResult', { message: `Đã mua ${quantity} gói hạt ${crop}, tổng ${total} tiền đồng.`, state: getPlayerState(player), inventory });
+      schedulePlayerSave(socket.id);
     } else if (action === 'sell-crop') {
       if ((inventory.produce[cropKey] || 0) < quantity) return socket.emit('serviceResult', { message: `Bạn không đủ ${quantity} ${crop} trong túi.` });
       const total = price * quantity;
@@ -794,6 +936,7 @@ io.on('connection', (socket) => {
       player.coins += total;
       emitSessionLeaderboard();
       socket.emit('serviceResult', { message: `Đã bán ${quantity} ${crop}, nhận ${total} tiền đồng.`, state: getPlayerState(player), inventory });
+      schedulePlayerSave(socket.id);
     }
   });
 
@@ -807,6 +950,7 @@ io.on('connection', (socket) => {
     player.stats.fatigue = clampStat(player.stats.fatigue - 50);
     emitSessionLeaderboard();
     socket.emit('serviceResult', { message: 'Đã dùng gói hồi phục: +50 đói, +50 sức mạnh, -50 mệt.', state: getPlayerState(player) });
+    schedulePlayerSave(socket.id);
   });
 
   socket.on('restAtCampusBench', (benchId) => {
@@ -833,6 +977,7 @@ io.on('connection', (socket) => {
     if (rested <= 0) return socket.emit('benchRestResult', { message: 'Bạn chưa mệt, không cần nghỉ lúc này.', state: getPlayerState(player) });
     player.stats.fatigue = clampStat(player.stats.fatigue - CAMPUS_BENCH_REST);
     socket.emit('benchRestResult', { message: `Bạn ngồi nghỉ và giảm ${rested} điểm mệt.`, state: getPlayerState(player) });
+    schedulePlayerSave(socket.id);
   });
 
   socket.on('canteenPurchase', (payload = {}) => {
@@ -858,6 +1003,7 @@ io.on('connection', (socket) => {
       message: `Đã mua ${quantity} ${itemId} và cất vào túi (${inventory.items[itemId]}/10). Dùng vật phẩm trong túi để hồi chỉ số.`,
       state: getPlayerState(player), inventory
     });
+    schedulePlayerSave(socket.id);
   });
 
   socket.on('buyElevatorTicket', () => {
@@ -870,6 +1016,7 @@ io.on('connection', (socket) => {
     inventory.items.eventGoldCoin -= 1;
     inventory.items.elevatorTicket = (Number(inventory.items.elevatorTicket) || 0) + 1;
     socket.emit('serviceResult', { message: 'Đổi thành công 1 thẻ thang máy. Thẻ dùng được một lần.', inventory });
+    schedulePlayerSave(socket.id);
   });
 
   socket.on('useElevatorTicket', () => {
@@ -895,6 +1042,7 @@ io.on('connection', (socket) => {
       const progress = ensureHalloweenProgress(socket.id);
       socket.emit('halloweenState', { opened: [...progress.opened], total: HALLOWEEN_BOX_COUNT });
       socket.emit('inventoryState', inventory);
+      schedulePlayerSave(socket.id);
       socket.emit('systemChatMessage', { message: 'Thẻ đã được sử dụng. Bạn đã vào tầng sự kiện Halloween riêng với 50 hộp quà.' });
       return;
     }
@@ -913,6 +1061,7 @@ io.on('connection', (socket) => {
     }
     emitPlayerState(socket.id);
     socket.emit('serviceResult', { message, state: getPlayerState(player), inventory });
+    schedulePlayerSave(socket.id);
   });
 
   socket.on('useInventoryItem', (itemId) => {
@@ -940,6 +1089,7 @@ io.on('connection', (socket) => {
           : `Đã dùng ${itemNames[itemId] || itemId}. ${item.hunger ? `Đói +${item.hunger}. ` : ''}${item.strength ? `Sức mạnh +${item.strength}. ` : ''}${item.fatigue ? `Mệt ${item.fatigue}.` : ''}`,
       state: getPlayerState(player), inventory
     });
+    schedulePlayerSave(socket.id);
   });
 
   socket.on('openHalloweenBox', (boxIndex) => {
@@ -1122,8 +1272,11 @@ io.on('connection', (socket) => {
   });
 
   // 5. Xử lý khi người chơi thoát game
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log('Người chơi thoát:', socket.id);
+    clearTimeout(profileSaveTimers.get(socket.id));
+    profileSaveTimers.delete(socket.id);
+    await persistPlayer(socket.id);
     const mapId = players[socket.id]?.mapId || 'campus';
     delete players[socket.id];
     halloweenFinders.delete(socket.id);

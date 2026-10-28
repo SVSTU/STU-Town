@@ -5,6 +5,12 @@ const serverUrl = ['localhost', '127.0.0.1'].includes(location.hostname)
     : "https://stu-town-server.onrender.com";
 const socket = io(serverUrl, { autoConnect: false });
 const PROFILE_STORAGE_KEY = 'stu-town-profile';
+const PLAYER_TOKEN_STORAGE_KEY = 'stu-town-player-token';
+try {
+    socket.auth = { playerToken: localStorage.getItem(PLAYER_TOKEN_STORAGE_KEY) || '' };
+} catch {
+    socket.auth = { playerToken: '' };
+}
 const REACTION_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
 const QUICK_FLOATING_EMOTES = ['👋', '❤️', '😂', '👍', '🔥', '🎉'];
 const CAMPUS_BENCHES = [
@@ -172,6 +178,16 @@ function create() {
         console.log("Connected to server, my socket ID:", socket.id);
         socket.emit('updateProfile', profile);
         socket.emit('getFarmState');
+    });
+
+    socket.on('playerIdentity', ({ token } = {}) => {
+        if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{40,100}$/.test(token)) return;
+        socket.auth.playerToken = token;
+        try {
+            localStorage.setItem(PLAYER_TOKEN_STORAGE_KEY, token);
+        } catch {
+            console.warn('Không lưu được mã định danh người chơi trong trình duyệt này.');
+        }
     });
 
     socket.on('farmState', (state) => {
