@@ -904,16 +904,16 @@ function openCanteenRanking(category) {
 function drawCanteenHallOfFame(scene) {
     const createAward = (x, category, title, color) => {
         // Spread both awards toward the sides and keep a clear gap between them.
-        const frame = scene.add.rectangle(x, 310, 170, 32, 0x243b2d, 0.98)
+        const frame = scene.add.rectangle(x, 137, 140, 32, 0x243b2d, 0.98)
             .setDepth(-8).setStrokeStyle(2, color).setInteractive({ useHandCursor: true });
-        const heading = scene.add.text(x, 278, `🏆 TOP 1 ${title}`, {
+        const heading = scene.add.text(x, 105, `🏆 TOP 1 ${title}`, {
             font: 'bold 13px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 174 }, padding: { x: 2, y: 2 }
+            wordWrap: { width: 150 }, padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
         const top = getServerRankingRows(category)[0];
-        const winner = scene.add.text(x, 310, top ? String(top.nickname || 'Người chơi') : 'Chưa có dữ liệu', {
+        const winner = scene.add.text(x, 137, top ? String(top.nickname || 'Người chơi') : 'Chưa có dữ liệu', {
             font: 'bold 12px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 156 }, padding: { x: 3, y: 3 }
+            wordWrap: { width: 128 }, padding: { x: 3, y: 3 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
         winner.setData('canteenAwardCategory', category);
         const open = () => openCanteenRanking(category);
@@ -925,10 +925,10 @@ function drawCanteenHallOfFame(scene) {
             label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
         });
     };
-    // Place awards at the far left and right edges of the full canteen room,
-    // not beside the central counter where they crowd the middle.
-    createAward(120, 'reputation', 'DANH TIẾNG', 0xffd166);
-    createAward(680, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
+    // Align the two award plaques with the upper-left and upper-right positions
+    // requested in the reference image, above the canteen counter.
+    createAward(140, 'reputation', 'DANH TIẾNG', 0xffd166);
+    createAward(660, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
 }
 
 function drawInteriorMap(scene, mapId) {
