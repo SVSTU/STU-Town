@@ -355,30 +355,9 @@ async function recordCanteenSale(id, sale) {
         total_price: sale.totalPrice
       })
     });
-    serverCanteenStatsCache = null;
-    serverCanteenStatsCacheExpiresAt = 0;
   } catch (error) {
     console.error('Không lưu được lịch sử mua hàng Căn tin vào Supabase:', error.message);
   }
-}
-
-let serverCanteenStatsCache = null;
-let serverCanteenStatsCacheExpiresAt = 0;
-
-async function getCanteenProductStats() {
-  if (!isSupabaseConfigured) return [];
-  if (serverCanteenStatsCache && Date.now() < serverCanteenStatsCacheExpiresAt) {
-    return serverCanteenStatsCache;
-  }
-  const query = new URLSearchParams({
-    select: 'item_id,total_quantity_sold,total_revenue_coins,total_revenue_reputation,total_transactions,last_sold_at',
-    order: 'total_quantity_sold.desc',
-    limit: '4'
-  });
-  const rows = await supabaseRequest(`canteen_product_stats?${query}`);
-  serverCanteenStatsCache = Array.isArray(rows) ? rows : [];
-  serverCanteenStatsCacheExpiresAt = Date.now() + 30_000;
-  return serverCanteenStatsCache;
 }
 
 io.use(async (socket, next) => {
