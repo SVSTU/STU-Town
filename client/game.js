@@ -927,8 +927,9 @@ function renderCanteenQuickBuyButtons(scene) {
         const color = index === 0 ? 0xffd166 : 0x9ed2ff;
         const food = FOOD_INFO[itemId];
         if (!food) return;
-        const frame = scene.add.rectangle(x, 360, 100, 50, 0x806a48, 0.98)
-            .setDepth(-7).setStrokeStyle(2, color).setInteractive({ useHandCursor: true });
+        const frame = scene.add.rectangle(x, 360, 100, 50,
+            index === 0 ? 0x294b2e : 0x183d4a, 1)
+            .setDepth(-7).setStrokeStyle(2, color, 1).setInteractive({ useHandCursor: true });
         const label = scene.add.text(x, 360, `${food.icon} ${food.name}\n${food.coins.toLocaleString('vi-VN')} tiền đồng`, {
             font: 'bold 12px Arial', color: '#ffffff', align: 'center',
             wordWrap: { width: 94 }, padding: { x: 2, y: 2 }
@@ -953,18 +954,24 @@ function renderCanteenQuickBuyButtons(scene) {
 function drawCanteenHallOfFame(scene) {
     // TOP 1 reputation and coin awards remain fixed in the two upper corners.
     const createAward = (x, category, title, color) => {
-        const heading = scene.add.text(x, 100, `🏆 TOP 1 ${title}`, {
+        const frameColor = color === '#ffd166' ? 0xffc928 : 0x35dff2;
+        const panel = scene.add.rectangle(x, 111, 190, 58,
+            frameColor === 0xffc928 ? 0x274a2a : 0x183d4a, 0.98)
+            .setDepth(-8).setStrokeStyle(2, frameColor, 1)
+            .setInteractive({ useHandCursor: true });
+        const heading = scene.add.text(x, 99, `🏆 TOP 1 ${title}`, {
             font: 'bold 12px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 176 }, padding: { x: 2, y: 2 }
+            wordWrap: { width: 180 }, padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
         const top = getServerRankingRows(category)[0];
-        const winner = scene.add.text(x, 126, top
+        const winner = scene.add.text(x, 125, top
             ? `${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
             : 'Chưa có dữ liệu', {
             font: 'bold 11px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 174 }, padding: { x: 2, y: 2 }
+            wordWrap: { width: 180 }, padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
         const open = () => openCanteenRanking(category);
+        panel.on('pointerdown', open);
         heading.on('pointerdown', open);
         winner.on('pointerdown', open);
         [heading, winner].forEach((label) => {
@@ -1029,8 +1036,8 @@ function drawInteriorMap(scene, mapId) {
             scene.add.text(400, 378, '🩺 TRẠM HỖ TRỢ · 500 ĐỒNG', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
         } else if (mapId === 'canteen') {
             g.fillStyle(0xd4b67d, 1).fillRoundedRect(220, 205, 360, 75, 8);
-            g.fillStyle(0x806a48, 1).fillRoundedRect(250, 340, 100, 50, 8);
-            g.fillStyle(0x806a48, 1).fillRoundedRect(450, 340, 100, 50, 8);
+            // Quick-buy cards draw their own opaque backgrounds; don't leave
+            // offset brown counter blocks visible behind the water card.
             scene.add.text(400, 242, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
             drawCanteenHallOfFame(scene);
             g.fillStyle(0x3c5364, 1).fillRoundedRect(620, 300, 60, 100, 8);
