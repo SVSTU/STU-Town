@@ -109,6 +109,7 @@ let halloweenBoxGraphics = null;
 let halloweenBoxLabels = [];
 let sessionLeaderboard = { reputation: [], coins: [], event: [] };
 let activeRankingCategory = 'reputation';
+let activeLeaderboardScope = 'server';
 const systemAnnouncementQueue = [];
 let systemAnnouncementActive = false;
 const farmEventQueue = [];
@@ -551,6 +552,15 @@ function create() {
         const tab = event.target.closest('[data-ranking]');
         if (!tab) return;
         activeRankingCategory = tab.dataset.ranking;
+        renderSessionLeaderboard();
+    });
+    document.querySelector('.session-leaderboard-scopes').addEventListener('click', (event) => {
+        const tab = event.target.closest('[data-scope]');
+        if (!tab) return;
+        activeLeaderboardScope = tab.dataset.scope;
+        document.querySelectorAll('.session-leaderboard-scopes [data-scope]').forEach((button) => {
+            button.setAttribute('aria-pressed', String(button.dataset.scope === activeLeaderboardScope));
+        });
         renderSessionLeaderboard();
     });
     document.getElementById('session-leaderboard-toggle').addEventListener('click', (event) => {
@@ -1761,7 +1771,10 @@ function renderSessionLeaderboard() {
     document.querySelectorAll('.session-leaderboard-tabs [data-ranking]').forEach((tab) => {
         tab.setAttribute('aria-selected', String(tab.dataset.ranking === activeRankingCategory));
     });
-    const rows = Array.isArray(sessionLeaderboard[activeRankingCategory]) ? sessionLeaderboard[activeRankingCategory] : [];
+    const scopeData = sessionLeaderboard[activeLeaderboardScope] && typeof sessionLeaderboard[activeLeaderboardScope] === 'object'
+        ? sessionLeaderboard[activeLeaderboardScope]
+        : sessionLeaderboard;
+    const rows = Array.isArray(scopeData[activeRankingCategory]) ? scopeData[activeRankingCategory] : [];
     list.replaceChildren();
     if (activeRankingCategory === 'event') {
         const groups = rows.filter((group) => group && Array.isArray(group.rows));
