@@ -902,33 +902,36 @@ function openCanteenRanking(category) {
 }
 
 function drawCanteenHallOfFame(scene) {
-    const createAward = (x, category, title, color) => {
-        // Spread both awards toward the sides and keep a clear gap between them.
+    const quickBuy = (x, itemId, title, icon, price, color) => {
         const frame = scene.add.rectangle(x, 137, 140, 32, 0x243b2d, 0.98)
             .setDepth(-8).setStrokeStyle(2, color).setInteractive({ useHandCursor: true });
-        const heading = scene.add.text(x, 105, `🏆 TOP 1 ${title}`, {
+        const heading = scene.add.text(x, 105, title, {
             font: 'bold 13px Arial', color: '#ffffff', align: 'center',
             wordWrap: { width: 150 }, padding: { x: 2, y: 2 }
-        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
-        const top = getServerRankingRows(category)[0];
-        const winner = scene.add.text(x, 137, top ? String(top.nickname || 'Người chơi') : 'Chưa có dữ liệu', {
+        }).setOrigin(0.5).setDepth(-7);
+        const product = scene.add.text(x, 137, `${icon} ${title} · ${price}đ`, {
             font: 'bold 12px Arial', color: '#ffffff', align: 'center',
             wordWrap: { width: 128 }, padding: { x: 3, y: 3 }
-        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
-        winner.setData('canteenAwardCategory', category);
-        const open = () => openCanteenRanking(category);
-        frame.on('pointerdown', open);
-        heading.on('pointerdown', open);
-        winner.on('pointerdown', open);
-        [heading, winner].forEach((label) => {
+        }).setOrigin(0.5).setDepth(-7);
+        const buy = () => {
+            if (currentMapId !== 'canteen') return;
+            if (!socket.connected) {
+                showToast('Chưa kết nối máy chủ.');
+                return;
+            }
+            socket.emit('canteenPurchase', { itemId, currency: 'coins', quantity: 1 });
+        };
+        frame.on('pointerdown', buy);
+        product.setInteractive({ useHandCursor: true }).on('pointerdown', buy);
+        heading.setInteractive({ useHandCursor: true }).on('pointerdown', buy);
+        [heading, product].forEach((label) => {
             label.on('pointerover', () => label.setStyle({ color: '#ffe08a' }));
             label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
         });
     };
-    // Align the two award plaques with the upper-left and upper-right positions
-    // requested in the reference image, above the canteen counter.
-    createAward(140, 'reputation', 'DANH TIẾNG', 0xffd166);
-    createAward(660, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
+    // Quick-buy shortcuts use the existing server-validated canteen purchase flow.
+    quickBuy(140, 'bread', 'MUA NHANH', '🥖 Bánh mì', 100, 0xffd166);
+    quickBuy(660, 'water', 'MUA NHANH', '💧 Nước suối', 80, 0x9ed2ff);
 }
 
 function drawInteriorMap(scene, mapId) {
