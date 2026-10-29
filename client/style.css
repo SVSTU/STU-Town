@@ -587,3 +587,19 @@ canvas {
 .session-leaderboard-scopes { display: flex; gap: 4px; margin: 6px 0; }
 .session-leaderboard-scopes button { flex: 1; border: 1px solid #526a50; border-radius: 5px; padding: 5px 7px; background: #202d23; color: #e4eadf; cursor: pointer; font-size: 12px; }
 .session-leaderboard-scopes button[aria-pressed="true"] { background: #416d3e; border-color: #8bbd76; color: #fff; font-weight: 700; }
+
+
+/* Canteen server-wide hall of fame modal */
+.canteen-ranking-modal[hidden] { display: none !important; }
+.canteen-ranking-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .72); }
+.canteen-ranking-dialog { width: min(440px, 100%); max-height: min(82vh, 680px); overflow: auto; padding: 14px; color: #edf4e8; background: #142219; border: 1px solid #75976a; border-radius: 12px; box-shadow: 0 18px 60px rgba(0,0,0,.55); font: 14px Arial, sans-serif; }
+.canteen-ranking-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 17px; }
+.canteen-ranking-dialog header button { color: #fff; background: #314b35; border: 1px solid #71916a; border-radius: 6px; font-size: 22px; line-height: 1; padding: 3px 9px; cursor: pointer; }
+.canteen-ranking-tabs { display: flex; gap: 6px; margin: 12px 0; }
+.canteen-ranking-tabs button { flex: 1; padding: 8px 6px; color: #e5efdf; background: #25372a; border: 1px solid #506c4d; border-radius: 6px; cursor: pointer; }
+.canteen-ranking-tabs button[aria-pressed="true"] { color: #fff; background: #477644; border-color: #a1ce87; font-weight: 700; }
+.canteen-ranking-dialog ol { margin: 0; padding-left: 28px; }
+.canteen-ranking-dialog li { padding: 9px 4px; border-bottom: 1px solid rgba(180,210,160,.18); }
+.canteen-ranking-dialog li span { margin-right: 8px; }
+.canteen-ranking-dialog li strong { float: right; color: #ffe08a; text-align: right; }
+.canteen-ranking-dialog p { margin: 12px 0 0; color: #b8c8b2; font-size: 12px; }
