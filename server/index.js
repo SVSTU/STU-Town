@@ -416,8 +416,82 @@ function getSessionLeaderboard() {
   };
 }
 
+let serverLeaderboardCache = null;
+let serverLeaderboardCacheExpiresAt = 0;
+let serverLeaderboardRequest = null;
+
+async function getServerLeaderboard() {
+  if (!isSupabaseConfigured) return getSessionLeaderboard();
+  if (serverLeaderboardCache && Date.now() < serverLeaderboardCacheExpiresAt) return serverLeaderboardCache;
+  if (serverLeaderboardRequest) return serverLeaderboardRequest;
+  serverLeaderboardRequest = (async () => {
+    const query = new URLSearchParams({
+      select: 'token_hash,coins,reputation,inventory',
+      order: 'reputation.desc',
+      limit: '1000'
+    });
+    const savedRows = await supabaseRequest(`player_profiles?${query}`);
+    const byId = new Map();
+    for (const row of (Array.isArray(savedRows) ? savedRows : [])) {
+      if (!row?.token_hash) continue;
+      byId.set(row.token_hash, {
+        id: row.token_hash,
+        nickname: `Người chơi ${String(row.token_hash).slice(0, 6)}`,
+        coins: Number(row.coins) || 0,
+        reputation: Number(row.reputation) || 0,
+        items: { ...(row.inventory?.items || {}) }
+      });
+    }
+    for (const [id, archived] of archivedLeaderboardPlayers.entries()) {
+      byId.set(id, { ...byId.get(id), ...archived, items: { ...(byId.get(id)?.items || {}), ...(archived.items || {}) } });
+    }
+    for (const [socketId, player] of Object.entries(players)) {
+      const playerSocket = io.sockets.sockets.get(socketId);
+      const persistentId = playerSocket?.data?.playerTokenHash || socketId;
+      const inventory = playerInventories.get(socketId);
+      byId.set(persistentId, {
+        ...byId.get(persistentId),
+        id: persistentId,
+        nickname: player.nickname || `Khách (${socketId.slice(0, 4)})`,
+        coins: Number(player.coins) || 0,
+        reputation: Number(player.reputation) || 0,
+        items: { ...(byId.get(persistentId)?.items || {}), ...(inventory?.items || {}) }
+      });
+    }
+    const list = [...byId.values()];
+    const byScore = (key) => [...list]
+      .sort((a, b) => b[key] - a[key] || a.nickname.localeCompare(b.nickname, 'vi'))
+      .map(({ nickname, [key]: score }) => ({ nickname, score }));
+    const event = [
+      { id: 'eventGoldCoin', label: '🟡 Đồng vàng sự kiện' },
+      { id: 'eventLantern', label: '🏮 Đèn lồng sự kiện' },
+      { id: 'halloweenPumpkin', label: '🎃 Bí ngô Halloween' },
+      { id: 'eventRedLamp', label: '🔴 Đèn lồng đỏ sự kiện' }
+    ].map(({ id, label }) => ({
+      itemId: id, label,
+      rows: list.map((entry) => ({ nickname: entry.nickname, score: Math.max(0, Math.floor(Number(entry.items?.[id]) || 0)) }))
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname, 'vi'))
+    }));
+    return { reputation: byScore('reputation'), coins: byScore('coins'), event };
+  })().then((data) => {
+    serverLeaderboardCache = data;
+    serverLeaderboardCacheExpiresAt = Date.now() + 15000;
+    return data;
+  }).catch((error) => {
+    console.error('Không tải được bảng xếp hạng máy chủ:', error.message);
+    return getSessionLeaderboard();
+  }).finally(() => { serverLeaderboardRequest = null; });
+  return serverLeaderboardRequest;
+}
+
 function emitSessionLeaderboard() {
-  if (io) io.to('map:khu-c').emit('sessionLeaderboard', getSessionLeaderboard());
+  if (!io) return;
+  const session = getSessionLeaderboard();
+  io.to('map:khu-c').emit('sessionLeaderboard', { ...session, session, server: serverLeaderboardCache || session });
+  void getServerLeaderboard().then((server) => {
+    io.to('map:khu-c').emit('sessionLeaderboard', { ...getSessionLeaderboard(), session: getSessionLeaderboard(), server });
+  });
 }
 
 function getCampusBenchOccupants() {
