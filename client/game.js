@@ -802,11 +802,29 @@ function drawCampusMap(scene) {
         font: 'bold 11px Arial', color: '#fff', backgroundColor: '#355b36', padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(-9);
 
-    // Cây xanh viền sân trường.
-    [[54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195]].forEach(([x, y]) => {
-        map.fillStyle(0x477b48, 1).fillCircle(x, y, 13);
-        map.fillStyle(0x78b35d, 1).fillCircle(x - 3, y - 4, 9);
+    // Cartoon-style campus landscaping: layered tree canopies, flower beds,
+    // paving accents and soft highlights add depth without external image assets.
+    [[54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195],
+     [32, 350], [756, 300], [520, 42], [485, 550], [80, 560]].forEach(([x, y], index) => {
+        map.fillStyle(0x29452f, 0.28).fillEllipse(x + 3, y + 12, 29, 12);
+        map.fillStyle(0x765536, 1).fillRoundedRect(x - 3, y + 3, 6, 14, 2);
+        map.fillStyle(index % 2 ? 0x3d7542 : 0x477b48, 1).fillCircle(x, y, 14);
+        map.fillStyle(index % 2 ? 0x6eae59 : 0x78b35d, 1).fillCircle(x - 4, y - 5, 10);
+        map.fillStyle(0xa5d57b, 0.85).fillCircle(x - 6, y - 7, 4);
     });
+    // Small flower clusters beside the paths.
+    [[205, 280], [226, 280], [478, 278], [498, 278], [530, 438], [670, 438],
+     [270, 470], [300, 470], [420, 470], [450, 470]].forEach(([x, y], i) => {
+        map.fillStyle(0x3d7443, 1).fillCircle(x, y + 2, 5);
+        map.fillStyle([0xffd166, 0xff8e9e, 0xffffff, 0x9ce7ef][i % 4], 1).fillCircle(x, y, 3);
+        map.fillStyle(0xfff3b0, 1).fillCircle(x, y, 1.2);
+    });
+    // Subtle dashed paving stones make the walkways read as a designed game world.
+    map.lineStyle(1, 0xc5bda8, 0.55);
+    for (let x = 42; x < 770; x += 46) {
+        map.lineBetween(x, 250, x + 22, 250);
+        map.lineBetween(x, 457, x + 22, 457);
+    }
 
     farmGraphics = scene.add.graphics().setDepth(-8);
     mapObjects = scene.children.list.slice(firstMapChild);
@@ -1013,10 +1031,20 @@ function drawInteriorMap(scene, mapId) {
     g.fillStyle(0x6f9d5a, 1).fillRoundedRect(28, 28, 744, 544, 20);
     g.fillStyle(0xd8cfb6, 1).fillRoundedRect(52, 52, 696, 496, 18);
     g.fillStyle(mapId === 'farm' ? 0x7eaa68 : 0x82ad65, 1).fillRoundedRect(68, 68, 664, 464, 14);
+    // Soft edge highlights and tiny ground accents give each interior a
+    // hand-painted 2D cartoon look while keeping gameplay coordinates unchanged.
+    g.lineStyle(2, 0xdaf0c4, 0.42).strokeRoundedRect(72, 72, 656, 456, 12);
     if (mapId === 'farm') {
         g.fillStyle(0x5c864c, 1).fillRoundedRect(120, 220, 560, 180, 16);
+        g.fillStyle(0x496f3e, 0.35).fillEllipse(400, 397, 535, 20);
         FARM_PLOT_LAYOUT.forEach((plot, index) => {
+            g.fillStyle(0x354e31, 0.22).fillRoundedRect(plot.x - 5, plot.y + plot.height + 5, plot.width + 14, 9, 4);
             g.fillStyle(0xc9b778, 1).fillRoundedRect(plot.x - 8, plot.y - 12, plot.width + 16, plot.height + 24, 6);
+            g.fillStyle(0xe6d39a, 1).fillRoundedRect(plot.x - 5, plot.y - 9, plot.width + 10, 4, 2);
+            g.fillStyle(0x5a402b, 1).fillRoundedRect(plot.x, plot.y, plot.width, plot.height, 4);
+            for (let row = 1; row <= 3; row++) {
+                g.lineStyle(1, 0x805b3a, 0.75).lineBetween(plot.x + 4, plot.y + row * plot.height / 4, plot.x + plot.width - 4, plot.y + row * plot.height / 4);
+            }
             scene.add.text(plot.x + plot.width / 2, plot.y - 18, `LUỐNG ${index + 1}`, {
                 font: 'bold 11px Arial', color: '#fff', backgroundColor: '#355b36', padding: { x: 4, y: 2 }
             }).setOrigin(0.5).setDepth(-9);
@@ -1025,12 +1053,21 @@ function drawInteriorMap(scene, mapId) {
         g.fillStyle(0x5f9a61, 1).fillRoundedRect(180, 160, 440, 280, 12);
         g.lineStyle(3, 0xd5e6c2, 0.8).strokeRoundedRect(196, 176, 408, 248, 8);
         if (mapId === 'sports') {
-            g.lineBetween(400, 178, 400, 422).strokeCircle(400, 300, 42);
-            g.strokeRect(196, 245, 56, 110).strokeRect(548, 245, 56, 110);
+            // Bright field stripes, center spot and goal mouths.
+            g.fillStyle(0x6da967, 0.45).fillRoundedRect(204, 184, 392, 232, 8);
+            g.lineStyle(3, 0xe4f0d1, 0.9).strokeRoundedRect(204, 184, 392, 232, 8);
+            g.lineStyle(2, 0xe4f0d1, 0.9).lineBetween(400, 184, 400, 416).strokeCircle(400, 300, 42);
+            g.strokeRect(204, 245, 52, 110).strokeRect(544, 245, 52, 110);
+            g.fillStyle(0xe4f0d1, 0.9).fillCircle(400, 300, 4);
         } else if (mapId === 'fountain') {
+            g.fillStyle(0x29402d, 0.25).fillEllipse(405, 385, 190, 42);
             g.fillStyle(0xe4e7df, 1).fillCircle(400, 300, 100);
+            g.lineStyle(5, 0xc2cfc1, 1).strokeCircle(400, 300, 91);
             g.fillStyle(0x3299b5, 1).fillCircle(400, 300, 78);
+            g.lineStyle(3, 0x78d9e8, 0.9).strokeCircle(400, 300, 62);
             g.fillStyle(0xb9f3ff, 1).fillCircle(400, 300, 35);
+            g.fillStyle(0xffffff, 0.9).fillEllipse(384, 278, 20, 8).fillEllipse(415, 319, 13, 6);
+            g.fillStyle(0xf4d77c, 1).fillCircle(400, 300, 8);
         } else if (mapId === 'auditorium') {
             g.fillStyle(0x624b35, 1).fillRoundedRect(235, 210, 330, 185, 10);
             g.fillStyle(0xe4e7df, 1).fillRoundedRect(250, 225, 300, 155, 6);
@@ -1046,10 +1083,18 @@ function drawInteriorMap(scene, mapId) {
             scene.add.text(500, 250, '👨‍🏫 GIÁO SƯ', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
             scene.add.text(400, 378, '🩺 TRẠM HỖ TRỢ · 500 ĐỒNG', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
         } else if (mapId === 'canteen') {
-            g.fillStyle(0xd4b67d, 1).fillRoundedRect(220, 205, 360, 75, 8);
-            // Quick-buy cards draw their own opaque backgrounds; don't leave
-            // offset brown counter blocks visible behind the water card.
-            scene.add.text(400, 242, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
+            // Counter with a soft shadow, wood face, cream trim and striped canopy.
+            g.fillStyle(0x29402d, 0.28).fillRoundedRect(213, 218, 374, 76, 12);
+            g.fillStyle(0xb9955d, 1).fillRoundedRect(216, 199, 368, 82, 12);
+            g.fillStyle(0xf1d9a2, 1).fillRoundedRect(220, 202, 360, 72, 9);
+            g.fillStyle(0xd4b67d, 1).fillRoundedRect(220, 205, 360, 63, 8);
+            for (let i = 0; i < 8; i++) {
+                g.fillStyle(i % 2 ? 0xf4e7c8 : 0xc86f55, 0.95)
+                    .fillRoundedRect(228 + i * 43, 202, 22, 10, 3);
+            }
+            g.fillStyle(0x9b7148, 1).fillRoundedRect(234, 264, 332, 10, 4);
+            g.fillStyle(0xf6e9c9, 0.85).fillRoundedRect(248, 216, 304, 37, 7);
+            scene.add.text(400, 235, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#5d472d' }).setOrigin(0.5).setDepth(-9);
             drawCanteenHallOfFame(scene);
             g.fillStyle(0x3c5364, 1).fillRoundedRect(620, 300, 60, 100, 8);
             g.fillStyle(0x9ed2d1, 1).fillRoundedRect(628, 309, 44, 30, 4);
