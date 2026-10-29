@@ -910,9 +910,20 @@ function openCanteenRanking(category) {
     renderCanteenRankingModal(category);
 }
 
-function renderCanteenQuickBuyButtons(scene) {
-    canteenQuickBuyObjects.forEach((object) => object.destroy());
+function clearCanteenQuickBuyButtons() {
+    canteenQuickBuyObjects.forEach((object) => {
+        if (object && object.active) object.destroy();
+    });
     canteenQuickBuyObjects = [];
+}
+
+function renderCanteenQuickBuyButtons(scene) {
+    // A delayed server event must never draw canteen controls on another map.
+    if (currentMapId !== 'canteen' || !scene || !scene.scene.isActive()) {
+        clearCanteenQuickBuyButtons();
+        return;
+    }
+    clearCanteenQuickBuyButtons();
 
     // Use actual best-selling products when available; starter choices are only a
     // temporary fallback until the canteen has recorded enough sales history.
@@ -1084,7 +1095,11 @@ function drawHalloweenBoxStates() {
 }
 
 function switchMapVisuals(mapId) {
-    mapObjects.forEach((object) => object.destroy());
+    // Explicit cleanup prevents quick-buy UI from leaking into farms or other maps.
+    clearCanteenQuickBuyButtons();
+    mapObjects.forEach((object) => {
+        if (object && object.active) object.destroy();
+    });
     mapObjects = [];
     farmGraphics = null;
     halloweenBoxGraphics = null;
