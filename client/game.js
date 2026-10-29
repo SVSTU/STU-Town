@@ -560,6 +560,13 @@ function create() {
         event.currentTarget.setAttribute('aria-label', collapsed ? 'Mở bảng xếp hạng' : 'Thu gọn bảng xếp hạng');
         event.currentTarget.textContent = collapsed ? '+' : '−';
     });
+    document.getElementById('halloween-leaderboard-toggle').addEventListener('click', (event) => {
+        const panel = document.getElementById('halloween-leaderboard');
+        const collapsed = panel.classList.toggle('is-collapsed');
+        event.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+        event.currentTarget.setAttribute('aria-label', collapsed ? 'Mở bảng bí ngô' : 'Thu gọn bảng bí ngô');
+        event.currentTarget.textContent = collapsed ? '+' : '−';
+    });
     document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
     document.getElementById('announcements-zoom-out').addEventListener('click', () => setAnnouncementZoom(announcementZoom - 0.1));
     document.getElementById('announcements-zoom-in').addEventListener('click', () => setAnnouncementZoom(announcementZoom + 0.1));
