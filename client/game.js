@@ -108,6 +108,8 @@ let halloweenBoxResultMessage = '';
 let halloweenBoxGraphics = null;
 let halloweenBoxLabels = [];
 let sessionLeaderboard = { reputation: [], coins: [], event: [] };
+let canteenBestSellingProducts = [];
+let canteenQuickBuyObjects = [];
 let activeRankingCategory = 'reputation';
 let activeLeaderboardScope = 'server';
 const systemAnnouncementQueue = [];
@@ -268,6 +270,13 @@ function create() {
         }
     });
     socket.on('halloweenLeaderboard', (finders) => renderHalloweenLeaderboard(finders));
+    socket.on('canteenBestSellingProducts', (products) => {
+        canteenBestSellingProducts = Array.isArray(products)
+            ? products.filter((entry) => entry && FOOD_INFO[entry.itemId]).slice(0, 2)
+            : [];
+        if (currentMapId === 'canteen' && sceneRef) renderCanteenQuickBuyButtons(sceneRef);
+    });
+
     socket.on('sessionLeaderboard', (data) => {
         sessionLeaderboard = data && typeof data === 'object' ? data : { reputation: [], coins: [], event: [] };
         renderSessionLeaderboard();
@@ -901,31 +910,21 @@ function openCanteenRanking(category) {
     renderCanteenRankingModal(category);
 }
 
-function drawCanteenHallOfFame(scene) {
-    // Four positions follow the user's marked target boxes:
-    // TOP 1 awards at the far upper corners, purchase buttons on the two counters.
-    const createAward = (x, category, title, color) => {
-        const heading = scene.add.text(x, 100, `🏆 TOP 1 ${title}`, {
-            font: 'bold 12px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 176 }, padding: { x: 2, y: 2 }
-        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
-        const top = getServerRankingRows(category)[0];
-        const winner = scene.add.text(x, 126, top
-            ? `${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
-            : 'Chưa có dữ liệu', {
-            font: 'bold 11px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 174 }, padding: { x: 2, y: 2 }
-        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
-        const open = () => openCanteenRanking(category);
-        heading.on('pointerdown', open);
-        winner.on('pointerdown', open);
-        [heading, winner].forEach((label) => {
-            label.on('pointerover', () => label.setStyle({ color }));
-            label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
-        });
-    };
+function renderCanteenQuickBuyButtons(scene) {
+    canteenQuickBuyObjects.forEach((object) => object.destroy());
+    canteenQuickBuyObjects = [];
 
-    const createFoodButton = (x, itemId, color) => {
+    // Use actual best-selling products when available; starter choices are only a
+    // temporary fallback until the canteen has recorded enough sales history.
+    const products = canteenBestSellingProducts.length
+        ? canteenBestSellingProducts.map((entry) => entry.itemId)
+        : ['bread', 'water'];
+    const shown = products.slice(0, 2);
+    if (shown.length === 1) shown.push(shown[0] === 'bread' ? 'water' : 'bread');
+
+    shown.forEach((itemId, index) => {
+        const x = index === 0 ? 300 : 520;
+        const color = index === 0 ? 0xffd166 : 0x9ed2ff;
         const food = FOOD_INFO[itemId];
         if (!food) return;
         const frame = scene.add.rectangle(x, 360, 100, 50, 0x806a48, 0.98)
@@ -947,14 +946,36 @@ function drawCanteenHallOfFame(scene) {
         label.setInteractive({ useHandCursor: true }).on('pointerdown', buy);
         label.on('pointerover', () => label.setStyle({ color: '#ffe08a' }));
         label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
+        canteenQuickBuyObjects.push(frame, label);
+    });
+}
+
+function drawCanteenHallOfFame(scene) {
+    // TOP 1 reputation and coin awards remain fixed in the two upper corners.
+    const createAward = (x, category, title, color) => {
+        const heading = scene.add.text(x, 100, `🏆 TOP 1 ${title}`, {
+            font: 'bold 12px Arial', color: '#ffffff', align: 'center',
+            wordWrap: { width: 176 }, padding: { x: 2, y: 2 }
+        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
+        const top = getServerRankingRows(category)[0];
+        const winner = scene.add.text(x, 126, top
+            ? `${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
+            : 'Chưa có dữ liệu', {
+            font: 'bold 11px Arial', color: '#ffffff', align: 'center',
+            wordWrap: { width: 174 }, padding: { x: 2, y: 2 }
+        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
+        const open = () => openCanteenRanking(category);
+        heading.on('pointerdown', open);
+        winner.on('pointerdown', open);
+        [heading, winner].forEach((label) => {
+            label.on('pointerover', () => label.setStyle({ color }));
+            label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
+        });
     };
 
-    // Upper-left and upper-right award panels.
     createAward(130, 'reputation', 'DANH TIẾNG', '#ffd166');
     createAward(670, 'coins', 'TIỀN ĐỒNG', '#9ed2ff');
-    // Two purchase buttons centered on the brown counter positions.
-    createFoodButton(300, 'bread', 0xffd166);
-    createFoodButton(520, 'water', 0x9ed2ff);
+    renderCanteenQuickBuyButtons(scene);
 }
 
 function drawInteriorMap(scene, mapId) {
