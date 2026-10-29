@@ -273,12 +273,10 @@ function create() {
         renderSessionLeaderboard();
         if (currentMapId === 'canteen' && sceneRef) {
             // Refresh the two clickable top-player plaques without redrawing the whole room.
-            sceneRef.children.list.filter((object) => object.type === 'Text' && object.text && object.text.includes('TOP 1')).forEach((object) => {
-                const category = object.text.includes('TIỀN ĐỒNG') ? 'coins' : 'reputation';
+            sceneRef.children.list.filter((object) => object.type === 'Text' && object.getData('canteenAwardCategory')).forEach((object) => {
+                const category = object.getData('canteenAwardCategory');
                 const top = getServerRankingRows(category)[0];
-                object.setText(top
-                    ? `🏆 TOP 1 ${category === 'coins' ? 'TIỀN ĐỒNG' : 'DANH TIẾNG'}\\n${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
-                    : `🏆 TOP 1 ${category === 'coins' ? 'TIỀN ĐỒNG' : 'DANH TIẾNG'}\\nChưa có dữ liệu`);
+                object.setText(top ? String(top.nickname || 'Người chơi') : 'Chưa có dữ liệu');
             });
         }
     });
@@ -905,24 +903,30 @@ function openCanteenRanking(category) {
 
 function drawCanteenHallOfFame(scene) {
     const createAward = (x, category, title, color) => {
-        scene.add.rectangle(x, 310, 190, 32, 0x243b2d, 0.95).setDepth(-8).setStrokeStyle(2, color);
-        const label = scene.add.text(x, 310, title, {
+        // Keep the title above the plaque and only the winner's name inside it.
+        const frame = scene.add.rectangle(x, 310, 190, 32, 0x243b2d, 0.98)
+            .setDepth(-8).setStrokeStyle(2, color).setInteractive({ useHandCursor: true });
+        const heading = scene.add.text(x, 278, `🏆 TOP 1 ${title}`, {
             font: 'bold 13px Arial', color: '#ffffff', align: 'center',
+            wordWrap: { width: 190 }, padding: { x: 2, y: 2 }
+        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
+        const top = getServerRankingRows(category)[0];
+        const winner = scene.add.text(x, 310, top ? String(top.nickname || 'Người chơi') : 'Chưa có dữ liệu', {
+            font: 'bold 12px Arial', color: '#ffffff', align: 'center',
             wordWrap: { width: 176 }, padding: { x: 4, y: 3 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
-        const refresh = () => {
-            const top = getServerRankingRows(category)[0];
-            label.setText(top
-                ? `🏆 TOP 1 ${category === 'coins' ? 'TIỀN ĐỒNG' : 'DANH TIẾNG'}\\n${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
-                : `🏆 TOP 1 ${title}\\nChưa có dữ liệu`);
-        };
-        label.on('pointerdown', () => openCanteenRanking(category));
-        label.on('pointerover', () => label.setStyle({ color: '#ffe08a' }));
-        label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
-        refresh();
+        winner.setData('canteenAwardCategory', category);
+        const open = () => openCanteenRanking(category);
+        frame.on('pointerdown', open);
+        heading.on('pointerdown', open);
+        winner.on('pointerdown', open);
+        [heading, winner].forEach((label) => {
+            label.on('pointerover', () => label.setStyle({ color: '#ffe08a' }));
+            label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
+        });
     };
-    createAward(300, 'reputation', 'TOP 1 DANH TIẾNG', 0xffd166);
-    createAward(500, 'coins', 'TOP 1 TIỀN ĐỒNG', 0x9ed2ff);
+    createAward(300, 'reputation', 'DANH TIẾNG', 0xffd166);
+    createAward(500, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
 }
 
 function drawInteriorMap(scene, mapId) {
