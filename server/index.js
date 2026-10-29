@@ -376,33 +376,21 @@ function emitPlayerState(id) {
 }
 
 function getSessionLeaderboard() {
-  const connectedPlayers = Object.entries(players).map(([id, player]) => ({
-    id,
-    nickname: player.nickname || `Khách (${id.slice(0, 4)})`,
-    coins: Number(player.coins) || 0,
-    reputation: Number(player.reputation) || 0,
-    connected: true
-  }));
-  const byId = new Map([...archivedLeaderboardPlayers.entries()]);
-  connectedPlayers.forEach((entry) => byId.set(entry.id, entry));
-
-  // Socket IDs change on reconnect, so deduplicate leaderboard rows by normalized nickname.
-  // Keep the best saved score for each category so reconnecting cannot create duplicate rows
-  // or accidentally erase a player's previously recorded high score.
-  const byPlayer = new Map();
-  for (const entry of byId.values()) {
-    const nickname = String(entry.nickname || 'Người chơi').trim();
-    const identity = nickname.normalize('NFKC').toLocaleLowerCase('vi');
-    const current = byPlayer.get(identity);
-    if (!current) {
-      byPlayer.set(identity, { nickname, coins: Number(entry.coins) || 0, reputation: Number(entry.reputation) || 0 });
-      continue;
-    }
-    current.coins = Math.max(current.coins, Number(entry.coins) || 0);
-    current.reputation = Math.max(current.reputation, Number(entry.reputation) || 0);
-    if (entry.connected) current.nickname = nickname;
+  // The persistent player token hash is the stable identity. Socket IDs change on
+  // reconnect; nicknames are display labels and must never be used as player identity.
+  const leaderboardByPlayerId = new Map(archivedLeaderboardPlayers.entries());
+  for (const [socketId, player] of Object.entries(players)) {
+    const playerSocket = io.sockets.sockets.get(socketId);
+    const persistentId = playerSocket?.data?.playerTokenHash || socketId;
+    leaderboardByPlayerId.set(persistentId, {
+      id: persistentId,
+      nickname: player.nickname || `Khách (${socketId.slice(0, 4)})`,
+      coins: Number(player.coins) || 0,
+      reputation: Number(player.reputation) || 0,
+      connected: true
+    });
   }
-  const leaderboardPlayers = [...byPlayer.values()];
+  const leaderboardPlayers = [...leaderboardByPlayerId.values()];
   const byScore = (key) => [...leaderboardPlayers]
     .sort((a, b) => b[key] - a[key] || a.nickname.localeCompare(b.nickname, 'vi'))
     .map(({ nickname, [key]: score }) => ({ nickname, score }));
@@ -1407,8 +1395,10 @@ io.on('connection', (socket) => {
     const departingPlayer = players[socket.id];
     const mapId = departingPlayer?.mapId || 'campus';
     if (departingPlayer) {
-      archivedLeaderboardPlayers.set(socket.id, {
-        id: socket.id,
+      const departingSocket = io.sockets.sockets.get(socket.id);
+      const persistentId = departingSocket?.data?.playerTokenHash || socket.id;
+      archivedLeaderboardPlayers.set(persistentId, {
+        id: persistentId,
         nickname: departingPlayer.nickname || `Khách (${socket.id.slice(0, 4)})`,
         coins: Number(departingPlayer.coins) || 0,
         reputation: Number(departingPlayer.reputation) || 0
