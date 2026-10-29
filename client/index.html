@@ -122,7 +122,10 @@
     <div id="system-announcement-lane" aria-live="polite" aria-atomic="true"></div>
     <div id="farm-event-lane" aria-live="polite" aria-atomic="true"></div>
     <aside id="halloween-leaderboard" hidden aria-label="Bảng xếp hạng tìm bí ngô Halloween">
-        <strong>🎃 Người tìm thấy bí ngô Halloween</strong>
+        <header class="halloween-leaderboard-heading">
+            <strong>🎃 Người tìm thấy bí ngô Halloween</strong>
+            <button type="button" id="halloween-leaderboard-toggle" aria-label="Thu gọn bảng bí ngô" aria-expanded="true">−</button>
+        </header>
         <ol id="halloween-leaderboard-list"></ol>
     </aside>
     <aside id="session-leaderboard" hidden aria-label="Bảng xếp hạng phiên hiện tại">
