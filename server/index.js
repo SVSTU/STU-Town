@@ -1493,8 +1493,9 @@ io.on('connection', (socket) => {
     const departingPlayer = players[socket.id];
     const mapId = departingPlayer?.mapId || 'campus';
     if (departingPlayer) {
-      const departingSocket = io.sockets.sockets.get(socket.id);
-      const persistentId = departingSocket?.data?.playerTokenHash || socket.id;
+      // Use the disconnecting socket's own auth data; it may already be absent
+      // from io.sockets.sockets while the disconnect handler is running.
+      const persistentId = socket.data?.playerTokenHash || socket.id;
       const departingInventory = playerInventories.get(socket.id);
       archivedLeaderboardPlayers.set(persistentId, {
         id: persistentId,
