@@ -1257,14 +1257,7 @@ io.on('connection', (socket) => {
 
     // Record only server-validated, successful purchases. Prices come from FOOD_MENU,
     // never from values supplied by the client.
-    void recordCanteenSale(socket.id, {
-      itemId,
-      quantity,
-      unitPrice: item[currency],
-      currency,
-      totalPrice: cost
-    });
-    // Refresh the quick-buy recommendations after a purchase is recorded.
+    // Save the validated sale, then refresh the best-selling quick-buy products.
     void recordCanteenSale(socket.id, {
       itemId,
       quantity,
