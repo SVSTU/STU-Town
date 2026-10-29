@@ -271,6 +271,16 @@ function create() {
     socket.on('sessionLeaderboard', (data) => {
         sessionLeaderboard = data && typeof data === 'object' ? data : { reputation: [], coins: [], event: [] };
         renderSessionLeaderboard();
+        if (currentMapId === 'canteen' && sceneRef) {
+            // Refresh the two clickable top-player plaques without redrawing the whole room.
+            sceneRef.children.list.filter((object) => object.type === 'Text' && object.text && object.text.includes('TOP 1')).forEach((object) => {
+                const category = object.text.includes('TIỀN ĐỒNG') ? 'coins' : 'reputation';
+                const top = getServerRankingRows(category)[0];
+                object.setText(top
+                    ? `🏆 TOP 1 ${category === 'coins' ? 'TIỀN ĐỒNG' : 'DANH TIẾNG'}\\n${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
+                    : `🏆 TOP 1 ${category === 'coins' ? 'TIỀN ĐỒNG' : 'DANH TIẾNG'}\\nChưa có dữ liệu`);
+            });
+        }
     });
 
     socket.on('inventoryState', (state) => {
@@ -826,6 +836,95 @@ function drawCampusBenches(scene) {
     });
 }
 
+function getServerRankingRows(category) {
+    const serverData = sessionLeaderboard.server && typeof sessionLeaderboard.server === 'object'
+        ? sessionLeaderboard.server
+        : sessionLeaderboard;
+    return Array.isArray(serverData[category]) ? serverData[category] : [];
+}
+
+function ensureCanteenRankingModal() {
+    let modal = document.getElementById('canteen-ranking-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'canteen-ranking-modal';
+    modal.className = 'canteen-ranking-modal';
+    modal.hidden = true;
+    modal.innerHTML = `
+      <section class="canteen-ranking-dialog" role="dialog" aria-modal="true" aria-labelledby="canteen-ranking-title">
+        <header><strong id="canteen-ranking-title">🏆 Bảng vinh danh Căn tin</strong><button type="button" data-close-canteen-ranking aria-label="Đóng">×</button></header>
+        <nav class="canteen-ranking-tabs" aria-label="Chọn hạng mục">
+          <button type="button" data-canteen-ranking="reputation" aria-pressed="true">Danh tiếng</button>
+          <button type="button" data-canteen-ranking="coins" aria-pressed="false">Tiền đồng</button>
+        </nav>
+        <ol id="canteen-ranking-list"></ol>
+        <p>Thứ hạng lấy theo dữ liệu toàn server đã lưu.</p>
+      </section>`;
+    document.body.append(modal);
+    const close = () => { modal.hidden = true; };
+    modal.querySelector('[data-close-canteen-ranking]').addEventListener('click', close);
+    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+    modal.querySelectorAll('[data-canteen-ranking]').forEach((button) => {
+        button.addEventListener('click', () => {
+            modal.querySelectorAll('[data-canteen-ranking]').forEach((tab) => tab.setAttribute('aria-pressed', String(tab === button)));
+            renderCanteenRankingModal(button.dataset.canteenRanking);
+        });
+    });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+    return modal;
+}
+
+function renderCanteenRankingModal(category = 'reputation') {
+    const modal = ensureCanteenRankingModal();
+    const list = modal.querySelector('#canteen-ranking-list');
+    const rows = getServerRankingRows(category);
+    list.replaceChildren();
+    if (!rows.length) {
+        const empty = document.createElement('li');
+        empty.textContent = 'Chưa có dữ liệu xếp hạng toàn server.';
+        list.append(empty);
+        return;
+    }
+    rows.slice(0, 10).forEach((entry, index) => {
+        const item = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = `${index + 1}. ${String(entry.nickname || 'Người chơi')}`;
+        const score = document.createElement('strong');
+        score.textContent = `${(Number(entry.score) || 0).toLocaleString('vi-VN')} ${category === 'coins' ? 'tiền đồng' : 'danh tiếng'}`;
+        item.append(name, score);
+        list.append(item);
+    });
+}
+
+function openCanteenRanking(category) {
+    const modal = ensureCanteenRankingModal();
+    modal.hidden = false;
+    modal.querySelectorAll('[data-canteen-ranking]').forEach((tab) => tab.setAttribute('aria-pressed', String(tab.dataset.canteenRanking === category)));
+    renderCanteenRankingModal(category);
+}
+
+function drawCanteenHallOfFame(scene) {
+    const createAward = (x, category, title, color) => {
+        scene.add.rectangle(x, 310, 190, 32, 0x243b2d, 0.95).setDepth(-8).setStrokeStyle(2, color);
+        const label = scene.add.text(x, 310, title, {
+            font: 'bold 13px Arial', color: '#ffffff', align: 'center',
+            wordWrap: { width: 176 }, padding: { x: 4, y: 3 }
+        }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
+        const refresh = () => {
+            const top = getServerRankingRows(category)[0];
+            label.setText(top
+                ? `🏆 TOP 1 ${category === 'coins' ? 'TIỀN ĐỒNG' : 'DANH TIẾNG'}\\n${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
+                : `🏆 TOP 1 ${title}\\nChưa có dữ liệu`);
+        };
+        label.on('pointerdown', () => openCanteenRanking(category));
+        label.on('pointerover', () => label.setStyle({ color: '#ffe08a' }));
+        label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
+        refresh();
+    };
+    createAward(300, 'reputation', 'TOP 1 DANH TIẾNG', 0xffd166);
+    createAward(500, 'coins', 'TOP 1 TIỀN ĐỒNG', 0x9ed2ff);
+}
+
 function drawInteriorMap(scene, mapId) {
     const firstMapChild = scene.children.list.length;
     const labels = mapId.startsWith('halloween:') ? ['Tầng Halloween', '50 hộp quà · Mỗi hộp chỉ mở một lần'] : ({
@@ -880,6 +979,7 @@ function drawInteriorMap(scene, mapId) {
             g.fillStyle(0x806a48, 1).fillRoundedRect(250, 340, 100, 50, 8);
             g.fillStyle(0x806a48, 1).fillRoundedRect(450, 340, 100, 50, 8);
             scene.add.text(400, 242, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
+            drawCanteenHallOfFame(scene);
             g.fillStyle(0x3c5364, 1).fillRoundedRect(620, 300, 60, 100, 8);
             g.fillStyle(0x9ed2d1, 1).fillRoundedRect(628, 309, 44, 30, 4);
             g.fillStyle(0x243b2d, 1).fillRoundedRect(628, 345, 44, 38, 4);
