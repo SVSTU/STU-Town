@@ -731,12 +731,74 @@ function create() {
     socket.connect();
 }
 
+// Shared isometric-style rendering helpers. Gameplay coordinates, hit zones and
+// server movement remain unchanged; these primitives only affect the visual layer.
+function drawIsoDiamond(graphics, cx, cy, halfW, halfH, fillColor, alpha = 1, strokeColor = null) {
+    const points = [
+        new Phaser.Geom.Point(cx, cy - halfH),
+        new Phaser.Geom.Point(cx + halfW, cy),
+        new Phaser.Geom.Point(cx, cy + halfH),
+        new Phaser.Geom.Point(cx - halfW, cy)
+    ];
+    graphics.fillStyle(fillColor, alpha).fillPoints(points, true);
+    if (strokeColor !== null) {
+        graphics.lineStyle(1, strokeColor, 0.45).strokePoints(points, true);
+    }
+}
+
+function drawIsoGround(graphics, colorA = 0x86ad69, colorB = 0x7fa363) {
+    graphics.fillStyle(0x29402d, 1).fillRect(0, 0, 800, 600);
+    for (let row = -2; row < 19; row++) {
+        for (let col = -2; col < 23; col++) {
+            const x = col * 48 + (row % 2 ? 24 : 0);
+            const y = row * 28;
+            drawIsoDiamond(graphics, x, y, 48, 28,
+                (row + col) % 2 === 0 ? colorA : colorB, 1, 0x456d42);
+        }
+    }
+    // A clean cream perimeter frames the playable diorama.
+    graphics.fillStyle(0xd8cfb6, 1).fillRoundedRect(18, 18, 764, 564, 20);
+    graphics.fillStyle(colorA, 1).fillRoundedRect(30, 30, 740, 540, 15);
+    graphics.lineStyle(3, 0xe6e0c8, 0.8).strokeRoundedRect(30, 30, 740, 540, 15);
+}
+
+function drawIsoBuilding(graphics, x, y, width, height, color) {
+    const cx = x + width / 2;
+    const cy = y + height / 2;
+    const rx = width / 2;
+    const ry = Math.max(15, height * 0.28);
+    const wallHeight = Math.max(12, Math.min(28, height * 0.24));
+    const top = [
+        new Phaser.Geom.Point(cx, cy - ry),
+        new Phaser.Geom.Point(cx + rx, cy),
+        new Phaser.Geom.Point(cx, cy + ry),
+        new Phaser.Geom.Point(cx - rx, cy)
+    ];
+    const front = [
+        new Phaser.Geom.Point(cx - rx, cy),
+        new Phaser.Geom.Point(cx, cy + ry),
+        new Phaser.Geom.Point(cx, cy + ry + wallHeight),
+        new Phaser.Geom.Point(cx - rx, cy + wallHeight)
+    ];
+    const right = [
+        new Phaser.Geom.Point(cx + rx, cy),
+        new Phaser.Geom.Point(cx, cy + ry),
+        new Phaser.Geom.Point(cx, cy + ry + wallHeight),
+        new Phaser.Geom.Point(cx + rx, cy + wallHeight)
+    ];
+    graphics.fillStyle(0x263d2a, 0.22).fillEllipse(cx + 5, cy + ry + wallHeight + 6, width * 1.05, Math.max(12, height * 0.24));
+    graphics.fillStyle(Phaser.Display.Color.ValueToColor(color).darken(25).color, 1).fillPoints(front, true);
+    graphics.fillStyle(Phaser.Display.Color.ValueToColor(color).darken(40).color, 1).fillPoints(right, true);
+    graphics.fillStyle(color, 1).fillPoints(top, true);
+    graphics.lineStyle(2, 0xf5e9c8, 0.9).strokePoints(top, true);
+    // Roof highlight gives the building a friendly toy-like finish.
+    graphics.lineStyle(2, 0xffffff, 0.3).lineBetween(cx - rx * 0.55, cy - ry * 0.45, cx, cy - ry * 0.85);
+}
+
 function drawCampusMap(scene) {
     const firstMapChild = scene.children.list.length;
     const map = scene.add.graphics().setDepth(-10);
-    map.fillStyle(0x6f9d5a, 1).fillRect(0, 0, 800, 600);
-    map.fillStyle(0xd8cfb6, 1).fillRoundedRect(18, 18, 764, 564, 20);
-    map.fillStyle(0x82ad65, 1).fillRoundedRect(30, 30, 740, 540, 15);
+    drawIsoGround(map, 0x86ad69, 0x7fa363);
 
     // Lối đi chính và sân trung tâm theo bố cục sơ đồ trường.
     map.fillStyle(0xe5dcc7, 1);
@@ -748,9 +810,7 @@ function drawCampusMap(scene) {
     map.fillRect(680, 30, 22, 540);
 
     const drawBuilding = (x, y, width, height, label, color) => {
-        map.fillStyle(0xc5b99b, 1).fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 7);
-        map.fillStyle(color, 1).fillRoundedRect(x, y, width, height, 5);
-        map.lineStyle(2, 0xffffff, 0.8).strokeRoundedRect(x, y, width, height, 5);
+        drawIsoBuilding(map, x, y, width, height, color);
         scene.add.text(x + width / 2, y + height / 2, label, {
             font: 'bold 14px Arial',
             color: '#35402d',
@@ -1027,10 +1087,15 @@ function drawInteriorMap(scene, mapId) {
         'khu-f': ['Khu F', 'Bản đồ khu vực F']
     }[mapId] || ['Khu vực', '']);
     const g = scene.add.graphics().setDepth(-10);
-    g.fillStyle(0x29402d, 1).fillRect(0, 0, 800, 600);
-    g.fillStyle(0x6f9d5a, 1).fillRoundedRect(28, 28, 744, 544, 20);
+    drawIsoGround(g, mapId === 'farm' ? 0x85ad6a : 0x82ad65, mapId === 'farm' ? 0x779d5e : 0x789c5d);
     g.fillStyle(0xd8cfb6, 1).fillRoundedRect(52, 52, 696, 496, 18);
     g.fillStyle(mapId === 'farm' ? 0x7eaa68 : 0x82ad65, 1).fillRoundedRect(68, 68, 664, 464, 14);
+    // Isometric floor seams remain visible around the playable props.
+    g.lineStyle(1, 0xd5e8b7, 0.16);
+    for (let x = 95; x < 730; x += 48) {
+        g.lineBetween(x, 80, x + 24, 105);
+        g.lineBetween(x, 520, x + 24, 495);
+    }
     // Soft edge highlights and tiny ground accents give each interior a
     // hand-painted 2D cartoon look while keeping gameplay coordinates unchanged.
     g.lineStyle(2, 0xdaf0c4, 0.42).strokeRoundedRect(72, 72, 656, 456, 12);
