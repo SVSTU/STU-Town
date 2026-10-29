@@ -333,6 +333,54 @@ function schedulePlayerSave(id) {
   }, 1_500));
 }
 
+async function recordCanteenSale(id, sale) {
+  if (!isSupabaseConfigured) return;
+  const playerSocket = io.sockets.sockets.get(id);
+  const tokenHash = playerSocket?.data?.playerTokenHash;
+  if (!tokenHash) return;
+
+  try {
+    // Ensure the player profile exists before inserting a sale because
+    // canteen_sales.player_token_hash references player_profiles.token_hash.
+    await persistPlayer(id);
+    await supabaseRequest('canteen_sales', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        player_token_hash: tokenHash,
+        item_id: sale.itemId,
+        quantity: sale.quantity,
+        unit_price: sale.unitPrice,
+        currency: sale.currency,
+        total_price: sale.totalPrice
+      })
+    });
+    serverCanteenStatsCache = null;
+    serverCanteenStatsCacheExpiresAt = 0;
+  } catch (error) {
+    console.error('Không lưu được lịch sử mua hàng Căn tin vào Supabase:', error.message);
+  }
+}
+
+let serverCanteenStatsCache = null;
+let serverCanteenStatsCacheExpiresAt = 0;
+
+async function getCanteenProductStats() {
+  if (!isSupabaseConfigured) return [];
+  if (serverCanteenStatsCache && Date.now() < serverCanteenStatsCacheExpiresAt) {
+    return serverCanteenStatsCache;
+  }
+  const query = new URLSearchParams({
+    select: 'item_id,total_quantity_sold,total_revenue_coins,total_revenue_reputation,total_transactions,last_sold_at',
+    order: 'total_quantity_sold.desc',
+    limit: '4'
+  });
+  const rows = await supabaseRequest(`canteen_product_stats?${query}`);
+  serverCanteenStatsCache = Array.isArray(rows) ? rows : [];
+  serverCanteenStatsCacheExpiresAt = Date.now() + 30_000;
+  return serverCanteenStatsCache;
+}
+
 io.use(async (socket, next) => {
   try {
     const suppliedToken = socket.handshake.auth?.playerToken;
@@ -1197,6 +1245,16 @@ io.on('connection', (socket) => {
       state: getPlayerState(player), inventory
     });
     schedulePlayerSave(socket.id);
+
+    // Record only server-validated, successful purchases. Prices come from FOOD_MENU,
+    // never from values supplied by the client.
+    void recordCanteenSale(socket.id, {
+      itemId,
+      quantity,
+      unitPrice: item[currency],
+      currency,
+      totalPrice: cost
+    });
   });
 
   socket.on('buyElevatorTicket', () => {
