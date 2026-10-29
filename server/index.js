@@ -376,17 +376,18 @@ function emitPlayerState(id) {
 }
 
 function getSessionLeaderboard() {
-  // The persistent player token hash is the stable identity. Socket IDs change on
-  // reconnect; nicknames are display labels and must never be used as player identity.
+  // Stable identity is the stored player token hash, never the display nickname.
   const leaderboardByPlayerId = new Map(archivedLeaderboardPlayers.entries());
   for (const [socketId, player] of Object.entries(players)) {
     const playerSocket = io.sockets.sockets.get(socketId);
     const persistentId = playerSocket?.data?.playerTokenHash || socketId;
+    const inventory = playerInventories.get(socketId);
     leaderboardByPlayerId.set(persistentId, {
       id: persistentId,
       nickname: player.nickname || `Khách (${socketId.slice(0, 4)})`,
       coins: Number(player.coins) || 0,
       reputation: Number(player.reputation) || 0,
+      items: { ...(inventory?.items || {}) },
       connected: true
     });
   }
@@ -394,10 +395,24 @@ function getSessionLeaderboard() {
   const byScore = (key) => [...leaderboardPlayers]
     .sort((a, b) => b[key] - a[key] || a.nickname.localeCompare(b.nickname, 'vi'))
     .map(({ nickname, [key]: score }) => ({ nickname, score }));
+  const eventItemDefinitions = [
+    { id: 'eventGoldCoin', label: '🟡 Đồng vàng sự kiện' },
+    { id: 'eventLantern', label: '🏮 Đèn lồng sự kiện' },
+    { id: 'halloweenPumpkin', label: '🎃 Bí ngô Halloween' },
+    { id: 'eventRedLamp', label: '🔴 Đèn lồng đỏ sự kiện' }
+  ];
+  const event = eventItemDefinitions.map(({ id, label }) => ({
+    itemId: id,
+    label,
+    rows: leaderboardPlayers
+      .map((entry) => ({ nickname: entry.nickname, score: Math.max(0, Math.floor(Number(entry.items?.[id]) || 0)) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname, 'vi'))
+  }));
   return {
     reputation: byScore('reputation'),
     coins: byScore('coins'),
-    event: getHalloweenLeaderboard().map(({ nickname, count }) => ({ nickname, score: count, unit: 'bí ngô Halloween' }))
+    event
   };
 }
 
@@ -1397,11 +1412,13 @@ io.on('connection', (socket) => {
     if (departingPlayer) {
       const departingSocket = io.sockets.sockets.get(socket.id);
       const persistentId = departingSocket?.data?.playerTokenHash || socket.id;
+      const departingInventory = playerInventories.get(socket.id);
       archivedLeaderboardPlayers.set(persistentId, {
         id: persistentId,
         nickname: departingPlayer.nickname || `Khách (${socket.id.slice(0, 4)})`,
         coins: Number(departingPlayer.coins) || 0,
-        reputation: Number(departingPlayer.reputation) || 0
+        reputation: Number(departingPlayer.reputation) || 0,
+        items: { ...(departingInventory?.items || {}) }
       });
     }
     const departingProgress = halloweenProgress.get(socket.id);
