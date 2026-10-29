@@ -583,3 +583,7 @@ canvas {
         max-width: calc(100vw - 16px);
     }
 }
+
+.session-leaderboard-scopes { display: flex; gap: 4px; margin: 6px 0; }
+.session-leaderboard-scopes button { flex: 1; border: 1px solid #526a50; border-radius: 5px; padding: 5px 7px; background: #202d23; color: #e4eadf; cursor: pointer; font-size: 12px; }
+.session-leaderboard-scopes button[aria-pressed="true"] { background: #416d3e; border-color: #8bbd76; color: #fff; font-weight: 700; }
