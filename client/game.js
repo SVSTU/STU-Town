@@ -850,7 +850,7 @@ function ensureCanteenRankingModal() {
     modal.hidden = true;
     modal.innerHTML = `
       <section class="canteen-ranking-dialog" role="dialog" aria-modal="true" aria-labelledby="canteen-ranking-title">
-        <header><strong id="canteen-ranking-title">🏆 Bảng vinh danh Căn tin</strong><button type="button" data-close-canteen-ranking aria-label="Đóng">×</button></header>
+        <header><strong id="canteen-ranking-title">🏆 BẢNG VINH DANH THÀNH VIÊN TOP</strong><button type="button" data-close-canteen-ranking aria-label="Đóng">×</button></header>
         <nav class="canteen-ranking-tabs" aria-label="Chọn hạng mục">
           <button type="button" data-canteen-ranking="reputation" aria-pressed="true">Danh tiếng</button>
           <button type="button" data-canteen-ranking="coins" aria-pressed="false">Tiền đồng</button>
