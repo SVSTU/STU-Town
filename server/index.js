@@ -275,6 +275,8 @@ const farmPlots = new Map(FARM_PLOT_IDS.map((id) => [id, { crop: '', plantedAt: 
 const playerInventories = new Map();
 const halloweenProgress = new Map();
 const halloweenFinders = new Map();
+// Keep this session's leaderboard entries after a player disconnects.
+const archivedLeaderboardPlayers = new Map();
 const reputationRewardedAt = new Map();
 let nextMessageId = 0;
 let activeFarmMouse = null;
@@ -380,7 +382,10 @@ function getSessionLeaderboard() {
     coins: Number(player.coins) || 0,
     reputation: Number(player.reputation) || 0
   }));
-  const byScore = (key) => [...connectedPlayers]
+  const byId = new Map([...archivedLeaderboardPlayers.entries()]);
+  connectedPlayers.forEach((entry) => byId.set(entry.id, entry));
+  const leaderboardPlayers = [...byId.values()];
+  const byScore = (key) => [...leaderboardPlayers]
     .sort((a, b) => b[key] - a[key] || a.nickname.localeCompare(b.nickname, 'vi'))
     .map(({ nickname, [key]: score }) => ({ nickname, score }));
   return {
@@ -687,7 +692,7 @@ function isHalloweenNight() {
 function ensureHalloweenProgress(id) {
   if (!halloweenProgress.has(id)) {
     halloweenProgress.set(id, {
-      opened: new Set(), pumpkinFound: false, pendingPumpkins: 0,
+      opened: new Set(), pumpkinFound: false, pendingPumpkins: 0, openedCount: 0,
       pumpkinBox: Math.floor(Math.random() * HALLOWEEN_BOX_COUNT)
     });
   }
@@ -1189,12 +1194,21 @@ io.on('connection', (socket) => {
     if (Math.hypot(player.x - boxX, player.y - boxY) > 58) return;
     if (progress.opened.has(boxIndex)) return socket.emit('halloweenBoxResult', { message: 'Hộp này đã được mở rồi.' });
     progress.opened.add(boxIndex);
+    progress.openedCount = (Number(progress.openedCount) || 0) + 1;
     const statKeys = ['hunger', 'strength', 'fatigue'];
-    const statKey = statKeys[Math.floor(Math.random() * statKeys.length)];
-    const change = Math.random() < 0.5 ? 1 : -2;
-    player.stats[statKey] = clampStat(player.stats[statKey] + change);
     const statNames = { hunger: 'đói', strength: 'sức mạnh', fatigue: 'mệt' };
-    let message = `Mở hộp ${boxIndex + 1}: ${statNames[statKey]} ${change > 0 ? '+1' : '−2'}.`;
+    let message = `Mở hộp ${boxIndex + 1}.`;
+    if (progress.openedCount % 4 === 0) {
+      const effect = Math.floor(Math.random() * 3);
+      if (effect === 2) {
+        player.stats.fatigue = clampStat(player.stats.fatigue + 1);
+        message += ' Đủ 4 lượt mở hộp: độ mệt +1.';
+      } else {
+        const statKey = effect === 0 ? 'hunger' : 'strength';
+        player.stats[statKey] = clampStat(player.stats[statKey] - 1);
+        message += ` Đủ 4 lượt mở hộp: ${statNames[statKey]} −1.`;
+      }
+    }
     let foundPumpkin = false;
     if (!progress.pumpkinFound && progress.pumpkinBox === boxIndex) {
       progress.pumpkinFound = true;
@@ -1237,6 +1251,13 @@ io.on('connection', (socket) => {
       progress.pendingPumpkins = 0;
       progress.pumpkinBox = Math.floor(Math.random() * HALLOWEEN_BOX_COUNT);
       message += ' Các chỉ số còn trên 0; bản đồ đã làm mới với 50 hộp mới.';
+    }
+    if (foundPumpkin && !spiderStolePumpkin) {
+      // Finding the pumpkin immediately starts a fresh stage; unopened boxes are discarded.
+      progress.opened.clear();
+      progress.pumpkinFound = false;
+      progress.pumpkinBox = Math.floor(Math.random() * HALLOWEEN_BOX_COUNT);
+      message += ' Màn mới đã được tạo tự động với 50 hộp quà mới!';
     }
     socket.emit('halloweenState', { opened: [...progress.opened], total: HALLOWEEN_BOX_COUNT });
     socket.emit('halloweenBoxResult', { message, foundPumpkin, spider: spiderAppeared, spiderStolePumpkin });
@@ -1365,10 +1386,23 @@ io.on('connection', (socket) => {
     clearTimeout(profileSaveTimers.get(socket.id));
     profileSaveTimers.delete(socket.id);
     await persistPlayer(socket.id);
-    const mapId = players[socket.id]?.mapId || 'campus';
+    const departingPlayer = players[socket.id];
+    const mapId = departingPlayer?.mapId || 'campus';
+    if (departingPlayer) {
+      archivedLeaderboardPlayers.set(socket.id, {
+        id: socket.id,
+        nickname: departingPlayer.nickname || `Khách (${socket.id.slice(0, 4)})`,
+        coins: Number(departingPlayer.coins) || 0,
+        reputation: Number(departingPlayer.reputation) || 0
+      });
+    }
+    const departingProgress = halloweenProgress.get(socket.id);
+    const departingFinder = halloweenFinders.get(socket.id);
+    const unbankedPumpkins = Math.max(0, Number(departingProgress?.pendingPumpkins) || 0);
+    if (departingFinder && unbankedPumpkins) departingFinder.count += unbankedPumpkins;
     delete players[socket.id];
-    halloweenFinders.delete(socket.id);
     halloweenProgress.delete(socket.id);
+    if (halloweenFinders.size) io.emit('halloweenLeaderboard', getHalloweenLeaderboard());
     emitSessionLeaderboard();
     if (mapId === 'campus') emitCampusBenchOccupants();
     if (mapId === 'farm' && farmMembers().length === 0) {
