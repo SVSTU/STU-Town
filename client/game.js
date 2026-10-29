@@ -1090,6 +1090,16 @@ function drawInteriorMap(scene, mapId) {
     drawIsoGround(g, mapId === 'farm' ? 0x85ad6a : 0x82ad65, mapId === 'farm' ? 0x779d5e : 0x789c5d);
     g.fillStyle(0xd8cfb6, 1).fillRoundedRect(52, 52, 696, 496, 18);
     g.fillStyle(mapId === 'farm' ? 0x7eaa68 : 0x82ad65, 1).fillRoundedRect(68, 68, 664, 464, 14);
+    // Tile the playable interior with alternating isometric diamonds.
+    for (let row = 0; row < 18; row++) {
+        for (let col = 0; col < 18; col++) {
+            const x = 68 + col * 48 + (row % 2 ? 24 : 0);
+            const y = 76 + row * 28;
+            if (x < 68 || x > 732 || y < 68 || y > 532) continue;
+            drawIsoDiamond(g, x, y, 24, 14,
+                (row + col) % 2 ? 0x91b974 : 0x7ea764, 0.48, 0xc3dda1);
+        }
+    }
     // Isometric floor seams remain visible around the playable props.
     g.lineStyle(1, 0xd5e8b7, 0.16);
     for (let x = 95; x < 730; x += 48) {
@@ -1106,7 +1116,10 @@ function drawInteriorMap(scene, mapId) {
             g.fillStyle(0x354e31, 0.22).fillRoundedRect(plot.x - 5, plot.y + plot.height + 5, plot.width + 14, 9, 4);
             g.fillStyle(0xc9b778, 1).fillRoundedRect(plot.x - 8, plot.y - 12, plot.width + 16, plot.height + 24, 6);
             g.fillStyle(0xe6d39a, 1).fillRoundedRect(plot.x - 5, plot.y - 9, plot.width + 10, 4, 2);
-            g.fillStyle(0x5a402b, 1).fillRoundedRect(plot.x, plot.y, plot.width, plot.height, 4);
+            // Raised planting bed: darker front edge and highlighted top rim.
+            g.fillStyle(0x493322, 1).fillRoundedRect(plot.x + 2, plot.y + 4, plot.width, plot.height, 4);
+            g.fillStyle(0x6b4b32, 1).fillRoundedRect(plot.x, plot.y, plot.width, plot.height, 4);
+            g.fillStyle(0x9a7650, 0.75).fillRoundedRect(plot.x + 2, plot.y + 1, plot.width - 4, 3, 2);
             for (let row = 1; row <= 3; row++) {
                 g.lineStyle(1, 0x805b3a, 0.75).lineBetween(plot.x + 4, plot.y + row * plot.height / 4, plot.x + plot.width - 4, plot.y + row * plot.height / 4);
             }
@@ -1149,6 +1162,9 @@ function drawInteriorMap(scene, mapId) {
             scene.add.text(400, 378, '🩺 TRẠM HỖ TRỢ · 500 ĐỒNG', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
         } else if (mapId === 'canteen') {
             // Counter with a soft shadow, wood face, cream trim and striped canopy.
+            g.fillStyle(0x29402d, 0.28).fillEllipse(402, 291, 390, 42);
+            g.fillStyle(0x8b633d, 1).fillRoundedRect(216, 218, 368, 66, 10);
+            // Raised counter top with a bright front lip to suggest an isometric block.
             g.fillStyle(0x29402d, 0.28).fillRoundedRect(213, 218, 374, 76, 12);
             g.fillStyle(0xb9955d, 1).fillRoundedRect(216, 199, 368, 82, 12);
             g.fillStyle(0xf1d9a2, 1).fillRoundedRect(220, 202, 360, 72, 9);
