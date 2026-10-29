@@ -380,11 +380,29 @@ function getSessionLeaderboard() {
     id,
     nickname: player.nickname || `Khách (${id.slice(0, 4)})`,
     coins: Number(player.coins) || 0,
-    reputation: Number(player.reputation) || 0
+    reputation: Number(player.reputation) || 0,
+    connected: true
   }));
   const byId = new Map([...archivedLeaderboardPlayers.entries()]);
   connectedPlayers.forEach((entry) => byId.set(entry.id, entry));
-  const leaderboardPlayers = [...byId.values()];
+
+  // Socket IDs change on reconnect, so deduplicate leaderboard rows by normalized nickname.
+  // Keep the best saved score for each category so reconnecting cannot create duplicate rows
+  // or accidentally erase a player's previously recorded high score.
+  const byPlayer = new Map();
+  for (const entry of byId.values()) {
+    const nickname = String(entry.nickname || 'Người chơi').trim();
+    const identity = nickname.normalize('NFKC').toLocaleLowerCase('vi');
+    const current = byPlayer.get(identity);
+    if (!current) {
+      byPlayer.set(identity, { nickname, coins: Number(entry.coins) || 0, reputation: Number(entry.reputation) || 0 });
+      continue;
+    }
+    current.coins = Math.max(current.coins, Number(entry.coins) || 0);
+    current.reputation = Math.max(current.reputation, Number(entry.reputation) || 0);
+    if (entry.connected) current.nickname = nickname;
+  }
+  const leaderboardPlayers = [...byPlayer.values()];
   const byScore = (key) => [...leaderboardPlayers]
     .sort((a, b) => b[key] - a[key] || a.nickname.localeCompare(b.nickname, 'vi'))
     .map(({ nickname, [key]: score }) => ({ nickname, score }));
