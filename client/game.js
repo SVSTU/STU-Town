@@ -925,8 +925,10 @@ function drawCanteenHallOfFame(scene) {
             label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
         });
     };
-    createAward(260, 'reputation', 'DANH TIẾNG', 0xffd166);
-    createAward(540, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
+    // Place awards at the far left and right edges of the full canteen room,
+    // not beside the central counter where they crowd the middle.
+    createAward(120, 'reputation', 'DANH TIẾNG', 0xffd166);
+    createAward(680, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
 }
 
 function drawInteriorMap(scene, mapId) {
