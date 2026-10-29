@@ -493,9 +493,11 @@ async function getServerLeaderboard() {
 function emitSessionLeaderboard() {
   if (!io) return;
   const session = getSessionLeaderboard();
-  io.to('map:khu-c').emit('sessionLeaderboard', { ...session, session, server: serverLeaderboardCache || session });
+  // Ranking data is also used by the canteen hall-of-fame, so publish it to all maps.
+  io.emit('sessionLeaderboard', { ...session, session, server: serverLeaderboardCache || session });
   void getServerLeaderboard().then((server) => {
-    io.to('map:khu-c').emit('sessionLeaderboard', { ...getSessionLeaderboard(), session: getSessionLeaderboard(), server });
+    const currentSession = getSessionLeaderboard();
+    io.emit('sessionLeaderboard', { ...currentSession, session: currentSession, server });
   });
 }
 
