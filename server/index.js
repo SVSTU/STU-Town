@@ -360,6 +360,35 @@ async function recordCanteenSale(id, sale) {
   }
 }
 
+async function getCanteenBestSellingProducts() {
+  if (!isSupabaseConfigured) return [];
+  try {
+    const query = new URLSearchParams({
+      select: 'item_id,total_quantity_sold,total_transactions',
+      order: 'total_quantity_sold.desc',
+      limit: '2'
+    });
+    const rows = await supabaseRequest(`canteen_product_stats?${query}`);
+    return (Array.isArray(rows) ? rows : [])
+      .filter((row) => Object.hasOwn(FOOD_MENU, row.item_id) && Number(row.total_quantity_sold) > 0)
+      .sort((a, b) => Number(b.total_quantity_sold) - Number(a.total_quantity_sold))
+      .slice(0, 2)
+      .map((row) => ({
+        itemId: row.item_id,
+        totalQuantitySold: Number(row.total_quantity_sold) || 0,
+        totalTransactions: Number(row.total_transactions) || 0
+      }));
+  } catch (error) {
+    console.error('Không tải được top vật phẩm bán chạy Căn tin:', error.message);
+    return [];
+  }
+}
+
+async function emitCanteenBestSellingProducts(target = io) {
+  const products = await getCanteenBestSellingProducts();
+  target.emit('canteenBestSellingProducts', products);
+}
+
 io.use(async (socket, next) => {
   try {
     const suppliedToken = socket.handshake.auth?.playerToken;
@@ -983,6 +1012,7 @@ io.on('connection', (socket) => {
     socket.join(`map:${mapId}`);
     socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
     socket.to(`map:${mapId}`).emit('newPlayer', { id: socket.id, ...players[socket.id] });
+    if (mapId === 'canteen') void emitCanteenBestSellingProducts(socket);
     if (mapId === 'khu-c') socket.emit('sessionLeaderboard', getSessionLeaderboard());
     emitSessionLeaderboard();
     if (mapId === 'farm') {
@@ -1234,6 +1264,14 @@ io.on('connection', (socket) => {
       currency,
       totalPrice: cost
     });
+    // Refresh the quick-buy recommendations after a purchase is recorded.
+    void recordCanteenSale(socket.id, {
+      itemId,
+      quantity,
+      unitPrice: item[currency],
+      currency,
+      totalPrice: cost
+    }).then(() => emitCanteenBestSellingProducts(io));
   });
 
   socket.on('buyElevatorTicket', () => {
