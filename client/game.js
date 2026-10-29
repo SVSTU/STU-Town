@@ -1763,20 +1763,38 @@ function renderSessionLeaderboard() {
     });
     const rows = Array.isArray(sessionLeaderboard[activeRankingCategory]) ? sessionLeaderboard[activeRankingCategory] : [];
     list.replaceChildren();
+    if (activeRankingCategory === 'event') {
+        const groups = rows.filter((group) => group && Array.isArray(group.rows));
+        if (!groups.some((group) => group.rows.length)) {
+            const empty = document.createElement('li');
+            empty.textContent = 'Chưa có vật phẩm sự kiện trong túi người chơi.';
+            list.append(empty);
+            return;
+        }
+        groups.forEach((group) => {
+            if (!group.rows.length) return;
+            const heading = document.createElement('li');
+            heading.className = 'session-leaderboard-event-heading';
+            heading.textContent = String(group.label || group.itemId || 'Vật phẩm sự kiện');
+            list.append(heading);
+            group.rows.slice(0, 5).forEach((entry, index) => {
+                const row = document.createElement('li');
+                row.textContent = `${index + 1}. ${String(entry.nickname || 'Người chơi')} · ${(Number(entry.score) || 0).toLocaleString('vi-VN')} cái`;
+                list.append(row);
+            });
+        });
+        return;
+    }
     if (rows.length === 0) {
         const empty = document.createElement('li');
-        empty.textContent = activeRankingCategory === 'event'
-            ? 'Chưa có thành tích sự kiện trong phiên này.'
-            : 'Chưa có người chơi trong phiên.';
+        empty.textContent = 'Chưa có người chơi trong phiên.';
         list.append(empty);
         return;
     }
     rows.slice(0, 10).forEach((entry, index) => {
         const row = document.createElement('li');
         const score = Number(entry.score) || 0;
-        const unit = activeRankingCategory === 'reputation' ? 'danh tiếng'
-            : activeRankingCategory === 'coins' ? 'tiền đồng'
-                : String(entry.unit || 'bí ngô Halloween');
+        const unit = activeRankingCategory === 'reputation' ? 'danh tiếng' : 'tiền đồng';
         row.textContent = `${index + 1}. ${String(entry.nickname || 'Người chơi')} · ${score.toLocaleString('vi-VN')} ${unit}`;
         list.append(row);
     });
