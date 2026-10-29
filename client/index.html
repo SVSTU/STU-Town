@@ -134,6 +134,10 @@
             <button type="button" id="session-leaderboard-toggle" aria-label="Thu gọn bảng xếp hạng" aria-expanded="true">−</button>
         </header>
         <div id="session-leaderboard-content">
+            <div class="session-leaderboard-scopes" role="group" aria-label="Phạm vi bảng xếp hạng">
+                <button type="button" data-scope="server" aria-pressed="true">Toàn server</button>
+                <button type="button" data-scope="session" aria-pressed="false">Phiên hiện tại</button>
+            </div>
             <div class="session-leaderboard-tabs" role="tablist" aria-label="Phân loại bảng xếp hạng">
                 <button type="button" role="tab" data-ranking="reputation" aria-selected="true">Danh tiếng</button>
                 <button type="button" role="tab" data-ranking="coins" aria-selected="false">Tiền đồng</button>
