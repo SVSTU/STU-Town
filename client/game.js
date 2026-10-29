@@ -902,37 +902,35 @@ function openCanteenRanking(category) {
 }
 
 function drawCanteenHallOfFame(scene) {
-    // Restore the two TOP 1 awards; clicking either opens the full ranking.
+    // Keep the TOP 1 information visible above each counter, and put quick-buy
+    // controls directly on the two brown counter surfaces.
     const createAward = (x, category, title, color) => {
-        const frame = scene.add.rectangle(x, 310, 170, 32, 0x243b2d, 0.98)
-            .setDepth(-8).setStrokeStyle(2, color).setInteractive({ useHandCursor: true });
-        const heading = scene.add.text(x, 278, `🏆 TOP 1 ${title}`, {
-            font: 'bold 13px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 174 }, padding: { x: 2, y: 2 }
+        const heading = scene.add.text(x, 263, `🏆 TOP 1 ${title}`, {
+            font: 'bold 12px Arial', color: '#ffffff', align: 'center',
+            wordWrap: { width: 172 }, padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
         const top = getServerRankingRows(category)[0];
-        const winner = scene.add.text(x, 310, top ? String(top.nickname || 'Người chơi') : 'Chưa có dữ liệu', {
-            font: 'bold 12px Arial', color: '#ffffff', align: 'center',
-            wordWrap: { width: 156 }, padding: { x: 3, y: 3 }
+        const winner = scene.add.text(x, 288, top
+            ? `${String(top.nickname || 'Người chơi')} · ${(Number(top.score) || 0).toLocaleString('vi-VN')}`
+            : 'Chưa có dữ liệu', {
+            font: 'bold 11px Arial', color: '#ffffff', align: 'center',
+            wordWrap: { width: 170 }, padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(-7).setInteractive({ useHandCursor: true });
-        winner.setData('canteenAwardCategory', category);
         const open = () => openCanteenRanking(category);
-        frame.on('pointerdown', open);
         heading.on('pointerdown', open);
         winner.on('pointerdown', open);
         [heading, winner].forEach((label) => {
-            label.on('pointerover', () => label.setStyle({ color: '#ffe08a' }));
+            label.on('pointerover', () => label.setStyle({ color }));
             label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
         });
     };
 
-    // Quick-buy buttons sit directly on the two brown counters below.
     const createFoodButton = (x, itemId, color) => {
         const food = FOOD_INFO[itemId];
         if (!food) return;
-        const frame = scene.add.rectangle(x, 365, 100, 50, 0x806a48, 0.98)
+        const frame = scene.add.rectangle(x, 331, 100, 48, 0x806a48, 0.98)
             .setDepth(-7).setStrokeStyle(2, color).setInteractive({ useHandCursor: true });
-        const label = scene.add.text(x, 365, `${food.icon} ${food.name}\n${food.coins.toLocaleString('vi-VN')} tiền đồng`, {
+        const label = scene.add.text(x, 331, `${food.icon} ${food.name}\n${food.coins.toLocaleString('vi-VN')} tiền đồng`, {
             font: 'bold 12px Arial', color: '#ffffff', align: 'center',
             wordWrap: { width: 94 }, padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(-6);
@@ -952,10 +950,10 @@ function drawCanteenHallOfFame(scene) {
         label.on('pointerout', () => label.setStyle({ color: '#ffffff' }));
     };
 
-    createAward(260, 'reputation', 'DANH TIẾNG', 0xffd166);
-    createAward(540, 'coins', 'TIỀN ĐỒNG', 0x9ed2ff);
-    createFoodButton(300, 'bread', 0xffd166);
-    createFoodButton(500, 'water', 0x9ed2ff);
+    createAward(260, 'reputation', 'DANH TIẾNG', '#ffd166');
+    createAward(460, 'coins', 'TIỀN ĐỒNG', '#9ed2ff');
+    createFoodButton(260, 'bread', 0xffd166);
+    createFoodButton(460, 'water', 0x9ed2ff);
 }
 
 function drawInteriorMap(scene, mapId) {
