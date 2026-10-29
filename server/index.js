@@ -297,7 +297,8 @@ function getPersistentPlayerSnapshot(id) {
     stats: {
       hunger: clampStat(player.stats.hunger),
       strength: clampStat(player.stats.strength),
-      fatigue: clampStat(player.stats.fatigue)
+      fatigue: clampStat(player.stats.fatigue),
+      nickname: String(player.nickname || '').replace(/[\\u0000-\\u001f\\u007f]/g, '').trim().slice(0, 24)
     },
     inventory,
     farm_plant_count: Math.max(0, Math.floor(Number(player.farmPlantCount) || 0)),
@@ -377,7 +378,11 @@ function emitPlayerState(id) {
 
 function getSessionLeaderboard() {
   // Stable identity is the stored player token hash, never the display nickname.
-  const leaderboardByPlayerId = new Map(archivedLeaderboardPlayers.entries());
+  // Only stable token hashes belong in the archive. Ignore legacy Socket.IO IDs
+  // from older code, otherwise a reconnect can show the same player twice.
+  const leaderboardByPlayerId = new Map(
+    [...archivedLeaderboardPlayers.entries()].filter(([id]) => /^[a-f0-9]{64}$/i.test(String(id)))
+  );
   for (const [socketId, player] of Object.entries(players)) {
     const playerSocket = io.sockets.sockets.get(socketId);
     const persistentId = playerSocket?.data?.playerTokenHash || socketId;
@@ -426,7 +431,7 @@ async function getServerLeaderboard() {
   if (serverLeaderboardRequest) return serverLeaderboardRequest;
   serverLeaderboardRequest = (async () => {
     const query = new URLSearchParams({
-      select: 'token_hash,coins,reputation,inventory',
+      select: 'token_hash,coins,reputation,stats,inventory',
       order: 'reputation.desc',
       limit: '1000'
     });
@@ -436,7 +441,7 @@ async function getServerLeaderboard() {
       if (!row?.token_hash) continue;
       byId.set(row.token_hash, {
         id: row.token_hash,
-        nickname: `Người chơi ${String(row.token_hash).slice(0, 6)}`,
+        nickname: String(row.stats?.nickname || '').trim() || `Người chơi ${String(row.token_hash).slice(0, 6)}`,
         coins: Number(row.coins) || 0,
         reputation: Number(row.reputation) || 0,
         items: { ...(row.inventory?.items || {}) }
@@ -1457,6 +1462,10 @@ io.on('connection', (socket) => {
     const avatar = profile.avatar === null ? null : isValidAvatar(profile.avatar) ? profile.avatar : players[socket.id].avatar;
     players[socket.id].nickname = nickname;
     players[socket.id].avatar = avatar;
+    // Store the display name inside the existing JSON stats column, avoiding a schema migration.
+    schedulePlayerSave(socket.id);
+    serverLeaderboardCache = null;
+    serverLeaderboardCacheExpiresAt = 0;
     io.to(`map:${players[socket.id].mapId}`).emit('playerProfileUpdated', { id: socket.id, nickname, avatar });
     emitSessionLeaderboard();
   });
