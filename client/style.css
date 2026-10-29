@@ -1,17 +1,43 @@
+:root {
+    color-scheme: dark;
+    --stu-forest: #183528;
+    --stu-leaf: #91c879;
+    --stu-cream: #f4e9c9;
+    --stu-gold: #ffd166;
+    --stu-cyan: #55d9e8;
+}
+* { box-sizing: border-box; }
 body {
     margin: 0;
-    background: #1a1a1a;
+    background:
+        radial-gradient(ellipse at 50% 42%, rgba(104, 151, 91, 0.22), transparent 55%),
+        linear-gradient(135deg, #0e211a 0%, #1c3528 48%, #101e19 100%);
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     font-family: Arial, sans-serif;
 }
 canvas {
-    border: 2px solid #555;
-    border-radius: 8px;
+    border: 2px solid rgba(225, 239, 202, 0.75);
+    border-radius: 14px;
+    box-shadow:
+        0 0 0 5px rgba(13, 35, 25, 0.52),
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 0 28px rgba(145, 200, 121, 0.12);
     cursor: pointer;
+}
+button, input, select, textarea { font: inherit; }
+button {
+    transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+button:hover { filter: brightness(1.1); }
+button:active { transform: translateY(1px); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--stu-gold);
+    outline-offset: 2px;
 }
 
 #environment-hud { position: fixed; z-index: 8; display: grid; gap: 3px; min-width: 160px; max-width: min(240px, calc(100vw - 24px)); padding: 8px 10px; transform: translate(-100%, -100%); border: 1px solid rgba(202, 221, 191, 0.55); border-radius: 8px; background: rgba(17, 28, 22, 0.88); color: #eff5e9; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); font-size: 12px; pointer-events: auto; }
@@ -603,3 +629,47 @@ canvas {
 .canteen-ranking-dialog li span { margin-right: 8px; }
 .canteen-ranking-dialog li strong { float: right; color: #ffe08a; text-align: right; }
 .canteen-ranking-dialog p { margin: 12px 0 0; color: #b8c8b2; font-size: 12px; }
+
+
+/* STU-Town visual polish: consistent glassy campus panels and softer controls. */
+#chat-container,
+#session-leaderboard,
+#halloween-leaderboard,
+#interaction-hud,
+#environment-hud {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+#chat-container {
+    border: 1px solid rgba(206, 232, 185, 0.28);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+#chat-header {
+    border-radius: 7px;
+}
+#chat-submit,
+#private-chat-form button,
+#profile-submit {
+    border: 1px solid rgba(255, 209, 102, 0.65);
+    border-radius: 7px;
+    background: linear-gradient(180deg, #668f4f, #3f6d3e);
+    color: #fff8e5;
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+#chat-submit:hover,
+#private-chat-form button:hover,
+#profile-submit:hover {
+    background: linear-gradient(180deg, #7eaa61, #4b7d47);
+}
+#chat-input,
+#private-chat-input,
+#private-recipient,
+#nickname-input {
+    border: 1px solid rgba(174, 205, 151, 0.38);
+    border-radius: 7px;
+}
+@media (max-width: 600px) {
+    canvas { border-radius: 8px; }
+    #chat-container { left: 8px; bottom: 8px; max-width: calc(100vw - 16px); }
+}
