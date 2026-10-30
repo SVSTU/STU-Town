@@ -1,8 +1,10 @@
 let pendingGameConfirmation = null;
+let gameConfirmationLocked = false;
 
 function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
     const modal = document.getElementById('game-confirm-modal');
-    if (!modal || modal.dataset.open === 'true') return;
+    if (!modal || gameConfirmationLocked || modal.dataset.open === 'true' || !modal.hidden) return false;
+    gameConfirmationLocked = true;
 
     // Keep the dialog outside Phaser's transformed/scaled game container.
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
@@ -18,12 +20,14 @@ function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có c
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     modal.style.display = 'grid';
+    return true;
 }
 function closeGameConfirmation(accepted = false) {
     const modal = document.getElementById('game-confirm-modal');
     const acceptButton = document.getElementById('game-confirm-accept');
     if (!modal || modal.dataset.open !== 'true') return;
     modal.dataset.open = 'false';
+    gameConfirmationLocked = false;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     modal.style.display = 'none';
@@ -543,21 +547,24 @@ function create() {
             else zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
             renderZoneServices(currentMapId);
         } else if (action === 'submit-trade') {
+            event.preventDefault();
+            event.stopPropagation();
+            if (gameConfirmationLocked || !socket.connected) return;
             syncTradeDraftFromForm();
-            if (!socket.connected) return;
-            const crop = CROP_INFO[zoneServiceView.cropKey];
-            const isBuying = zoneServiceView.tradeAction === 'buy-seed';
-            const total = (Number(crop?.price) || 0) * zoneServiceView.quantity;
-            requestGameConfirmation({
+            const tradeAction = zoneServiceView.tradeAction;
+            const cropKey = zoneServiceView.cropKey;
+            const quantity = zoneServiceView.quantity;
+            const crop = CROP_INFO[cropKey];
+            if (!crop || !Number.isInteger(quantity) || quantity < 1) return;
+            const isBuying = tradeAction === 'buy-seed';
+            const total = (Number(crop.price) || 0) * quantity;
+            const opened = requestGameConfirmation({
                 title: isBuying ? 'Xác nhận mua hạt giống' : 'Xác nhận bán nông sản',
-                message: `${isBuying ? 'Bạn sẽ thanh toán' : 'Bạn sẽ nhận được'} ${total.toLocaleString('vi-VN')} tiền đồng cho ${zoneServiceView.quantity} ${crop?.name || 'vật phẩm'}. Tiếp tục?`,
+                message: `${isBuying ? 'Bạn sẽ thanh toán' : 'Bạn sẽ nhận được'} ${total.toLocaleString('vi-VN')} tiền đồng cho ${quantity} ${crop.name}. Tiếp tục?`,
                 confirmText: isBuying ? 'Xác nhận mua' : 'Xác nhận bán',
-                onConfirm: () => socket.emit('farmShopAction', {
-                    action: zoneServiceView.tradeAction,
-                    cropKey: zoneServiceView.cropKey,
-                    quantity: zoneServiceView.quantity
-                })
+                onConfirm: () => socket.emit('farmShopAction', { action: tradeAction, cropKey, quantity })
             });
+            if (opened) button.disabled = true;
         } else if (action === 'confirm-heal') {
             if (!socket.connected) return;
             requestGameConfirmation({
@@ -575,7 +582,7 @@ function create() {
             // Consume this UI action once; socket/stat updates must not reopen the dialog.
             event.preventDefault();
             event.stopPropagation();
-            if (button.dataset.confirmPending === 'true' || document.getElementById('game-confirm-modal')?.dataset.open === 'true') return;
+            if (gameConfirmationLocked || button.dataset.confirmPending === 'true') return;
             syncFoodDraftFromForm();
             if (!socket.connected) return;
             const itemId = zoneServiceView.itemId;
@@ -588,17 +595,15 @@ function create() {
             const currencyLabel = currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
             button.dataset.confirmPending = 'true';
             button.disabled = true;
-            requestGameConfirmation({
+            const opened = requestGameConfirmation({
                 title: 'Xác nhận mua tại căn tin',
                 message: `Mua ${quantity} ${item.name} với tổng ${total.toLocaleString('vi-VN')} ${currencyLabel}?`,
                 confirmText: 'Xác nhận mua',
                 onConfirm: () => {
                     if (socket.connected) socket.emit('canteenPurchase', { itemId, currency, quantity });
-                    button.dataset.confirmPending = 'false';
-                    button.disabled = false;
                 }
             });
-            if (document.getElementById('game-confirm-modal')?.dataset.open !== 'true') {
+            if (!opened) {
                 button.dataset.confirmPending = 'false';
                 button.disabled = false;
             }
