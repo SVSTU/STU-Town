@@ -494,10 +494,6 @@ function create() {
     document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
     document.getElementById('announcements-zoom-out').addEventListener('click', () => setAnnouncementZoom(announcementZoom - 0.1));
     document.getElementById('announcements-zoom-in').addEventListener('click', () => setAnnouncementZoom(announcementZoom + 0.1));
-    document.getElementById('zone-service-close').addEventListener('click', () => {
-        zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
-        renderZoneServices(currentMapId);
-    });
     document.querySelectorAll('[data-collapse-panel]').forEach((button) => {
         button.addEventListener('click', () => {
             const panel = document.getElementById(button.dataset.collapsePanel);
