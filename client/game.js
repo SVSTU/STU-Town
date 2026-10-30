@@ -106,6 +106,7 @@ function create() {
     console.log("SCENE CREATED SUCCESSFULLY!");
 
     cursors = sceneRef.input.keyboard.createCursorKeys();
+    bindMobileMovementControls();
 
     ['chat-input', 'private-chat-input'].forEach((id) => {
         const input = document.getElementById(id);
