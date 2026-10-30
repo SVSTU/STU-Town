@@ -506,6 +506,49 @@ function drawInteriorMap(scene, mapId) {
         drawFarmPlots(scene);
     } else farmGraphics = null;
     if (mapId.startsWith('halloween:')) drawHalloweenMap(scene);
+
+    // A glowing spiral is the single, in-world exit for every interior map.
+    // It replaces the fixed DOM back button and remains at a consistent corner.
+    const exitVortex = scene.add.container(690, 475).setDepth(20);
+    const vortexGlow = scene.add.graphics();
+    vortexGlow.fillStyle(0x70eaff, 0.16).fillCircle(0, 0, 39);
+    vortexGlow.lineStyle(3, 0x9cf5ff, 0.9).strokeCircle(0, 0, 29);
+    vortexGlow.lineStyle(2, 0xffffff, 0.8).strokeCircle(0, 0, 21);
+    vortexGlow.lineStyle(4, 0x54d8ff, 0.95);
+    vortexGlow.beginPath();
+    vortexGlow.arc(0, 0, 14, 0.25, Math.PI * 1.75, false);
+    vortexGlow.strokePath();
+    vortexGlow.fillStyle(0xffffff, 0.95).fillCircle(0, 0, 4);
+    const vortexLabel = scene.add.text(0, 48, 'THOÁT MAP', {
+        font: 'bold 11px Arial', color: '#ffffff',
+        backgroundColor: '#174b68dd', padding: { x: 7, y: 4 }
+    }).setOrigin(0.5);
+    exitVortex.add([vortexGlow, vortexLabel]);
+    exitVortex.setSize(88, 92).setInteractive(
+        new Phaser.Geom.Circle(0, 0, 42),
+        Phaser.Geom.Circle.Contains
+    );
+    exitVortex.on('pointerdown', () => {
+        if (currentMapId !== 'campus' && socket?.connected) socket.emit('returnToCampus');
+    });
+    exitVortex.on('pointerover', () => exitVortex.setScale(1.12));
+    exitVortex.on('pointerout', () => exitVortex.setScale(1));
+    scene.tweens.add({
+        targets: vortexGlow,
+        angle: 360,
+        alpha: { from: 0.72, to: 1 },
+        duration: 2600,
+        ease: 'Linear',
+        repeat: -1
+    });
+    scene.tweens.add({
+        targets: exitVortex,
+        scale: { from: 0.96, to: 1.05 },
+        duration: 1100,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1
+    });
     mapObjects = scene.children.list.slice(firstMapChild);
 }
 
@@ -544,8 +587,7 @@ function switchMapVisuals(mapId) {
     campusBenchGraphics = null;
     if (mapId === 'campus') drawCampusMap(sceneRef);
     else drawInteriorMap(sceneRef, mapId);
-    document.getElementById('map-exit').hidden = mapId === 'campus';
-    document.getElementById('map-exit').textContent = mapId.startsWith('halloween:') ? '← Trở về Căng tin' : '← Trở về sân trường';
+    document.getElementById('map-exit').hidden = true;
     document.getElementById('announcements-panel').hidden = mapId !== 'auditorium';
     document.getElementById('interaction-hud').hidden = true;
     document.getElementById('farm-seed-picker').hidden = true;
