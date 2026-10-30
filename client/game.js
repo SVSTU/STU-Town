@@ -1468,7 +1468,9 @@ function renderEnvironmentOverlay(time, delta) {
         || (code >= 80 && code <= 82) || code >= 95;
     const isStorm = code >= 95;
     const isFog = code === 45 || code === 48;
-    const mapCanShowWeather = ['campus', 'sports', 'fountain', 'farm'].includes(currentMapId);
+    // Only these maps are physically outdoors. Indoor maps still receive the
+    // global day/night lighting, but never clouds, rain, puddles or fog.
+    const isOutdoorMap = ['campus', 'sports', 'fountain', 'farm'].includes(currentMapId);
 
     // Stable pseudo-random values: natural-looking variation without flicker
     // from generating fresh random positions on every animation frame.
@@ -1481,7 +1483,7 @@ function renderEnvironmentOverlay(time, delta) {
         const moon = getLocalMoonIllumination(new Date());
         const darkness = 0.43 - moon * 0.17;
         environmentOverlay.fillStyle(0x101a39, darkness).fillRect(0, 0, 800, 600);
-        if (mapCanShowWeather && moon > 0.18) {
+        if (isOutdoorMap && moon > 0.18) {
             environmentOverlay.fillStyle(0xe4edff, 0.025 + moon * 0.035).fillRect(0, 0, 800, 600);
         }
     } else {
@@ -1489,12 +1491,14 @@ function renderEnvironmentOverlay(time, delta) {
         if (sunlight > 0.015) {
             environmentOverlay.fillStyle(0xffe6a1, sunlight).fillRect(0, 0, 800, 600);
         }
-        if (cloudCover >= 35) {
+        if (isOutdoorMap && cloudCover >= 35) {
             // Each cloud shadow gets its own random starting point, shape,
             // drift vector and speed. Shadows wrap independently at the edges.
             const count = Math.ceil(cloudCover / 12);
             const elapsed = time / 1000;
             for (let index = 0; index < count; index++) {
+                // The same seed is shared by all outdoor maps so the cloud field
+                // feels continuous when players move between connected areas.
                 const seed = index + 1;
                 const speed = 5 + randomAt(seed * 4) * 13;
                 const direction = randomAt(seed * 7) > 0.5 ? 1 : -1;
@@ -1518,7 +1522,7 @@ function renderEnvironmentOverlay(time, delta) {
         }
     }
 
-    if (!mapCanShowWeather) return;
+    if (!isOutdoorMap) return;
     if (isFog) {
         environmentOverlay.fillStyle(0xcbd7d4, 0.12).fillRect(0, 0, 800, 600);
         const elapsed = time / 1000;
