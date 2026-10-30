@@ -456,6 +456,23 @@ function create() {
         socket.emit('sendPlayerEmote', button.dataset.playerEmote);
     });
 
+    document.getElementById('zone-service-close').addEventListener('click', () => {
+        zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
+        renderZoneServices(currentMapId);
+    });
+    document.getElementById('zone-service-panel').addEventListener('click', (event) => {
+        if (event.target.id === 'zone-service-panel') {
+            zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
+            renderZoneServices(currentMapId);
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        const panel = document.getElementById('zone-service-panel');
+        if (event.key === 'Escape' && panel && !panel.hidden) {
+            zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
+            renderZoneServices(currentMapId);
+        }
+    });
     document.getElementById('game-confirm-cancel').addEventListener('click', () => closeGameConfirmation(false));
     document.getElementById('game-confirm-accept').addEventListener('click', () => closeGameConfirmation(true));
     document.getElementById('game-confirm-modal').addEventListener('click', (event) => {
