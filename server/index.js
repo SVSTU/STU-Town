@@ -804,6 +804,8 @@ function ensureHalloweenProgress(id) {
   if (!halloweenProgress.has(id)) {
     halloweenProgress.set(id, {
       opened: new Set(), pumpkinFound: false, pendingPumpkins: 0, openedCount: 0,
+      // Each successful stage starts at one pumpkin and grows to five until a spider resets it.
+      stagePumpkinCount: 1,
       pumpkinBox: Math.floor(Math.random() * HALLOWEEN_BOX_COUNT)
     });
   }
@@ -1322,20 +1324,20 @@ io.on('connection', (socket) => {
     const statNames = { hunger: 'đói', strength: 'sức mạnh', fatigue: 'mệt' };
     let message = `Mở hộp ${boxIndex + 1}.`;
     if (progress.openedCount % 4 === 0) {
-      const effect = Math.floor(Math.random() * 3);
-      if (effect === 2) {
-        player.stats.fatigue = clampStat(player.stats.fatigue + 1);
-        message += ' Đủ 4 lượt mở hộp: độ mệt +1.';
-      } else {
-        const statKey = effect === 0 ? 'hunger' : 'strength';
-        player.stats[statKey] = clampStat(player.stats[statKey] - 1);
-        message += ` Đủ 4 lượt mở hộp: ${statNames[statKey]} −1.`;
-      }
+      const statKey = statKeys[Math.floor(Math.random() * statKeys.length)];
+      const amount = 1 + Math.floor(Math.random() * 3);
+      // Hunger/strength gain is helpful; fatigue going down is helpful.
+      const increase = Math.random() < 0.5;
+      const delta = statKey === 'fatigue' ? (increase ? amount : -amount) : (increase ? amount : -amount);
+      player.stats[statKey] = clampStat(player.stats[statKey] + delta);
+      const direction = delta > 0 ? '+' : '−';
+      message += ` Đủ 4 lượt mở hộp: ${statNames[statKey]} ${direction}${amount} (ngẫu nhiên).`;
     }
     let foundPumpkin = false;
     if (!progress.pumpkinFound && progress.pumpkinBox === boxIndex) {
       progress.pumpkinFound = true;
-      progress.pendingPumpkins = (Number(progress.pendingPumpkins) || 0) + 1;
+      const stageReward = Math.max(1, Math.min(5, Number(progress.stagePumpkinCount) || 1));
+      progress.pendingPumpkins = (Number(progress.pendingPumpkins) || 0) + stageReward;
       foundPumpkin = true;
       const finder = halloweenFinders.get(socket.id) || {
         nickname: player.nickname || `Khách (${socket.id.slice(0, 4)})`, id: socket.id, count: 0, foundAt: Date.now()
@@ -1372,15 +1374,17 @@ io.on('connection', (socket) => {
       progress.opened.clear();
       progress.pumpkinFound = false;
       progress.pendingPumpkins = 0;
+      progress.stagePumpkinCount = 1;
       progress.pumpkinBox = Math.floor(Math.random() * HALLOWEEN_BOX_COUNT);
-      message += ' Các chỉ số còn trên 0; bản đồ đã làm mới với 50 hộp mới.';
+      message += ' Nhện làm mới màn; phần thưởng bí ngô trở về 1 quả. Bản đồ có 50 hộp mới.';
     }
     if (foundPumpkin && !spiderStolePumpkin) {
       // Finding the pumpkin immediately starts a fresh stage; unopened boxes are discarded.
       progress.opened.clear();
       progress.pumpkinFound = false;
+      progress.stagePumpkinCount = Math.min(5, (Number(progress.stagePumpkinCount) || 1) + 1);
       progress.pumpkinBox = Math.floor(Math.random() * HALLOWEEN_BOX_COUNT);
-      message += ' Màn mới đã được tạo tự động với 50 hộp quà mới!';
+      message += ` Màn mới đã được tạo tự động; bí ngô màn tiếp theo: ${progress.stagePumpkinCount}/5 quả.`;
     }
     socket.emit('halloweenState', { opened: [...progress.opened], total: HALLOWEEN_BOX_COUNT });
     socket.emit('halloweenBoxResult', { message, foundPumpkin, spider: spiderAppeared, spiderStolePumpkin });
