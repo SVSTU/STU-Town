@@ -490,6 +490,7 @@ function create() {
     document.querySelectorAll('[data-confirm-dialog]').forEach((modal) => {
         const dialogId = modal.id;
         modal.querySelector(`#${dialogId}-cancel`).addEventListener('click', () => closeGameConfirmation(dialogId, false));
+        modal.querySelector(`#${dialogId}-close`).addEventListener('click', () => closeGameConfirmation(dialogId, false));
         modal.querySelector(`#${dialogId}-accept`).addEventListener('click', (event) => {
             const button = event.currentTarget;
             if (button.disabled) return;
@@ -500,11 +501,7 @@ function create() {
             modal.addEventListener(type, (event) => event.stopPropagation());
         });
     });
-    document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        const dialogId = openGameConfirmations.values().next().value;
-        if (dialogId) closeGameConfirmation(dialogId, false);
-    });
+    // Confirmation dialogs stay visible until the user explicitly chooses Cancel, Close, or Confirm.
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
     document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
