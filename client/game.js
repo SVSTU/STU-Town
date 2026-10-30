@@ -1,42 +1,38 @@
-let pendingGameConfirmation = null;
-let gameConfirmationLocked = false;
+const pendingGameConfirmations = new Map();
+const openGameConfirmations = new Set();
 
-function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
-    const modal = document.getElementById('game-confirm-modal');
-    if (!modal || gameConfirmationLocked || modal.dataset.open === 'true' || !modal.hidden) return false;
-    gameConfirmationLocked = true;
-
-    // Keep the dialog outside Phaser's transformed/scaled game container.
+function requestGameConfirmation({ dialogId, title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
+    const modal = document.getElementById(dialogId);
+    if (!modal || openGameConfirmations.has(dialogId) || modal.dataset.open === 'true' || !modal.hidden) return false;
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
-
-    pendingGameConfirmation = typeof onConfirm === 'function' ? onConfirm : null;
-    document.getElementById('game-confirm-title').textContent = title;
-    document.getElementById('game-confirm-message').textContent = message;
-    const acceptButton = document.getElementById('game-confirm-accept');
+    pendingGameConfirmations.set(dialogId, typeof onConfirm === 'function' ? onConfirm : null);
+    document.getElementById(`${dialogId}-title`).textContent = title;
+    document.getElementById(`${dialogId}-message`).textContent = message;
+    const acceptButton = document.getElementById(`${dialogId}-accept`);
     acceptButton.textContent = confirmText;
     acceptButton.disabled = false;
-
+    openGameConfirmations.add(dialogId);
     modal.dataset.open = 'true';
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     modal.style.display = 'grid';
     return true;
 }
-function closeGameConfirmation(accepted = false) {
-    const modal = document.getElementById('game-confirm-modal');
-    const acceptButton = document.getElementById('game-confirm-accept');
-    if (!modal || modal.dataset.open !== 'true') return;
+
+function closeGameConfirmation(dialogId, accepted = false) {
+    const modal = document.getElementById(dialogId);
+    if (!modal || !openGameConfirmations.has(dialogId) || modal.dataset.open !== 'true') return;
+    openGameConfirmations.delete(dialogId);
     modal.dataset.open = 'false';
-    gameConfirmationLocked = false;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     modal.style.display = 'none';
+    const acceptButton = document.getElementById(`${dialogId}-accept`);
     if (acceptButton) acceptButton.disabled = false;
-    const callback = pendingGameConfirmation;
-    pendingGameConfirmation = null;
+    const callback = pendingGameConfirmations.get(dialogId);
+    pendingGameConfirmations.delete(dialogId);
     if (accepted && callback) callback();
 }
-
 console.log("GAME STARTING...");
 
 let profile = loadProfile();
@@ -491,21 +487,23 @@ function create() {
             renderZoneServices(currentMapId);
         }
     });
-    document.getElementById('game-confirm-cancel').addEventListener('click', () => closeGameConfirmation(false));
-    document.getElementById('game-confirm-accept').addEventListener('click', () => {
-        const button = document.getElementById('game-confirm-accept');
-        if (button.disabled) return;
-        button.disabled = true;
-        closeGameConfirmation(true);
-    });
-    const gameConfirmModal = document.getElementById('game-confirm-modal');
-    ['pointerdown', 'pointerup', 'click', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach((type) => {
-        gameConfirmModal.addEventListener(type, (event) => {
-            event.stopPropagation();
+    document.querySelectorAll('[data-confirm-dialog]').forEach((modal) => {
+        const dialogId = modal.id;
+        modal.querySelector(`#${dialogId}-cancel`).addEventListener('click', () => closeGameConfirmation(dialogId, false));
+        modal.querySelector(`#${dialogId}-accept`).addEventListener('click', (event) => {
+            const button = event.currentTarget;
+            if (button.disabled) return;
+            button.disabled = true;
+            closeGameConfirmation(dialogId, true);
+        });
+        ['pointerdown', 'pointerup', 'click', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach((type) => {
+            modal.addEventListener(type, (event) => event.stopPropagation());
         });
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !document.getElementById('game-confirm-modal').hidden) closeGameConfirmation(false);
+        if (event.key !== 'Escape') return;
+        const dialogId = openGameConfirmations.values().next().value;
+        if (dialogId) closeGameConfirmation(dialogId, false);
     });
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
@@ -556,6 +554,7 @@ function create() {
             const isBuying = tradeAction === 'buy-seed';
             const total = (Number(crop.price) || 0) * quantity;
             const opened = requestGameConfirmation({
+                dialogId: 'merchant-confirm-modal',
                 title: isBuying ? 'Xác nhận mua hạt giống' : 'Xác nhận bán nông sản',
                 message: `${isBuying ? 'Bạn sẽ thanh toán' : 'Bạn sẽ nhận được'} ${total.toLocaleString('vi-VN')} tiền đồng cho ${quantity} ${crop.name}. Tiếp tục?`,
                 confirmText: isBuying ? 'Xác nhận mua' : 'Xác nhận bán',
@@ -565,6 +564,7 @@ function create() {
         } else if (action === 'confirm-heal') {
             if (!socket.connected) return;
             requestGameConfirmation({
+                dialogId: 'recovery-confirm-modal',
                 title: 'Xác nhận hồi phục',
                 message: 'Sử dụng trạm hồi phục với chi phí 500 tiền đồng?',
                 confirmText: 'Xác nhận sử dụng',
@@ -593,6 +593,7 @@ function create() {
             button.dataset.confirmPending = 'true';
             button.disabled = true;
             const opened = requestGameConfirmation({
+                dialogId: 'canteen-confirm-modal',
                 title: 'Xác nhận mua tại căn tin',
                 message: `Mua ${quantity} ${item.name} với tổng ${total.toLocaleString('vi-VN')} ${currencyLabel}?`,
                 confirmText: 'Xác nhận mua',
