@@ -172,13 +172,33 @@
             <div id="wallet-summary"></div>
         </div>
     </section>
-    <section id="game-confirm-modal" class="game-confirm-modal" hidden role="dialog" aria-modal="true" aria-labelledby="game-confirm-title">
+    <section id="canteen-confirm-modal" class="game-confirm-modal" data-confirm-dialog hidden role="dialog" aria-modal="true" aria-labelledby="canteen-confirm-modal-title">
         <div class="game-confirm-card">
-            <h2 id="game-confirm-title">Xác nhận</h2>
-            <p id="game-confirm-message"></p>
+            <h2 id="canteen-confirm-modal-title">Xác nhận mua tại căn tin</h2>
+            <p id="canteen-confirm-modal-message"></p>
             <div class="game-confirm-actions">
-                <button type="button" id="game-confirm-cancel" class="game-confirm-cancel">Hủy</button>
-                <button type="button" id="game-confirm-accept" class="game-confirm-accept">Đồng ý</button>
+                <button type="button" id="canteen-confirm-modal-cancel" class="game-confirm-cancel">Hủy</button>
+                <button type="button" id="canteen-confirm-modal-accept" class="game-confirm-accept">Đồng ý</button>
+            </div>
+        </div>
+    </section>
+    <section id="merchant-confirm-modal" class="game-confirm-modal" data-confirm-dialog hidden role="dialog" aria-modal="true" aria-labelledby="merchant-confirm-modal-title">
+        <div class="game-confirm-card">
+            <h2 id="merchant-confirm-modal-title">Xác nhận giao dịch thương nhân</h2>
+            <p id="merchant-confirm-modal-message"></p>
+            <div class="game-confirm-actions">
+                <button type="button" id="merchant-confirm-modal-cancel" class="game-confirm-cancel">Hủy</button>
+                <button type="button" id="merchant-confirm-modal-accept" class="game-confirm-accept">Đồng ý</button>
+            </div>
+        </div>
+    </section>
+    <section id="recovery-confirm-modal" class="game-confirm-modal" data-confirm-dialog hidden role="dialog" aria-modal="true" aria-labelledby="recovery-confirm-modal-title">
+        <div class="game-confirm-card">
+            <h2 id="recovery-confirm-modal-title">Xác nhận hồi phục</h2>
+            <p id="recovery-confirm-modal-message"></p>
+            <div class="game-confirm-actions">
+                <button type="button" id="recovery-confirm-modal-cancel" class="game-confirm-cancel">Hủy</button>
+                <button type="button" id="recovery-confirm-modal-accept" class="game-confirm-accept">Đồng ý</button>
             </div>
         </div>
     </section>
