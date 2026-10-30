@@ -525,11 +525,19 @@ function drawInteriorMap(scene, mapId) {
     }).setOrigin(0.5);
     exitVortex.add([vortexGlow, vortexLabel]);
     exitVortex.setSize(88, 92).setInteractive(
-        new Phaser.Geom.Circle(0, 0, 42),
+        // Container hit areas are measured from the top-left of its bounds,
+        // not from its local origin. Center the circle inside the 88x92 area.
+        new Phaser.Geom.Circle(44, 46, 44),
         Phaser.Geom.Circle.Contains
     );
+    exitVortex.input.cursor = 'pointer';
     exitVortex.on('pointerdown', () => {
-        if (currentMapId !== 'campus' && socket?.connected) socket.emit('returnToCampus');
+        if (currentMapId === 'campus') return;
+        if (!socket?.connected) {
+            showToast('Mất kết nối máy chủ. Vui lòng thử lại.');
+            return;
+        }
+        socket.emit('returnToCampus');
     });
     exitVortex.on('pointerover', () => exitVortex.setScale(1.12));
     exitVortex.on('pointerout', () => exitVortex.setScale(1));
