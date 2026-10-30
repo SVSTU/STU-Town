@@ -1470,8 +1470,13 @@ function renderEnvironmentOverlay(time, delta) {
     const isFog = code === 45 || code === 48;
     const mapCanShowWeather = ['campus', 'sports', 'fountain', 'farm'].includes(currentMapId);
 
-    // Daylight strength follows real cloud cover; night brightness follows
-    // approximate real lunar illumination instead of using a fixed night tint.
+    // Stable pseudo-random values: natural-looking variation without flicker
+    // from generating fresh random positions on every animation frame.
+    const randomAt = (seed) => {
+        const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+        return value - Math.floor(value);
+    };
+
     if (!isDay) {
         const moon = getLocalMoonIllumination(new Date());
         const darkness = 0.43 - moon * 0.17;
@@ -1485,17 +1490,30 @@ function renderEnvironmentOverlay(time, delta) {
             environmentOverlay.fillStyle(0xffe6a1, sunlight).fillRect(0, 0, 800, 600);
         }
         if (cloudCover >= 35) {
-            // Soft moving cloud shadows; purely decorative and never interactive.
-            const cloudAlpha = Math.min(0.19, cloudCover / 620);
-            const drift = (time * (isStorm ? 0.035 : 0.018)) % 1050;
-            for (let index = 0; index < Math.ceil(cloudCover / 10); index++) {
-                const x = ((index * 173 + drift) % 1080) - 140;
-                const y = 70 + ((index * 97) % 470);
-                const width = 95 + (index % 3) * 25;
-                environmentOverlay.fillStyle(0x33424b, cloudAlpha)
-                    .fillEllipse(x, y, width, 22)
-                    .fillEllipse(x - width * 0.22, y - 5, width * 0.56, 20)
-                    .fillEllipse(x + width * 0.2, y - 3, width * 0.48, 18);
+            // Each cloud shadow gets its own random starting point, shape,
+            // drift vector and speed. Shadows wrap independently at the edges.
+            const count = Math.ceil(cloudCover / 12);
+            const elapsed = time / 1000;
+            for (let index = 0; index < count; index++) {
+                const seed = index + 1;
+                const speed = 5 + randomAt(seed * 4) * 13;
+                const direction = randomAt(seed * 7) > 0.5 ? 1 : -1;
+                const startX = randomAt(seed * 11) * 1000 - 100;
+                const startY = 35 + randomAt(seed * 13) * 520;
+                const x = ((startX + direction * speed * elapsed + 100) % 1000 + 1000) % 1000 - 100;
+                const y = startY + Math.sin(elapsed * (0.18 + randomAt(seed * 17) * 0.3) + seed) * 9;
+                const width = 65 + randomAt(seed * 19) * 105;
+                const height = 12 + randomAt(seed * 23) * 17;
+                const alpha = Math.min(0.18, cloudCover / 680) * (0.72 + randomAt(seed * 29) * 0.5);
+                const lobes = 2 + Math.floor(randomAt(seed * 31) * 3);
+                environmentOverlay.fillStyle(0x33424b, alpha);
+                environmentOverlay.fillEllipse(x, y, width, height);
+                for (let lobe = 0; lobe < lobes; lobe++) {
+                    const offset = (randomAt(seed * 37 + lobe) - 0.5) * width * 0.8;
+                    const lobeWidth = width * (0.22 + randomAt(seed * 41 + lobe) * 0.35);
+                    const lobeHeight = height * (0.65 + randomAt(seed * 43 + lobe) * 0.65);
+                    environmentOverlay.fillEllipse(x + offset, y - height * 0.12, lobeWidth, lobeHeight);
+                }
             }
         }
     }
@@ -1503,29 +1521,46 @@ function renderEnvironmentOverlay(time, delta) {
     if (!mapCanShowWeather) return;
     if (isFog) {
         environmentOverlay.fillStyle(0xcbd7d4, 0.12).fillRect(0, 0, 800, 600);
-        const drift = (time * 0.012) % 900;
-        for (let i = 0; i < 5; i++) {
-            environmentOverlay.fillStyle(0xe5efea, 0.08)
-                .fillEllipse((i * 205 + drift) % 1000 - 100, 100 + i * 92, 250, 24);
+        const elapsed = time / 1000;
+        for (let i = 0; i < 6; i++) {
+            const seed = i + 81;
+            const speed = 3 + randomAt(seed) * 8;
+            const direction = randomAt(seed * 2) > 0.5 ? 1 : -1;
+            const x = ((randomAt(seed * 3) * 1000 + direction * speed * elapsed) % 1100 + 1100) % 1100 - 150;
+            const y = 45 + randomAt(seed * 4) * 500;
+            environmentOverlay.fillStyle(0xe5efea, 0.045 + randomAt(seed * 5) * 0.055)
+                .fillEllipse(x, y, 130 + randomAt(seed * 6) * 190, 12 + randomAt(seed * 7) * 24);
         }
     }
 
     if (isWet) {
         const intensity = Math.min(1, Math.max(0.35, rain / 3, showers / 3, isStorm ? 0.9 : 0));
-        const offset = (time * (0.16 + intensity * 0.15)) % 850;
-        environmentOverlay.lineStyle(isStorm ? 1.5 : 1, isDay ? 0xc5e5f2 : 0x9aadd2, 0.22 + intensity * 0.22);
-        for (let index = 0; index < Math.round(45 + intensity * 95); index++) {
-            const x = (index * 137 + offset) % 820 - 10;
-            const y = (index * 83 + offset * 1.7) % 620 - 10;
-            environmentOverlay.lineBetween(x, y, x - (isStorm ? 8 : 5), y + (isStorm ? 19 : 13));
+        const elapsed = time / 1000;
+        const dropCount = Math.round(45 + intensity * 95);
+        for (let index = 0; index < dropCount; index++) {
+            const seed = index + 201;
+            const speed = (90 + randomAt(seed * 3) * 150) * (0.65 + intensity * 0.65);
+            const xBase = randomAt(seed * 5) * 820 - 10;
+            const yBase = randomAt(seed * 7) * 640 - 20;
+            const slant = (randomAt(seed * 11) - 0.5) * (isStorm ? 22 : 12);
+            const x = ((xBase + slant * elapsed * 0.18) % 840 + 840) % 840 - 20;
+            const y = ((yBase + speed * elapsed) % 660 + 660) % 660 - 30;
+            const length = (7 + randomAt(seed * 13) * 10) * (isStorm ? 1.35 : 1);
+            environmentOverlay.lineStyle(0.7 + randomAt(seed * 17) * 0.8,
+                isDay ? 0xc5e5f2 : 0x9aadd2, 0.16 + intensity * 0.24);
+            environmentOverlay.lineBetween(x, y, x + slant * 0.12, y + length);
         }
-        // Small reflective puddle glints on the ground, no hit areas or input.
+
         if (intensity > 0.45) {
-            for (let i = 0; i < 12; i++) {
-                const x = (i * 71 + time * 0.025) % 790 + 5;
-                const y = (i * 113 + 47) % 560 + 20;
-                environmentOverlay.lineStyle(1, 0xc4e8f2, 0.12 + (Math.sin(time * 0.004 + i) + 1) * 0.08)
-                    .lineBetween(x, y, x + 10, y - 1);
+            // Scattered glints appear at irregular positions and pulse at
+            // different rates, rather than forming repeating diagonal rows.
+            for (let i = 0; i < 16; i++) {
+                const seed = i + 401;
+                const x = 12 + randomAt(seed * 3) * 776;
+                const y = 18 + randomAt(seed * 5) * 564;
+                const pulse = (Math.sin(time * (0.001 + randomAt(seed * 7) * 0.002) + seed) + 1) / 2;
+                environmentOverlay.lineStyle(1, 0xc4e8f2, 0.06 + pulse * 0.17)
+                    .lineBetween(x, y, x + 5 + randomAt(seed * 11) * 13, y - 1);
             }
         }
     }
