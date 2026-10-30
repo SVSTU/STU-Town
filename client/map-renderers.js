@@ -332,6 +332,7 @@ function renderCanteenQuickBuyButtons(scene) {
                 return;
             }
             requestGameConfirmation({
+                dialogId: 'canteen-confirm-modal',
                 title: 'Mua nhanh tại căn tin',
                 message: `Vật phẩm: ${food.icon} ${food.name}\nCông dụng: ${food.effect || 'Chưa có thông tin công dụng'}\nSố lượng: 1\nGiá: ${food.coins.toLocaleString('vi-VN')} tiền đồng\n\nBạn có muốn xác nhận mua không?`,
                 confirmText: 'Xác nhận mua',
