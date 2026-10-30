@@ -1,3 +1,24 @@
+let pendingGameConfirmation = null;
+
+function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
+    const modal = document.getElementById('game-confirm-modal');
+    if (!modal) return;
+    pendingGameConfirmation = typeof onConfirm === 'function' ? onConfirm : null;
+    document.getElementById('game-confirm-title').textContent = title;
+    document.getElementById('game-confirm-message').textContent = message;
+    document.getElementById('game-confirm-accept').textContent = confirmText;
+    modal.hidden = false;
+    document.getElementById('game-confirm-accept').focus();
+}
+
+function closeGameConfirmation(accepted = false) {
+    const modal = document.getElementById('game-confirm-modal');
+    if (modal) modal.hidden = true;
+    const callback = pendingGameConfirmation;
+    pendingGameConfirmation = null;
+    if (accepted && callback) callback();
+}
+
 console.log("GAME STARTING...");
 
 const serverUrl = ['localhost', '127.0.0.1'].includes(location.hostname)
@@ -517,6 +538,14 @@ function create() {
         socket.emit('sendPlayerEmote', button.dataset.playerEmote);
     });
 
+    document.getElementById('game-confirm-cancel').addEventListener('click', () => closeGameConfirmation(false));
+    document.getElementById('game-confirm-accept').addEventListener('click', () => closeGameConfirmation(true));
+    document.getElementById('game-confirm-modal').addEventListener('click', (event) => {
+        if (event.target.id === 'game-confirm-modal') closeGameConfirmation(false);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !document.getElementById('game-confirm-modal').hidden) closeGameConfirmation(false);
+    });
     document.getElementById('interaction-button').addEventListener('click', interactWithCurrentZone);
     document.getElementById('map-exit').addEventListener('click', () => socket.emit('returnToCampus'));
     document.getElementById('announcements-refresh').addEventListener('click', loadAnnouncements);
@@ -560,14 +589,27 @@ function create() {
         } else if (action === 'submit-trade') {
             syncTradeDraftFromForm();
             if (!socket.connected) return;
-            socket.emit('farmShopAction', {
-                action: zoneServiceView.tradeAction,
-                cropKey: zoneServiceView.cropKey,
-                quantity: zoneServiceView.quantity
+            const crop = CROP_INFO[zoneServiceView.cropKey];
+            const isBuying = zoneServiceView.tradeAction === 'buy-seed';
+            const total = (Number(crop?.price) || 0) * zoneServiceView.quantity;
+            requestGameConfirmation({
+                title: isBuying ? 'Xác nhận mua hạt giống' : 'Xác nhận bán nông sản',
+                message: `${isBuying ? 'Bạn sẽ thanh toán' : 'Bạn sẽ nhận được'} ${total.toLocaleString('vi-VN')} tiền đồng cho ${zoneServiceView.quantity} ${crop?.name || 'vật phẩm'}. Tiếp tục?`,
+                confirmText: isBuying ? 'Xác nhận mua' : 'Xác nhận bán',
+                onConfirm: () => socket.emit('farmShopAction', {
+                    action: zoneServiceView.tradeAction,
+                    cropKey: zoneServiceView.cropKey,
+                    quantity: zoneServiceView.quantity
+                })
             });
         } else if (action === 'confirm-heal') {
             if (!socket.connected) return;
-            socket.emit('useRecoveryStation');
+            requestGameConfirmation({
+                title: 'Xác nhận hồi phục',
+                message: 'Sử dụng trạm hồi phục với chi phí 500 tiền đồng?',
+                confirmText: 'Xác nhận sử dụng',
+                onConfirm: () => socket.emit('useRecoveryStation')
+            });
             zoneServiceView.screen = 'recovery';
         } else if (action === 'open-food-order') {
             zoneServiceView.screen = 'food-order';
@@ -576,10 +618,18 @@ function create() {
         } else if (action === 'submit-food-order') {
             syncFoodDraftFromForm();
             if (!socket.connected) return;
-            socket.emit('canteenPurchase', {
-                itemId: zoneServiceView.itemId,
-                currency: zoneServiceView.currency,
-                quantity: zoneServiceView.quantity
+            const item = FOOD_INFO[zoneServiceView.itemId];
+            const total = (Number(item?.[zoneServiceView.currency]) || 0) * zoneServiceView.quantity;
+            const currencyLabel = zoneServiceView.currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
+            requestGameConfirmation({
+                title: 'Xác nhận mua tại căn tin',
+                message: `Mua ${zoneServiceView.quantity} ${item?.name || 'vật phẩm'} với tổng ${total.toLocaleString('vi-VN')} ${currencyLabel}?`,
+                confirmText: 'Xác nhận mua',
+                onConfirm: () => socket.emit('canteenPurchase', {
+                    itemId: zoneServiceView.itemId,
+                    currency: zoneServiceView.currency,
+                    quantity: zoneServiceView.quantity
+                })
             });
         } else if (action === 'buy-elevator-ticket') {
             if (socket.connected) socket.emit('buyElevatorTicket');
