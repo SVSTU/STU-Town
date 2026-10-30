@@ -2,7 +2,7 @@ let pendingGameConfirmation = null;
 
 function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
     const modal = document.getElementById('game-confirm-modal');
-    if (!modal) return;
+    if (!modal || !modal.hidden) return;
     pendingGameConfirmation = typeof onConfirm === 'function' ? onConfirm : null;
     document.getElementById('game-confirm-title').textContent = title;
     document.getElementById('game-confirm-message').textContent = message;
