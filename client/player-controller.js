@@ -1,5 +1,36 @@
 /* Local player movement controller and server movement synchronization. */
 
+const mobileMoveState = { up: false, down: false, left: false, right: false };
+
+function bindMobileMovementControls() {
+    const pad = document.getElementById('mobile-movement-pad');
+    if (!pad || pad.dataset.bound === 'true') return;
+    pad.dataset.bound = 'true';
+    const stopAll = () => Object.keys(mobileMoveState).forEach((direction) => { mobileMoveState[direction] = false; });
+    pad.querySelectorAll('[data-move-direction]').forEach((button) => {
+        const direction = button.dataset.moveDirection;
+        const start = (event) => {
+            event.preventDefault();
+            mobileMoveState[direction] = true;
+            targetPosition = null;
+            button.classList.add('is-pressed');
+            try { button.setPointerCapture(event.pointerId); } catch {}
+        };
+        const stop = (event) => {
+            if (event) event.preventDefault();
+            mobileMoveState[direction] = false;
+            button.classList.remove('is-pressed');
+        };
+        button.addEventListener('pointerdown', start);
+        button.addEventListener('pointerup', stop);
+        button.addEventListener('pointercancel', stop);
+        button.addEventListener('lostpointercapture', stop);
+        button.addEventListener('contextmenu', (event) => event.preventDefault());
+    });
+    window.addEventListener('blur', stopAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopAll(); });
+}
+
 function update(time, delta) {
     renderEnvironmentOverlay(time, delta);
     if (!socket.id || !players[socket.id]) return;
@@ -13,11 +44,15 @@ function update(time, delta) {
     let isMoved = false;
 
     let keyActive = false;
-    if (cursors.left.isDown) { p.x -= speed; keyActive = true; }
-    else if (cursors.right.isDown) { p.x += speed; keyActive = true; }
+    const moveLeft = cursors.left.isDown || mobileMoveState.left;
+    const moveRight = cursors.right.isDown || mobileMoveState.right;
+    const moveUp = cursors.up.isDown || mobileMoveState.up;
+    const moveDown = cursors.down.isDown || mobileMoveState.down;
+    if (moveLeft) { p.x -= speed; keyActive = true; }
+    else if (moveRight) { p.x += speed; keyActive = true; }
 
-    if (cursors.up.isDown) { p.y -= speed; keyActive = true; }
-    else if (cursors.down.isDown) { p.y += speed; keyActive = true; }
+    if (moveUp) { p.y -= speed; keyActive = true; }
+    else if (moveDown) { p.y += speed; keyActive = true; }
 
     if (keyActive) {
         targetPosition = null;
