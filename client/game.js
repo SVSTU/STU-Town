@@ -798,7 +798,11 @@ function drawIsoBuilding(graphics, x, y, width, height, color) {
 function drawCampusMap(scene) {
     const firstMapChild = scene.children.list.length;
     const map = scene.add.graphics().setDepth(-10);
-    drawIsoGround(map, 0x86ad69, 0x7fa363);
+    // Restore the original flat 2D campus map; interior maps keep their
+    // isometric styling independently.
+    map.fillStyle(0x6f9d5a, 1).fillRect(0, 0, 800, 600);
+    map.fillStyle(0xd8cfb6, 1).fillRoundedRect(18, 18, 764, 564, 20);
+    map.fillStyle(0x82ad65, 1).fillRoundedRect(30, 30, 740, 540, 15);
 
     // Lối đi chính và sân trung tâm theo bố cục sơ đồ trường.
     map.fillStyle(0xe5dcc7, 1);
@@ -810,7 +814,9 @@ function drawCampusMap(scene) {
     map.fillRect(680, 30, 22, 540);
 
     const drawBuilding = (x, y, width, height, label, color) => {
-        drawIsoBuilding(map, x, y, width, height, color);
+        map.fillStyle(0xc5b99b, 1).fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 7);
+        map.fillStyle(color, 1).fillRoundedRect(x, y, width, height, 5);
+        map.lineStyle(2, 0xffffff, 0.8).strokeRoundedRect(x, y, width, height, 5);
         scene.add.text(x + width / 2, y + height / 2, label, {
             font: 'bold 14px Arial',
             color: '#35402d',
@@ -862,29 +868,11 @@ function drawCampusMap(scene) {
         font: 'bold 11px Arial', color: '#fff', backgroundColor: '#355b36', padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(-9);
 
-    // Cartoon-style campus landscaping: layered tree canopies, flower beds,
-    // paving accents and soft highlights add depth without external image assets.
-    [[54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195],
-     [32, 350], [756, 300], [520, 42], [485, 550], [80, 560]].forEach(([x, y], index) => {
-        map.fillStyle(0x29452f, 0.28).fillEllipse(x + 3, y + 12, 29, 12);
-        map.fillStyle(0x765536, 1).fillRoundedRect(x - 3, y + 3, 6, 14, 2);
-        map.fillStyle(index % 2 ? 0x3d7542 : 0x477b48, 1).fillCircle(x, y, 14);
-        map.fillStyle(index % 2 ? 0x6eae59 : 0x78b35d, 1).fillCircle(x - 4, y - 5, 10);
-        map.fillStyle(0xa5d57b, 0.85).fillCircle(x - 6, y - 7, 4);
+    // Original flat 2D campus trees.
+    [[54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195]].forEach(([x, y]) => {
+        map.fillStyle(0x477b48, 1).fillCircle(x, y, 13);
+        map.fillStyle(0x78b35d, 1).fillCircle(x - 3, y - 4, 9);
     });
-    // Small flower clusters beside the paths.
-    [[205, 280], [226, 280], [478, 278], [498, 278], [530, 438], [670, 438],
-     [270, 470], [300, 470], [420, 470], [450, 470]].forEach(([x, y], i) => {
-        map.fillStyle(0x3d7443, 1).fillCircle(x, y + 2, 5);
-        map.fillStyle([0xffd166, 0xff8e9e, 0xffffff, 0x9ce7ef][i % 4], 1).fillCircle(x, y, 3);
-        map.fillStyle(0xfff3b0, 1).fillCircle(x, y, 1.2);
-    });
-    // Subtle dashed paving stones make the walkways read as a designed game world.
-    map.lineStyle(1, 0xc5bda8, 0.55);
-    for (let x = 42; x < 770; x += 46) {
-        map.lineBetween(x, 250, x + 22, 250);
-        map.lineBetween(x, 457, x + 22, 457);
-    }
 
     farmGraphics = scene.add.graphics().setDepth(-8);
     mapObjects = scene.children.list.slice(firstMapChild);
