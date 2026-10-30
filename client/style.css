@@ -677,7 +677,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* In-game confirmation modal (never uses browser alert/confirm dialogs). */
 .game-confirm-modal[hidden] { display: none !important; }
-.game-confirm-modal { position: fixed; inset: 0; z-index: 12000; display: grid; place-items: center; padding: 18px; background: rgba(5, 12, 8, .72); backdrop-filter: blur(4px); }
+.game-confirm-modal { position: fixed; inset: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(5, 12, 8, .72); backdrop-filter: blur(4px); overflow-y: auto; overscroll-behavior: contain; }
 .game-confirm-card { width: min(360px, 100%); padding: 20px; border: 1px solid #9ab77a; border-radius: 16px; color: #f4f7e9; background: linear-gradient(155deg, #29472e, #14251b 72%); box-shadow: 0 18px 55px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.12); }
 .game-confirm-card h2 { margin: 0 0 10px; color: #ffe6a1; font-size: 19px; }
 .game-confirm-card p { margin: 0; line-height: 1.55; color: #e2ead8; }
@@ -685,3 +685,5 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .game-confirm-actions button { min-height: 38px; padding: 8px 14px; border-radius: 9px; border: 1px solid rgba(255,255,255,.22); font-weight: 700; cursor: pointer; }
 .game-confirm-cancel { color: #e7eee2; background: #39463c; }
 .game-confirm-accept { color: #26351f; border-color: #e4c879 !important; background: linear-gradient(#ffe9a9, #d9b75f); }
+
+.game-confirm-card { position: relative; flex: 0 0 auto; margin: auto; transform: none !important; animation: none !important; }
