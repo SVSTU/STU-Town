@@ -393,7 +393,11 @@ function updateTradeSummary() {
     zoneServiceView.quantity = limit > 0 ? Math.max(1, Math.min(limit, zoneServiceView.quantity)) : 1;
     if (quantityInput) {
         quantityInput.max = String(Math.max(1, limit));
-        quantityInput.value = String(zoneServiceView.quantity);
+        // Preserve the user's in-progress typing. Only normalize the field after
+        // editing ends; periodic state updates must never overwrite the caret/value.
+        if (document.activeElement !== quantityInput) {
+            quantityInput.value = String(zoneServiceView.quantity);
+        }
     }
     const quantity = zoneServiceView.quantity;
     const total = crop.price * quantity;
