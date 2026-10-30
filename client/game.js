@@ -502,9 +502,6 @@ function create() {
     ['pointerdown', 'pointerup', 'click', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach((type) => {
         gameConfirmModal.addEventListener(type, (event) => {
             event.stopPropagation();
-            if (type === 'pointerdown' && event.target === gameConfirmModal) {
-                closeGameConfirmation(false);
-            }
         });
     });
     document.addEventListener('keydown', (event) => {
