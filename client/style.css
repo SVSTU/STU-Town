@@ -687,3 +687,75 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .game-confirm-accept { color: #26351f; border-color: #e4c879 !important; background: linear-gradient(#ffe9a9, #d9b75f); }
 
 .game-confirm-card { position: relative; flex: 0 0 auto; margin: auto; transform: none !important; animation: none !important; }
+
+
+/* Integrated in-game interaction frame */
+#interaction-hud.game-interaction-frame {
+    box-sizing: border-box;
+    position: fixed;
+    z-index: 30;
+    top: auto;
+    bottom: 22px;
+    left: 50%;
+    display: flex;
+    width: min(430px, calc(100vw - 32px));
+    max-height: min(42vh, 300px);
+    overflow: hidden auto;
+    flex-direction: column;
+    gap: 10px;
+    padding: 13px 15px 14px;
+    transform: translateX(-50%);
+    border: 1px solid rgba(205, 226, 157, .78);
+    border-radius: 15px;
+    background: linear-gradient(145deg, rgba(35, 62, 39, .97), rgba(17, 31, 24, .97));
+    color: #f5f5df;
+    box-shadow: 0 10px 30px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.13), 0 0 0 3px rgba(29, 49, 31, .42);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+#interaction-hud .interaction-hud-heading { gap: 5px; }
+#interaction-hud .interaction-context-label {
+    display: flex; align-items: center; gap: 7px;
+    color: #c9df9f; font-size: 9px; font-weight: 800; letter-spacing: .14em;
+}
+#interaction-hud .interaction-pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #b9ec83; box-shadow: 0 0 9px rgba(185,236,131,.8);
+}
+#interaction-hud .panel-heading { display: flex; align-items: center; gap: 8px; }
+#interaction-zone-name { flex: 1; color: #fff0b4; font-size: 16px; font-weight: 800; }
+#interaction-zone-description { display: block; color: #e0e9d6; font-size: 12px; line-height: 1.45; }
+#interaction-hud .interaction-key-hint {
+    display: inline-grid; place-items: center; flex: 0 0 25px; height: 25px;
+    border: 1px solid rgba(255,230,161,.65); border-radius: 7px;
+    background: linear-gradient(#f8e7ad,#c8a85e); color: #283522;
+    font-size: 12px; font-weight: 900; box-shadow: 0 2px 0 #806b3c;
+}
+#interaction-hud [data-collapse-panel] {
+    width: 25px; height: 25px; border: 1px solid rgba(255,255,255,.2);
+    border-radius: 7px; background: rgba(255,255,255,.09); color: #fff; cursor: pointer;
+}
+#interaction-content { display: grid; gap: 8px; }
+#interaction-button {
+    width: 100%; min-height: 42px; padding: 9px 14px;
+    border: 1px solid #e2c879; border-radius: 10px;
+    background: linear-gradient(180deg,#f1d98c,#c59e4d);
+    color: #26351f; font-size: 13px; font-weight: 900;
+    box-shadow: 0 3px 0 #80683a, 0 6px 14px rgba(0,0,0,.2);
+}
+#interaction-button:hover { background: linear-gradient(180deg,#ffe9a9,#d9b75f); transform: translateY(-1px); }
+#interaction-button:active { transform: translateY(1px); box-shadow: 0 1px 0 #80683a; }
+#farm-seed-picker { display: grid; gap: 4px; color: #dbe8cd; font-size: 11px; }
+#farm-seed-type { width: 100%; min-height: 34px; border-radius: 8px; }
+#farm-plot-list { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+#farm-plot-list button { min-height: 36px; border-radius: 8px; }
+#interaction-feedback { min-height: 14px; color: #ffe7a6; font-size: 11px; }
+#interaction-hud.is-collapsed { width: min(280px,calc(100vw - 32px)); min-width: 0; padding: 9px 12px; }
+#interaction-hud.is-collapsed .interaction-context-label,
+#interaction-hud.is-collapsed #interaction-zone-description { display: none; }
+@media (max-width: 600px) {
+    #interaction-hud.game-interaction-frame { bottom: 12px; width: min(390px,calc(100vw - 20px)); max-height: 36vh; padding: 10px 12px; }
+    #interaction-zone-name { font-size: 14px; }
+    #interaction-button { min-height: 39px; }
+    #farm-plot-list { grid-template-columns: 1fr; }
+}
