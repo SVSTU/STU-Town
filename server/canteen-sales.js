@@ -1,6 +1,7 @@
 /* Supabase persistence and best-selling product queries for the canteen. */
 
 function createCanteenSalesService({ io, isSupabaseConfigured, supabaseRequest, persistPlayer, foodMenu }) {
+  const FOOD_MENU = foodMenu;
   async function recordCanteenSale(id, sale) {
     if (!isSupabaseConfigured) return;
     const playerSocket = io.sockets.sockets.get(id);
