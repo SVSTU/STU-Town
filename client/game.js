@@ -8,12 +8,15 @@ function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có c
     document.getElementById('game-confirm-message').textContent = message;
     document.getElementById('game-confirm-accept').textContent = confirmText;
     modal.hidden = false;
-    document.getElementById('game-confirm-accept').focus();
+    document.getElementById('game-confirm-accept').focus({ preventScroll: true });
 }
 
 function closeGameConfirmation(accepted = false) {
     const modal = document.getElementById('game-confirm-modal');
-    if (modal) modal.hidden = true;
+    const acceptButton = document.getElementById('game-confirm-accept');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    if (acceptButton) acceptButton.disabled = false;
     const callback = pendingGameConfirmation;
     pendingGameConfirmation = null;
     if (accepted && callback) callback();
@@ -474,7 +477,12 @@ function create() {
         }
     });
     document.getElementById('game-confirm-cancel').addEventListener('click', () => closeGameConfirmation(false));
-    document.getElementById('game-confirm-accept').addEventListener('click', () => closeGameConfirmation(true));
+    document.getElementById('game-confirm-accept').addEventListener('click', () => {
+        const button = document.getElementById('game-confirm-accept');
+        if (button.disabled) return;
+        button.disabled = true;
+        closeGameConfirmation(true);
+    });
     document.getElementById('game-confirm-modal').addEventListener('click', (event) => {
         if (event.target.id === 'game-confirm-modal') closeGameConfirmation(false);
     });
