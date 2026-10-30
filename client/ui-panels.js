@@ -275,7 +275,15 @@ function updatePlayerStats(state) {
     });
     document.getElementById('wallet-summary').textContent =
         `🪙 ${playerStatsState.coins} tiền đồng  ·  ⭐ ${playerStatsState.reputation} danh tiếng`;
-    if (['khu-a', 'canteen'].includes(currentMapId)) renderZoneServices(currentMapId);
+    if (['khu-a', 'canteen'].includes(currentMapId)) {
+        // Do not replace the active merchant form on periodic player-state updates:
+        // replacing its select/input interrupts focus and makes the trade UI flicker.
+        if (zoneServiceView.screen === 'trade' && zoneServiceView.target === 'merchant') {
+            updateTradeSummary();
+        } else {
+            renderZoneServices(currentMapId);
+        }
+    }
 }
 
 function addServiceButton(parent, label, action, data = {}, disabled = false) {
