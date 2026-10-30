@@ -8,7 +8,7 @@ function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có c
     document.getElementById('game-confirm-message').textContent = message;
     document.getElementById('game-confirm-accept').textContent = confirmText;
     modal.hidden = false;
-    document.getElementById('game-confirm-accept').focus({ preventScroll: true });
+    // Do not autofocus buttons: focus can scroll/shift the game viewport on mobile.
 }
 
 function closeGameConfirmation(accepted = false) {
