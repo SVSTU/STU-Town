@@ -177,6 +177,8 @@ function create() {
           updateEnvironmentIcon();
       });
 
+    registerFarmSocketHandlers();
+
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
         const saveStatus = document.getElementById('player-save-status');
@@ -214,34 +216,6 @@ function create() {
         } catch {
             console.warn('Không lưu được mã định danh người chơi trong trình duyệt này.');
         }
-    });
-
-    socket.on('farmState', (state) => {
-        farmPlots = state && typeof state === 'object' ? state : {};
-        updateFarmPlotControls();
-    });
-
-    socket.on('farmInteractionResult', (result) => {
-        document.getElementById('interaction-feedback').textContent = result?.message || '';
-    });
-
-    socket.on('farmMouseState', (state) => {
-        activeFarmMouseId = state?.active && typeof state.id === 'string' ? state.id : '';
-        if (!activeFarmMouseId) {
-            farmMouseMarker?.destroy();
-            farmMouseMarker = null;
-            return;
-        }
-        if (currentMapId !== 'farm' || !sceneRef || !Number.isFinite(state.x) || !Number.isFinite(state.y)) return;
-        if (!farmMouseMarker) {
-            farmMouseMarker = sceneRef.add.text(state.x, state.y, '🐭', {
-                font: '30px Arial', color: '#fff', backgroundColor: '#56351f', padding: { x: 5, y: 2 }
-            }).setOrigin(0.5).setDepth(10);
-        } else farmMouseMarker.setPosition(state.x, state.y);
-    });
-
-    socket.on('farmMouseBite', (event) => {
-        document.getElementById('interaction-feedback').textContent = String(event?.message || '🐭 Chuột vừa cắn túi tiền của bạn.');
     });
 
     socket.on('systemChatMessage', queueSystemAnnouncement);
@@ -612,16 +586,7 @@ function create() {
             button.textContent = collapsed ? '+' : '−';
         });
     });
-    document.getElementById('farm-plot-list').addEventListener('click', (event) => {
-        const button = event.target.closest('[data-farm-plot]');
-        if (!button || !socket.connected || currentMapId !== 'farm') return;
-        socket.emit('interactFarmPlot', {
-            plotId: button.dataset.farmPlot,
-            action: button.dataset.action,
-            cropKey: document.getElementById('farm-seed-type').value
-        });
-    });
-    document.getElementById('farm-seed-type').addEventListener('change', updateFarmPlotControls);
+    registerFarmDomHandlers();
     document.getElementById('inventory-items').addEventListener('click', (event) => {
         const button = event.target.closest('[data-use-item]');
         if (button && socket.connected) socket.emit('useInventoryItem', button.dataset.useItem);
