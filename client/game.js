@@ -544,7 +544,7 @@ function create() {
         } else if (action === 'submit-trade') {
             event.preventDefault();
             event.stopPropagation();
-            if (gameConfirmationLocked || !socket.connected) return;
+            if (!socket.connected) return;
             syncTradeDraftFromForm();
             const tradeAction = zoneServiceView.tradeAction;
             const cropKey = zoneServiceView.cropKey;
@@ -560,7 +560,7 @@ function create() {
                 confirmText: isBuying ? 'Xác nhận mua' : 'Xác nhận bán',
                 onConfirm: () => socket.emit('farmShopAction', { action: tradeAction, cropKey, quantity })
             });
-            if (opened) button.disabled = true;
+            // The dialog owns duplicate-submit protection; keep the form button reusable.
         } else if (action === 'confirm-heal') {
             if (!socket.connected) return;
             requestGameConfirmation({
@@ -579,7 +579,7 @@ function create() {
             // Consume this UI action once; socket/stat updates must not reopen the dialog.
             event.preventDefault();
             event.stopPropagation();
-            if (gameConfirmationLocked || button.dataset.confirmPending === 'true') return;
+            if (!socket.connected) return;
             syncFoodDraftFromForm();
             if (!socket.connected) return;
             const itemId = zoneServiceView.itemId;
@@ -590,8 +590,6 @@ function create() {
             const unitPrice = Number(item[currency]) || 0;
             const total = unitPrice * quantity;
             const currencyLabel = currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
-            button.dataset.confirmPending = 'true';
-            button.disabled = true;
             const opened = requestGameConfirmation({
                 dialogId: 'canteen-confirm-modal',
                 title: 'Xác nhận mua tại căn tin',
@@ -601,10 +599,7 @@ function create() {
                     if (socket.connected) socket.emit('canteenPurchase', { itemId, currency, quantity });
                 }
             });
-            if (!opened) {
-                button.dataset.confirmPending = 'false';
-                button.disabled = false;
-            }
+            // Duplicate requests are ignored by the dedicated canteen dialog.
         } else if (action === 'buy-elevator-ticket') {
             if (socket.connected) socket.emit('buyElevatorTicket');
         } else if (action === 'use-elevator-ticket') {
