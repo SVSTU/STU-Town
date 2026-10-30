@@ -331,8 +331,16 @@ function renderCanteenQuickBuyButtons(scene) {
                 showToast('Chưa kết nối máy chủ.');
                 return;
             }
-            if (!window.confirm(`Xác nhận mua ${food.name} với giá ${food.coins.toLocaleString('vi-VN')} tiền đồng?`)) return;
-            socket.emit('canteenPurchase', { itemId, currency: 'coins', quantity: 1 });
+            requestGameConfirmation({
+                title: 'Mua nhanh tại căn tin',
+                message: `Bạn muốn mua 1 ${food.name} với giá ${food.coins.toLocaleString('vi-VN')} tiền đồng?`,
+                confirmText: 'Xác nhận mua',
+                onConfirm: () => socket.emit('canteenPurchase', {
+                    itemId,
+                    currency: 'coins',
+                    quantity: 1
+                })
+            });
         };
         frame.on('pointerdown', buy);
         label.setInteractive({ useHandCursor: true }).on('pointerdown', buy);
