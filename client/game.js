@@ -606,7 +606,6 @@ function create() {
     document.getElementById('zone-service-content').addEventListener('input', (event) => {
         if (event.target.id === 'trade-quantity') {
             syncTradeDraftFromForm();
-            event.target.value = String(zoneServiceView.quantity);
             updateTradeSummary();
         }
         if (event.target.id === 'food-quantity') {
@@ -620,6 +619,11 @@ function create() {
             zoneServiceView.cropKey = event.target.value;
             zoneServiceView.quantity = 1;
             renderZoneServices(currentMapId);
+        }
+        if (event.target.id === 'trade-quantity') {
+            syncTradeDraftFromForm();
+            event.target.value = String(zoneServiceView.quantity);
+            updateTradeSummary();
         }
         if (event.target.id === 'food-item') {
             zoneServiceView.itemId = event.target.value;
