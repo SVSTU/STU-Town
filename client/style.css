@@ -802,3 +802,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .game-confirm-modal *, .game-confirm-modal *::before, .game-confirm-modal *::after { animation: none !important; transition: none !important; }
 
 body > .game-confirm-modal { position: fixed !important; inset: 0 !important; }
+
+/* Explicit close control for transaction confirmation dialogs */
+.game-confirm-card { padding-top: 46px; }
+.game-confirm-close { position: absolute; top: 10px; right: 10px; z-index: 2; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 1px solid rgba(255,255,255,.28); border-radius: 50%; color: #fff; background: rgba(0,0,0,.28); font-size: 25px; line-height: 1; cursor: pointer; }
+.game-confirm-close:hover { background: rgba(255,255,255,.16); }
