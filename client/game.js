@@ -2,21 +2,28 @@ let pendingGameConfirmation = null;
 
 function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
     const modal = document.getElementById('game-confirm-modal');
-    if (!modal || !modal.hidden) return;
+    if (!modal || modal.dataset.open === 'true') return;
+
+    // Keep the dialog outside Phaser's transformed/scaled game container.
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
+
     pendingGameConfirmation = typeof onConfirm === 'function' ? onConfirm : null;
     document.getElementById('game-confirm-title').textContent = title;
     document.getElementById('game-confirm-message').textContent = message;
-    document.getElementById('game-confirm-accept').textContent = confirmText;
+    const acceptButton = document.getElementById('game-confirm-accept');
+    acceptButton.textContent = confirmText;
+    acceptButton.disabled = false;
+
+    modal.dataset.open = 'true';
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     modal.style.display = 'grid';
-    // Keep pointer input inside the dialog; never let Phaser/canvas receive it.
 }
-
 function closeGameConfirmation(accepted = false) {
     const modal = document.getElementById('game-confirm-modal');
     const acceptButton = document.getElementById('game-confirm-accept');
-    if (!modal || modal.hidden) return;
+    if (!modal || modal.dataset.open !== 'true') return;
+    modal.dataset.open = 'false';
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     modal.style.display = 'none';
@@ -488,12 +495,13 @@ function create() {
         closeGameConfirmation(true);
     });
     const gameConfirmModal = document.getElementById('game-confirm-modal');
-    gameConfirmModal.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-    });
-    gameConfirmModal.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (event.target === gameConfirmModal) closeGameConfirmation(false);
+    ['pointerdown', 'pointerup', 'click', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach((type) => {
+        gameConfirmModal.addEventListener(type, (event) => {
+            event.stopPropagation();
+            if (type === 'pointerdown' && event.target === gameConfirmModal) {
+                closeGameConfirmation(false);
+            }
+        });
     });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !document.getElementById('game-confirm-modal').hidden) closeGameConfirmation(false);
