@@ -1400,29 +1400,93 @@ async function loadEnvironmentConditions() {
     }
 }
 
+function getLocalMoonIllumination(date = new Date()) {
+    // Approximate synodic phase (29.530588853 days); 0=new, 0.5=full.
+    const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
+    const synodicMonth = 29.530588853 * 86400000;
+    const phase = ((date.getTime() - knownNewMoon) % synodicMonth + synodicMonth) % synodicMonth / synodicMonth;
+    return (1 - Math.cos(phase * Math.PI * 2)) / 2;
+}
+
 function renderEnvironmentOverlay(time, delta) {
     if (!environmentOverlay) return;
     environmentOverlay.clear();
-    const hour = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-    const isDay = typeof environmentConditions?.isDay === 'boolean' ? environmentConditions.isDay : hour >= 6 && hour < 18;
-    if (!isDay) environmentOverlay.fillStyle(0x101a39, 0.25).fillRect(0, 0, 800, 600);
-    else if (environmentConditions?.cloudCover >= 65) {
-        environmentOverlay.fillStyle(0x53616b, Math.min(0.18, environmentConditions.cloudCover / 600)).fillRect(0, 0, 800, 600);
+
+    const hour = Number(new Intl.DateTimeFormat('en', {
+        timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', hourCycle: 'h23'
+    }).format(new Date()));
+    const isDay = typeof environmentConditions?.isDay === 'boolean'
+        ? environmentConditions.isDay : hour >= 6 && hour < 18;
+    const cloudCover = Math.max(0, Math.min(100, Number(environmentConditions?.cloudCover) || 0));
+    const code = Number(environmentConditions?.weatherCode);
+    const rain = Number(environmentConditions?.rain) || 0;
+    const showers = Number(environmentConditions?.showers) || 0;
+    const isWet = rain > 0 || showers > 0 || (code >= 51 && code <= 67)
+        || (code >= 80 && code <= 82) || code >= 95;
+    const isStorm = code >= 95;
+    const isFog = code === 45 || code === 48;
+    const mapCanShowWeather = ['campus', 'sports', 'fountain', 'farm'].includes(currentMapId);
+
+    // Daylight strength follows real cloud cover; night brightness follows
+    // approximate real lunar illumination instead of using a fixed night tint.
+    if (!isDay) {
+        const moon = getLocalMoonIllumination(new Date());
+        const darkness = 0.43 - moon * 0.17;
+        environmentOverlay.fillStyle(0x101a39, darkness).fillRect(0, 0, 800, 600);
+        if (mapCanShowWeather && moon > 0.18) {
+            environmentOverlay.fillStyle(0xe4edff, 0.025 + moon * 0.035).fillRect(0, 0, 800, 600);
+        }
+    } else {
+        const sunlight = Math.max(0, 0.12 - cloudCover * 0.0011);
+        if (sunlight > 0.015) {
+            environmentOverlay.fillStyle(0xffe6a1, sunlight).fillRect(0, 0, 800, 600);
+        }
+        if (cloudCover >= 35) {
+            // Soft moving cloud shadows; purely decorative and never interactive.
+            const cloudAlpha = Math.min(0.19, cloudCover / 620);
+            const drift = (time * (isStorm ? 0.035 : 0.018)) % 1050;
+            for (let index = 0; index < Math.ceil(cloudCover / 10); index++) {
+                const x = ((index * 173 + drift) % 1080) - 140;
+                const y = 70 + ((index * 97) % 470);
+                const width = 95 + (index % 3) * 25;
+                environmentOverlay.fillStyle(0x33424b, cloudAlpha)
+                    .fillEllipse(x, y, width, 22)
+                    .fillEllipse(x - width * 0.22, y - 5, width * 0.56, 20)
+                    .fillEllipse(x + width * 0.2, y - 3, width * 0.48, 18);
+            }
+        }
     }
 
-    const code = Number(environmentConditions?.weatherCode);
-    const isWet = (environmentConditions?.rain || 0) > 0 || (environmentConditions?.showers || 0) > 0
-        || (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
-    if (!isWet || !['campus', 'sports', 'fountain', 'farm'].includes(currentMapId)) return;
-    const offset = (time * 0.22) % 850;
-    environmentOverlay.lineStyle(1, isDay ? 0xb8d9e8 : 0x8197c0, 0.42);
-    for (let index = 0; index < 75; index++) {
-        const x = (index * 137 + offset) % 820 - 10;
-        const y = (index * 83 + offset * 1.7) % 620 - 10;
-        environmentOverlay.lineBetween(x, y, x - 5, y + 13);
+    if (!mapCanShowWeather) return;
+    if (isFog) {
+        environmentOverlay.fillStyle(0xcbd7d4, 0.12).fillRect(0, 0, 800, 600);
+        const drift = (time * 0.012) % 900;
+        for (let i = 0; i < 5; i++) {
+            environmentOverlay.fillStyle(0xe5efea, 0.08)
+                .fillEllipse((i * 205 + drift) % 1000 - 100, 100 + i * 92, 250, 24);
+        }
+    }
+
+    if (isWet) {
+        const intensity = Math.min(1, Math.max(0.35, rain / 3, showers / 3, isStorm ? 0.9 : 0));
+        const offset = (time * (0.16 + intensity * 0.15)) % 850;
+        environmentOverlay.lineStyle(isStorm ? 1.5 : 1, isDay ? 0xc5e5f2 : 0x9aadd2, 0.22 + intensity * 0.22);
+        for (let index = 0; index < Math.round(45 + intensity * 95); index++) {
+            const x = (index * 137 + offset) % 820 - 10;
+            const y = (index * 83 + offset * 1.7) % 620 - 10;
+            environmentOverlay.lineBetween(x, y, x - (isStorm ? 8 : 5), y + (isStorm ? 19 : 13));
+        }
+        // Small reflective puddle glints on the ground, no hit areas or input.
+        if (intensity > 0.45) {
+            for (let i = 0; i < 12; i++) {
+                const x = (i * 71 + time * 0.025) % 790 + 5;
+                const y = (i * 113 + 47) % 560 + 20;
+                environmentOverlay.lineStyle(1, 0xc4e8f2, 0.12 + (Math.sin(time * 0.004 + i) + 1) * 0.08)
+                    .lineBetween(x, y, x + 10, y - 1);
+            }
+        }
     }
 }
-
 async function loadAnnouncements() {
     const status = document.getElementById('announcements-status');
     const list = document.getElementById('announcements-list');
