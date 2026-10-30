@@ -868,10 +868,40 @@ function drawCampusMap(scene) {
         font: 'bold 11px Arial', color: '#fff', backgroundColor: '#355b36', padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(-9);
 
-    // Original flat 2D campus trees.
-    [[54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195]].forEach(([x, y]) => {
+    // Original flat 2D campus trees, enhanced with gently swaying leaf clusters.
+    const campusTreePositions = [
+        [54, 45], [120, 48], [740, 52], [750, 500], [225, 490], [188, 420], [728, 195]
+    ];
+    campusTreePositions.forEach(([x, y], index) => {
+        map.fillStyle(0x29452f, 0.22).fillEllipse(x + 2, y + 12, 27, 10);
+        map.fillStyle(0x765536, 1).fillRoundedRect(x - 3, y + 2, 6, 13, 2);
         map.fillStyle(0x477b48, 1).fillCircle(x, y, 13);
         map.fillStyle(0x78b35d, 1).fillCircle(x - 3, y - 4, 9);
+
+        // Animated highlights are decorative Phaser objects, not interactive zones.
+        const leaf = scene.add.ellipse(x - 5, y - 7, 10, 5, 0xa5d57b, 0.9)
+            .setDepth(-8.7).setRotation(-0.45);
+        scene.tweens.add({
+            targets: leaf,
+            angle: { from: -18, to: 18 },
+            scaleX: { from: 0.85, to: 1.18 },
+            duration: 1700 + index * 145,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: index * 180
+        });
+        const sparkle = scene.add.circle(x + 5, y - 2, 1.8, 0xe4f5b8, 0.7).setDepth(-8.65);
+        scene.tweens.add({
+            targets: sparkle,
+            alpha: { from: 0.18, to: 0.85 },
+            scale: { from: 0.7, to: 1.35 },
+            duration: 1250 + index * 110,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: index * 130
+        });
     });
 
     farmGraphics = scene.add.graphics().setDepth(-8);
@@ -902,6 +932,19 @@ function drawCampusBenches(scene) {
             .fillRoundedRect(x + 18, y - 6, 3, 8, 1);
         campusBenchGraphics.lineStyle(1, occupied ? 0xc7e7a9 : 0xe0b77f, 0.95)
             .strokeRoundedRect(x - 18, y - 4, 36, 7, 2);
+        // A soft animated glint makes wooden benches feel alive without
+        // changing their hitboxes, positions or resting interactions.
+        const glint = scene.add.ellipse(x - 8, y - 2, 9, 2, 0xffe6b2, 0.42).setDepth(-8.75);
+        scene.tweens.add({
+            targets: glint,
+            x: { from: x - 10, to: x + 10 },
+            alpha: { from: 0.12, to: 0.58 },
+            duration: 2100,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: CAMPUS_BENCHES.findIndex((bench) => bench.id === id) * 170
+        });
         if (occupied) {
             campusBenchGraphics.fillStyle(0xffd28b, 1).fillCircle(x, y - 16, 4);
             campusBenchGraphics.fillStyle(0x274b37, 1).fillRoundedRect(x - 5, y - 12, 10, 7, 3);
