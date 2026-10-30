@@ -224,3 +224,86 @@ function renderSessionLeaderboard() {
         list.append(row);
     });
 }
+
+/* Contextual interaction routing for interior and campus objects. */
+
+function updateInteriorInteraction(player) {
+    const nearestObject = (INTERIOR_OBJECTS[currentMapId] || [])
+        .map((object) => ({ object, distance: Phaser.Math.Distance.Between(player.x, player.y, object.x, object.y) }))
+        .filter(({ object }) => isWithinInteractionArea(player, object, 20))
+        .sort((a, b) => a.distance - b.distance)[0]?.object || null;
+    const nextObjectId = nearestObject?.id || '';
+    if (nextObjectId === activeInteriorObjectId) return;
+
+    const previousObjectId = activeInteriorObjectId;
+    activeInteriorObjectId = nextObjectId;
+    activeInteractionZoneId = nextObjectId ? `interior:${nextObjectId}` : '';
+    document.getElementById('interaction-feedback').textContent = '';
+    const hud = document.getElementById('interaction-hud');
+    hud.hidden = !nearestObject;
+    const previousTarget = previousObjectId === 'canteen-counter' ? 'canteen' : previousObjectId;
+    if (previousObjectId && zoneServiceView.target === previousTarget) {
+        zoneServiceView = { ...zoneServiceView, screen: 'closed', target: '' };
+        renderZoneServices(currentMapId);
+    }
+    if (!nearestObject) return;
+    document.getElementById('interaction-zone-name').textContent = nearestObject.name;
+    document.getElementById('interaction-zone-description').textContent = nearestObject.detail;
+    document.getElementById('farm-plot-list').hidden = true;
+    document.getElementById('farm-seed-picker').hidden = true;
+    document.getElementById('interaction-button').hidden = false;
+    document.getElementById('interaction-button').textContent = 'Tương tác (E)';
+}
+
+function interactWithCurrentZone() {
+    if (currentMapId.startsWith('halloween:') && activeHalloweenBox >= 0) {
+        if (!halloweenOpenedBoxes.has(activeHalloweenBox) && socket.connected) socket.emit('openHalloweenBox', activeHalloweenBox);
+        return;
+    }
+    if (currentMapId === 'farm' && activeFarmPlotId && activeInteractionZoneId === `farm-plot:${activeFarmPlotId}`) {
+        interactedFarmPlotId = activeFarmPlotId;
+        document.getElementById('interaction-button').hidden = true;
+        updateFarmPlotControls();
+        return;
+    }
+    if (activeInteractionZoneId.startsWith('interior:')) {
+        const objectId = activeInteriorObjectId;
+        const target = objectId === 'canteen-counter' ? 'canteen' : objectId;
+        if (!target) return;
+        const screen = target === 'merchant' ? 'merchant-home'
+            : target === 'recovery' ? 'recovery'
+                : target === 'professor' ? 'professor'
+                    : target === 'elevator-vending' ? 'elevator-machine'
+                    : 'food-order';
+        zoneServiceView = { ...zoneServiceView, screen, target, quantity: 1 };
+        document.getElementById('zone-service-feedback').textContent = '';
+        renderZoneServices(currentMapId);
+        return;
+    }
+    const zone = CAMPUS_ZONES.find((item) => item.id === activeInteractionZoneId);
+    if (!zone) return;
+    if (zone.id.startsWith('bench-')) {
+        if (socket.connected) socket.emit('restAtCampusBench', zone.id);
+        return;
+    }
+    if (zone.locked) {
+        document.getElementById('interaction-feedback').textContent = 'Khu vực này hiện chưa mở.';
+        return;
+    }
+    if (zone.loginRequired) {
+        document.getElementById('interaction-feedback').textContent = 'Khu vực cá nhân sẽ yêu cầu đăng nhập; tính năng đang được lên kế hoạch.';
+        return;
+    }
+    socket.emit('enterCampusMap', zone.id);
+}
+
+function isBlockedPosition(x, y) {
+    // Campus buildings only occupy the campus map. Reusing these collision
+    // rectangles in interiors blocks movement at unrelated coordinates.
+    if (currentMapId !== 'campus') return false;
+    const padding = 14;
+    return CAMPUS_BUILDINGS.some((building) =>
+        x >= building.x - padding && x <= building.x + building.width + padding
+        && y >= building.y - padding && y <= building.y + building.height + padding
+    );
+}
