@@ -1323,16 +1323,6 @@ io.on('connection', (socket) => {
     const statKeys = ['hunger', 'strength', 'fatigue'];
     const statNames = { hunger: 'đói', strength: 'sức mạnh', fatigue: 'mệt' };
     let message = `Mở hộp ${boxIndex + 1}.`;
-    if (progress.openedCount % 4 === 0) {
-      const statKey = statKeys[Math.floor(Math.random() * statKeys.length)];
-      const amount = 1 + Math.floor(Math.random() * 3);
-      // Hunger/strength gain is helpful; fatigue going down is helpful.
-      const increase = Math.random() < 0.5;
-      const delta = statKey === 'fatigue' ? (increase ? amount : -amount) : (increase ? amount : -amount);
-      player.stats[statKey] = clampStat(player.stats[statKey] + delta);
-      const direction = delta > 0 ? '+' : '−';
-      message += ` Đủ 4 lượt mở hộp: ${statNames[statKey]} ${direction}${amount} (ngẫu nhiên).`;
-    }
     let foundPumpkin = false;
     if (!progress.pumpkinFound && progress.pumpkinBox === boxIndex) {
       progress.pumpkinFound = true;
@@ -1362,6 +1352,21 @@ io.on('connection', (socket) => {
         spiderStolePumpkin = true;
         message += ' Nhện lấy mất bí ngô của lượt này!';
       }
+    }
+
+    if (!foundPumpkin && !spiderAppeared) {
+      const statKey = statKeys[Math.floor(Math.random() * statKeys.length)];
+      const amount = 1 + Math.floor(Math.random() * 2);
+      const delta = Math.random() < 0.5 ? amount : -amount;
+      player.stats[statKey] = clampStat(player.stats[statKey] + delta);
+      message += ` Hộp thường: ${statNames[statKey]} ${delta > 0 ? '+' : '−'}${amount} điểm.`;
+    }
+
+    if (progress.openedCount % 4 === 0) {
+      const adverseStat = statKeys[Math.floor(Math.random() * statKeys.length)];
+      const adverseDelta = adverseStat === 'fatigue' ? 1 : -1;
+      player.stats[adverseStat] = clampStat(player.stats[adverseStat] + adverseDelta);
+      message += ` Đủ 4 lần mở hộp: ${statNames[adverseStat]} bất lợi ${adverseDelta > 0 ? '+1' : '−1'}.`;
     }
 
     emitPlayerState(socket.id);
