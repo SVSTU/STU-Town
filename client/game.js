@@ -8,7 +8,9 @@ function requestGameConfirmation({ title = 'Xác nhận', message = 'Bạn có c
     document.getElementById('game-confirm-message').textContent = message;
     document.getElementById('game-confirm-accept').textContent = confirmText;
     modal.hidden = false;
-    // Do not autofocus buttons: focus can scroll/shift the game viewport on mobile.
+    modal.setAttribute('aria-hidden', 'false');
+    modal.style.display = 'grid';
+    // Keep pointer input inside the dialog; never let Phaser/canvas receive it.
 }
 
 function closeGameConfirmation(accepted = false) {
@@ -16,6 +18,8 @@ function closeGameConfirmation(accepted = false) {
     const acceptButton = document.getElementById('game-confirm-accept');
     if (!modal || modal.hidden) return;
     modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    modal.style.display = 'none';
     if (acceptButton) acceptButton.disabled = false;
     const callback = pendingGameConfirmation;
     pendingGameConfirmation = null;
@@ -483,8 +487,13 @@ function create() {
         button.disabled = true;
         closeGameConfirmation(true);
     });
-    document.getElementById('game-confirm-modal').addEventListener('click', (event) => {
-        if (event.target.id === 'game-confirm-modal') closeGameConfirmation(false);
+    const gameConfirmModal = document.getElementById('game-confirm-modal');
+    gameConfirmModal.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+    });
+    gameConfirmModal.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (event.target === gameConfirmModal) closeGameConfirmation(false);
     });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !document.getElementById('game-confirm-modal').hidden) closeGameConfirmation(false);
