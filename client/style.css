@@ -274,7 +274,44 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #player-stats label { display: grid; grid-template-columns: 1fr auto; gap: 3px 7px; margin: 5px 0; }
 #player-stats progress { grid-column: 1 / -1; width: 100%; height: 10px; accent-color: #77c46b; }
 #wallet-summary { margin-top: 7px; color: #ffe7a6; }
-#zone-service-panel { box-sizing: border-box; position: fixed; z-index: 11; right: 12px; bottom: 12px; width: min(280px, calc(100vw - 24px)); max-height: min(45vh, 320px); overflow-x: hidden; overflow-y: auto; padding: 9px; border: 1px solid #6b805f; border-radius: 9px; background: #151b18f2; color: #fff; }
+#zone-service-panel.game-service-dialog[hidden] { display: none !important; }
+#zone-service-panel.game-service-dialog {
+    box-sizing: border-box; position: fixed; inset: 0; z-index: 11000;
+    display: grid; place-items: center; padding: 18px;
+    background: rgba(5, 12, 8, .68); backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px); overflow-y: auto; overscroll-behavior: contain;
+}
+#zone-service-panel.game-service-dialog > .panel-heading,
+#zone-service-panel.game-service-dialog > #zone-service-body {
+    box-sizing: border-box; width: min(440px, 100%); margin-left: auto; margin-right: auto;
+    background: linear-gradient(150deg, #29472e, #14251b 78%); color: #f4f7e9;
+}
+#zone-service-panel.game-service-dialog > .panel-heading {
+    align-self: end; margin-top: auto; padding: 17px 18px 8px;
+    border: 1px solid #91ad75; border-bottom: 0; border-radius: 17px 17px 0 0;
+    box-shadow: 0 18px 55px rgba(0,0,0,.4);
+}
+#zone-service-panel.game-service-dialog > #zone-service-body {
+    align-self: start; margin-bottom: auto; padding: 8px 18px 18px;
+    border: 1px solid #91ad75; border-top: 0; border-radius: 0 0 17px 17px;
+    box-shadow: 0 18px 55px rgba(0,0,0,.4);
+    max-height: min(65vh, 520px); overflow-y: auto;
+}
+#zone-service-title { color: #fff0b4; font-size: 18px; font-weight: 800; }
+#zone-service-panel .panel-heading button { min-width: 30px; min-height: 30px; border-radius: 8px; }
+#zone-service-content { display: grid; gap: 9px; }
+#zone-service-content button { min-height: 40px; padding: 9px 12px; border: 1px solid #91b77a; border-radius: 9px; background: linear-gradient(180deg,#477747,#315d35); color: #fff; font-weight: 700; text-align: left; cursor: pointer; }
+#zone-service-content button:hover { background: linear-gradient(180deg,#5b9055,#417a45); }
+#zone-service-content .service-back { justify-self: start; min-height: 30px; padding: 4px 0; border: 0; background: transparent; color: #c9e9a9; }
+#zone-service-content p { margin: 3px 0; color: #e0e9d6; font-size: 13px; line-height: 1.5; }
+#zone-service-content label { display: grid; gap: 5px; color: #e0e9d6; font-size: 13px; }
+#zone-service-content select, #zone-service-content input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 38px; padding: 6px 9px; border: 1px solid #91ad75; border-radius: 8px; background: #f7f7f0; color: #171717; }
+#zone-service-content button:disabled { opacity: .48; cursor: not-allowed; }
+@media (max-width: 600px) {
+  #zone-service-panel.game-service-dialog { padding: 12px; }
+  #zone-service-panel.game-service-dialog > .panel-heading,
+  #zone-service-panel.game-service-dialog > #zone-service-body { width: 100%; }
+}
 #zone-service-title { display: block; color: #b9f29c; }
 #zone-service-panel > .panel-heading { margin-bottom: 5px; }
 #zone-service-content { display: grid; gap: 5px; }
