@@ -572,21 +572,36 @@ function create() {
             zoneServiceView.quantity = 1;
             renderZoneServices(currentMapId);
         } else if (action === 'submit-food-order') {
+            // Consume this UI action once; socket/stat updates must not reopen the dialog.
+            event.preventDefault();
+            event.stopPropagation();
+            if (button.dataset.confirmPending === 'true' || document.getElementById('game-confirm-modal')?.dataset.open === 'true') return;
             syncFoodDraftFromForm();
             if (!socket.connected) return;
-            const item = FOOD_INFO[zoneServiceView.itemId];
-            const total = (Number(item?.[zoneServiceView.currency]) || 0) * zoneServiceView.quantity;
-            const currencyLabel = zoneServiceView.currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
+            const itemId = zoneServiceView.itemId;
+            const currency = zoneServiceView.currency;
+            const quantity = zoneServiceView.quantity;
+            const item = FOOD_INFO[itemId];
+            if (!item || !Number.isInteger(quantity) || quantity < 1) return;
+            const unitPrice = Number(item[currency]) || 0;
+            const total = unitPrice * quantity;
+            const currencyLabel = currency === 'coins' ? 'tiền đồng' : 'danh tiếng';
+            button.dataset.confirmPending = 'true';
+            button.disabled = true;
             requestGameConfirmation({
                 title: 'Xác nhận mua tại căn tin',
-                message: `Mua ${zoneServiceView.quantity} ${item?.name || 'vật phẩm'} với tổng ${total.toLocaleString('vi-VN')} ${currencyLabel}?`,
+                message: `Mua ${quantity} ${item.name} với tổng ${total.toLocaleString('vi-VN')} ${currencyLabel}?`,
                 confirmText: 'Xác nhận mua',
-                onConfirm: () => socket.emit('canteenPurchase', {
-                    itemId: zoneServiceView.itemId,
-                    currency: zoneServiceView.currency,
-                    quantity: zoneServiceView.quantity
-                })
+                onConfirm: () => {
+                    if (socket.connected) socket.emit('canteenPurchase', { itemId, currency, quantity });
+                    button.dataset.confirmPending = 'false';
+                    button.disabled = false;
+                }
             });
+            if (document.getElementById('game-confirm-modal')?.dataset.open !== 'true') {
+                button.dataset.confirmPending = 'false';
+                button.disabled = false;
+            }
         } else if (action === 'buy-elevator-ticket') {
             if (socket.connected) socket.emit('buyElevatorTicket');
         } else if (action === 'use-elevator-ticket') {
