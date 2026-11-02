@@ -96,3 +96,43 @@ function saveProfile(event) {
     };
     reader.readAsDataURL(file);
 }
+
+function updateRecoveryCodeField(token = socket.auth?.playerToken || '') {
+    const field = document.getElementById('player-recovery-code');
+    if (field) field.value = typeof token === 'string' ? token : '';
+}
+
+async function copyRecoveryCode() {
+    const token = socket.auth?.playerToken || '';
+    if (!token) return alert('Chưa nhận được mã khôi phục từ máy chủ. Hãy chờ kết nối xong.');
+    try {
+        await navigator.clipboard.writeText(token);
+    } catch {
+        const field = document.getElementById('player-recovery-code');
+        field?.select();
+        document.execCommand('copy');
+    }
+    const button = document.getElementById('copy-recovery-code');
+    if (button) {
+        const oldText = button.textContent;
+        button.textContent = 'Đã sao chép';
+        setTimeout(() => { button.textContent = oldText; }, 1500);
+    }
+}
+
+function restoreRecoveryCode() {
+    const input = document.getElementById('restore-recovery-code');
+    const token = String(input?.value || '').trim();
+    if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) {
+        alert('Mã khôi phục không hợp lệ.');
+        return;
+    }
+    try {
+        localStorage.setItem(PLAYER_TOKEN_STORAGE_KEY, token);
+    } catch {
+        alert('Không thể lưu mã khôi phục trong trình duyệt này.');
+        return;
+    }
+    socket.auth.playerToken = token;
+    location.reload();
+}

@@ -138,7 +138,7 @@ function create() {
         console.log("Connected to server, my socket ID:", socket.id);
         const saveStatus = document.getElementById('player-save-status');
         if (saveStatus) saveStatus.textContent = 'Đang kiểm tra kết nối lưu dữ liệu…';
-        socket.emit('updateProfile', profile);
+        if (profile.nickname || profile.avatar) socket.emit('updateProfile', profile);
         socket.emit('getFarmState');
     });
 
@@ -148,6 +148,14 @@ function create() {
         if (saveStatus) saveStatus.textContent = 'Chưa kết nối máy chủ; dữ liệu chưa được lưu.';
         const feedback = document.getElementById('interaction-feedback');
         if (feedback) feedback.textContent = `Mất kết nối máy chủ game: ${error?.message || 'hãy thử tải lại trang.'}`;
+    });
+
+    socket.on('rateLimitNotice', (notice = {}) => {
+        const message = String(notice.message || 'Bạn thao tác quá nhanh. Hãy chờ một chút.');
+        const feedback = document.getElementById('interaction-feedback');
+        if (feedback) feedback.textContent = message;
+        const chatFeedback = document.getElementById('private-status');
+        if (chatFeedback) chatFeedback.textContent = message;
     });
 
     socket.on('playerPersistenceStatus', (status = {}) => {
@@ -163,9 +171,16 @@ function create() {
         }
     });
 
-    socket.on('playerIdentity', ({ token } = {}) => {
+    socket.on('playerIdentity', ({ token, nickname } = {}) => {
         if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{40,100}$/.test(token)) return;
         socket.auth.playerToken = token;
+        updateRecoveryCodeField(token);
+        if (!profile.nickname && typeof nickname === 'string' && nickname.trim()) {
+            profile.nickname = nickname.trim().slice(0, 24);
+            try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch {}
+            const nicknameInput = document.getElementById('nickname-input');
+            if (nicknameInput) nicknameInput.value = profile.nickname;
+        }
         try {
             localStorage.setItem(PLAYER_TOKEN_STORAGE_KEY, token);
         } catch {

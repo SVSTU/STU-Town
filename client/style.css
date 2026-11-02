@@ -872,3 +872,9 @@ body > .game-confirm-modal { position: fixed !important; inset: 0 !important; }
     #interaction-hud.game-interaction-frame { bottom: max(18px, env(safe-area-inset-bottom)); }
     #chat-container { bottom: max(12px, env(safe-area-inset-bottom)); }
 }
+#player-recovery-code { font-size: 10px; letter-spacing: .02em; }
+.profile-recovery { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(190, 226, 180, .25); }
+.profile-recovery label, .profile-recovery small { display: block; }
+.profile-recovery-row { display: flex; gap: 4px; margin-top: 4px; }
+.profile-recovery-row input { min-width: 0; flex: 1; }
+.profile-recovery-row button { flex: 0 0 auto; }

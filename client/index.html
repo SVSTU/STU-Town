@@ -34,6 +34,18 @@
                     <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
                     <button type="submit" id="profile-submit">Lưu hồ sơ</button>
                 </form>
+                <div class="profile-recovery">
+                    <label for="player-recovery-code">Mã khôi phục hồ sơ tạm</label>
+                    <div class="profile-recovery-row">
+                        <input type="text" id="player-recovery-code" readonly aria-label="Mã khôi phục hồ sơ">
+                        <button type="button" id="copy-recovery-code" onclick="copyRecoveryCode()">Sao chép</button>
+                    </div>
+                    <div class="profile-recovery-row">
+                        <input type="text" id="restore-recovery-code" maxlength="100" placeholder="Dán mã để khôi phục" aria-label="Nhập mã khôi phục">
+                        <button type="button" id="restore-recovery-code-button" onclick="restoreRecoveryCode()">Khôi phục</button>
+                    </div>
+                    <small>Mã này cho phép truy cập hồ sơ tạm. Hãy giữ kín; đăng nhập sẽ thay thế cơ chế này sau.</small>
+                </div>
             </div>
         </section>
         <div id="chat-mode-switch" role="tablist" aria-label="Loại cuộc trò chuyện">

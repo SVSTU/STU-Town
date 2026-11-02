@@ -15,6 +15,56 @@ const io = new Server(server, {
   cors: { origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }
 });
 
+const SOCKET_PACKET_LIMIT = 1200;
+const SOCKET_PACKET_WINDOW_MS = 10_000;
+const EVENT_RATE_LIMITS = {
+  sendChatMessage: { max: 5, windowMs: 10_000 },
+  sendPrivateMessage: { max: 8, windowMs: 10_000 },
+  reactToMessage: { max: 20, windowMs: 10_000 },
+  reactToPrivateMessage: { max: 20, windowMs: 10_000 },
+  sendPlayerEmote: { max: 12, windowMs: 10_000 }
+};
+
+function consumeSocketRate(socket, key, max, windowMs) {
+  const now = Date.now();
+  const timestamps = socket.data.rateWindows?.[key] || [];
+  const active = timestamps.filter((timestamp) => now - timestamp < windowMs);
+  if (active.length >= max) {
+    if (!socket.data.rateWindows) socket.data.rateWindows = {};
+    socket.data.rateWindows[key] = active;
+    return false;
+  }
+  active.push(now);
+  if (!socket.data.rateWindows) socket.data.rateWindows = {};
+  socket.data.rateWindows[key] = active;
+  return true;
+}
+
+function flagSocketSpam(socket, eventName) {
+  const now = Date.now();
+  const lastViolationAt = Number(socket.data.lastSpamViolationAt) || 0;
+  socket.data.spamViolations = now - lastViolationAt > 60_000
+    ? 1
+    : (Number(socket.data.spamViolations) || 0) + 1;
+  socket.data.lastSpamViolationAt = now;
+  const violations = socket.data.spamViolations;
+  console.warn(`Phát hiện spam socket ${socket.id}: ${eventName} (${violations}/8)`);
+  socket.emit('rateLimitNotice', {
+    message: violations >= 8
+      ? 'Bạn đã gửi quá nhiều yêu cầu. Kết nối sẽ được làm mới.'
+      : 'Bạn thao tác quá nhanh. Hãy chờ một chút.',
+    event: eventName
+  });
+  if (violations >= 8) socket.disconnect(true);
+}
+
+function allowSocketEvent(socket, eventName) {
+  const limit = EVENT_RATE_LIMITS[eventName];
+  if (!limit || consumeSocketRate(socket, eventName, limit.max, limit.windowMs)) return true;
+  flagSocketSpam(socket, eventName);
+  return false;
+}
+
 const SUPABASE_URL = String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -59,7 +109,7 @@ async function supabaseRequest(pathname, options = {}) {
 async function loadSavedProfile(tokenHash) {
   if (!isSupabaseConfigured) return null;
   const query = new URLSearchParams({
-    select: 'coins,reputation,stats,inventory,farm_plant_count,farm_harvest_count',
+    select: 'nickname,coins,reputation,stats,inventory,farm_plant_count,farm_harvest_count',
     token_hash: `eq.${tokenHash}`,
     limit: '1'
   });
@@ -293,13 +343,13 @@ function getPersistentPlayerSnapshot(id) {
   if (!player || !inventory || !tokenHash || !playerSocket?.data?.profilePersistenceReady) return null;
   return {
     token_hash: tokenHash,
+    nickname: String(player.nickname || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 24),
     coins: Math.max(0, Math.floor(Number(player.coins) || 0)),
     reputation: Math.max(0, Math.floor(Number(player.reputation) || 0)),
     stats: {
       hunger: clampStat(player.stats.hunger),
       strength: clampStat(player.stats.strength),
-      fatigue: clampStat(player.stats.fatigue),
-      nickname: String(player.nickname || '').replace(/[\\u0000-\\u001f\\u007f]/g, '').trim().slice(0, 24)
+      fatigue: clampStat(player.stats.fatigue)
     },
     inventory,
     farm_plant_count: Math.max(0, Math.floor(Number(player.farmPlantCount) || 0)),
@@ -440,7 +490,7 @@ async function getServerLeaderboard() {
   if (serverLeaderboardRequest) return serverLeaderboardRequest;
   serverLeaderboardRequest = (async () => {
     const query = new URLSearchParams({
-      select: 'token_hash,coins,reputation,stats,inventory',
+      select: 'token_hash,nickname,coins,reputation,stats,inventory',
       order: 'reputation.desc',
       limit: '1000'
     });
@@ -450,7 +500,7 @@ async function getServerLeaderboard() {
       if (!row?.token_hash) continue;
       byId.set(row.token_hash, {
         id: row.token_hash,
-        nickname: String(row.stats?.nickname || '').trim() || `Người chơi ${String(row.token_hash).slice(0, 6)}`,
+      nickname: String(row.nickname || '').trim() || `Người chơi ${String(row.token_hash).slice(0, 6)}`,
         coins: Number(row.coins) || 0,
         reputation: Number(row.reputation) || 0,
         items: { ...(row.inventory?.items || {}) }
@@ -466,7 +516,7 @@ async function getServerLeaderboard() {
       byId.set(persistentId, {
         ...byId.get(persistentId),
         id: persistentId,
-        nickname: player.nickname || `Khách (${socketId.slice(0, 4)})`,
+      nickname: player.nickname || byId.get(persistentId)?.nickname || `Khách (${socketId.slice(0, 4)})`,
         coins: Number(player.coins) || 0,
         reputation: Number(player.reputation) || 0,
         items: { ...(byId.get(persistentId)?.items || {}), ...(inventory?.items || {}) }
@@ -861,6 +911,16 @@ function returnHalloweenToCanteen(socket, reason = '') {
 io.on('connection', (socket) => {
   console.log('Người chơi kết nối:', socket.id);
   let lastFloatingEmoteAt = 0;
+  socket.data.rateWindows = Object.create(null);
+  socket.data.spamViolations = 0;
+  socket.use((packet, next) => {
+    const eventName = typeof packet?.[0] === 'string' ? packet[0] : 'unknown';
+    if (!consumeSocketRate(socket, '__packets', SOCKET_PACKET_LIMIT, SOCKET_PACKET_WINDOW_MS)) {
+      flagSocketSpam(socket, eventName);
+      return next(new Error('RATE_LIMITED'));
+    }
+    next();
+  });
   const savedProfile = socket.data.savedProfile;
   const savedStats = savedProfile?.stats && typeof savedProfile.stats === 'object' ? savedProfile.stats : {};
   const savedInventory = savedProfile?.inventory && typeof savedProfile.inventory === 'object' ? savedProfile.inventory : {};
@@ -889,7 +949,7 @@ io.on('connection', (socket) => {
     x: Math.floor(Math.random() * 70) + 330,
     y: Math.floor(Math.random() * 70) + 320,
     avatar: null,
-    nickname: '',
+    nickname: String(savedProfile?.nickname || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 24),
     mapId: 'campus',
     stats: {
       hunger: clampStat(Number(savedStats.hunger ?? 100)),
@@ -915,7 +975,7 @@ io.on('connection', (socket) => {
 
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
   socket.emit('currentPlayers', getMapPlayers('campus'));
-  socket.emit('playerIdentity', { token: socket.data.playerToken });
+  socket.emit('playerIdentity', { token: socket.data.playerToken, nickname: players[socket.id].nickname });
   socket.emit('playerPersistenceStatus', {
     enabled: isSupabaseConfigured,
     available: Boolean(socket.data.profilePersistenceReady),
@@ -1396,6 +1456,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendPlayerEmote', (emoji) => {
+    if (!allowSocketEvent(socket, 'sendPlayerEmote')) return;
     if (!players[socket.id] || !quickFloatingEmotes.has(emoji)) return;
     const now = Date.now();
     if (now - lastFloatingEmoteAt < 600) return;
@@ -1405,6 +1466,7 @@ io.on('connection', (socket) => {
 
   // 3. Lắng nghe tin nhắn chat
   socket.on('sendChatMessage', (message) => {
+    if (!allowSocketEvent(socket, 'sendChatMessage')) return;
     if (typeof message !== 'string') return;
     message = message.trim().slice(0, 300);
     const player = players[socket.id];
@@ -1418,6 +1480,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendPrivateMessage', (payload = {}) => {
+    if (!allowSocketEvent(socket, 'sendPrivateMessage')) return;
     if (!payload || typeof payload !== 'object') return;
     const { to } = payload;
     if (typeof to !== 'string' || to === socket.id || !players[to]) {
@@ -1451,6 +1514,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reactToMessage', (payload = {}) => {
+    if (!allowSocketEvent(socket, 'reactToMessage')) return;
     if (!payload || typeof payload !== 'object') return;
     const { messageId, emoji } = payload;
     if (typeof messageId !== 'string' || !reactionEmojis.has(emoji)) return;
@@ -1465,6 +1529,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reactToPrivateMessage', (payload = {}) => {
+    if (!allowSocketEvent(socket, 'reactToPrivateMessage')) return;
     if (!payload || typeof payload !== 'object') return;
     const { messageId, emoji } = payload;
     if (typeof messageId !== 'string' || !reactionEmojis.has(emoji)) return;
@@ -1494,7 +1559,7 @@ io.on('connection', (socket) => {
     const avatar = profile.avatar === null ? null : isValidAvatar(profile.avatar) ? profile.avatar : players[socket.id].avatar;
     players[socket.id].nickname = nickname;
     players[socket.id].avatar = avatar;
-    // Store the display name inside the existing JSON stats column, avoiding a schema migration.
+    // Nickname is persisted in its own player_profiles column.
     schedulePlayerSave(socket.id);
     serverLeaderboardCache = null;
     serverLeaderboardCacheExpiresAt = 0;

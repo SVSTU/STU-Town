@@ -9,6 +9,8 @@
 
 Never put the service role key in `client/`, a `VITE_`/`NEXT_PUBLIC_` variable, Git, or a message. The server hashes the anonymous browser token with SHA-256 and uses that hash as the database key. The raw token stays in that browser's local storage. Clearing browser storage or changing browser/device loses access to that anonymous save; there is no account recovery until sign-in is added.
 
-The server restores and saves coins, reputation, stats, inventory, and farm activity totals. Map position, temporary Halloween run progress, and shared farm plot state are session/game-world state and are not stored in the personal profile row.
+The server restores and saves nickname, coins, reputation, stats, inventory, and farm activity totals. Map position, temporary Halloween run progress, and shared farm plot state are session/game-world state and are not stored in the personal profile row.
 
-For local development, copy `.env.example` to `.env` under `server/`, fill in the same two values, and start the server. Without both variables, the game still runs, but durable saves are disabled. If Supabase is configured but cannot be reached, the server rejects the connection instead of silently starting a fresh profile.
+Before login/identification is added, the profile panel also exposes a recovery code. It is the anonymous bearer token for that browser profile: copy it to a safe place, and do not publish it. Importing the code in another browser restores the same saved profile after reconnecting.
+
+For local development, copy `.env.example` to `.env` under `server/`, fill in the same two values, and start the server. Before the user is identified, the game intentionally keeps the current session playable even when Supabase is not configured; the profile status in the inventory panel shows that durable saving is unavailable. If Supabase is configured but cannot be reached, the server keeps the game playable but disables profile writes for that connection to avoid overwriting an existing profile with defaults.
