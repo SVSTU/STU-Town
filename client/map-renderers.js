@@ -390,7 +390,8 @@ function drawCanteenHallOfFame(scene) {
 
 function drawInteriorMap(scene, mapId) {
     const firstMapChild = scene.children.list.length;
-    const labels = mapId.startsWith('halloween:') ? ['Tầng Halloween', '50 hộp quà · Mỗi hộp chỉ mở một lần'] : ({
+    const labels = mapId.startsWith('halloween:') ? ['Tầng Halloween', '50 hộp quà · Mỗi hộp chỉ mở một lần']
+        : mapId.startsWith('bench-private:') ? ['Không gian ghế riêng', 'Hai người cùng nghỉ · không giới hạn thời gian'] : ({
         sports: ['Sân thể thao', 'Sân bóng và khu vực vận động'],
         fountain: ['Đài phun nước', 'Quảng trường và điểm hẹn'],
         farm: ['Nông trại cộng đồng', 'Bốn luống dùng chung · túi đồ riêng cho từng người'],

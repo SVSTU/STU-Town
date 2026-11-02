@@ -289,11 +289,12 @@ const quickFloatingEmotes = new Set(['👋', '❤️', '😂', '👍', '🔥', '
 const FARM_GROWTH_MS = 30_000;
 const FARM_WILT_MS = FARM_GROWTH_MS * 10;
 const FARM_DEATH_MS = FARM_GROWTH_MS * 50;
-const FARM_HARVEST_COST_EVERY = 4;
 const CAMPUS_BENCH_REST = 10;
 const CAMPUS_BENCH_REST_DURATION_MS = 30_000;
 const CAMPUS_BENCH_REST_STEP_MS = CAMPUS_BENCH_REST_DURATION_MS / CAMPUS_BENCH_REST;
 const CAMPUS_BENCH_COOLDOWN_MS = 3_000;
+const CAMPUS_BENCH_PRIVATE_CONFIRM_MS = 10_000;
+const PRIVATE_BENCH_REST_RECOVERY_MS = 300_000;
 const CAMPUS_BENCHES = [
   { id: 'bench-1', x: 540, y: 50 }, { id: 'bench-2', x: 625, y: 50 },
   { id: 'bench-3', x: 550, y: 285 }, { id: 'bench-4', x: 630, y: 285 },
@@ -309,6 +310,7 @@ const FOOD_MENU = {
   bao: { coins: 150, reputation: 30, hunger: 15, strength: 15 },
   soda: { coins: 180, reputation: 36, strength: 25, fatigue: -15 }
 };
+const campusBenchPrivateOffers = new Map();
 const OPEN_MAP_IDS = new Set(['sports', 'fountain', 'farm', 'khu-c', 'khu-a', 'canteen', 'auditorium']);
 const CLOSED_MAP_IDS = new Set(['khu-d', 'khu-e', 'khu-f']);
 const HALLOWEEN_BOX_COUNT = 50;
@@ -584,6 +586,72 @@ function stopCampusBenchRest(player) {
   return wasSitting;
 }
 
+function getBenchPrivateOfferForPlayer(playerId) {
+  return [...campusBenchPrivateOffers.values()].find((offer) => offer.playerIds.includes(playerId));
+}
+
+function ejectBenchPair(playerIds, message) {
+  const activeIds = playerIds.filter((id) => players[id]?.mapId === 'campus');
+  activeIds.forEach((id, index) => {
+    const player = players[id];
+    const bench = CAMPUS_BENCHES.find((item) => item.id === player.sittingAtBench);
+    const wasSitting = stopCampusBenchRest(player);
+    if (bench) {
+      player.x = Math.max(30, Math.min(770, bench.x + 78 + index * 22));
+      player.y = Math.max(30, Math.min(570, bench.y + 65 + index * 12));
+    }
+    const playerSocket = io.sockets.sockets.get(id);
+    playerSocket?.emit('benchRestResult', { message, state: getPlayerState(player), x: player.x, y: player.y });
+    if (wasSitting) playerSocket?.to('map:campus').emit('playerMoved', { id, x: player.x, y: player.y });
+  });
+  emitCampusBenchOccupants();
+}
+
+function moveBenchPairToPrivateSpace(offer) {
+  const activeIds = offer.playerIds.filter((id) => players[id]?.mapId === 'campus' && players[id].sittingAtBench === offer.benchId);
+  if (activeIds.length !== 2) return false;
+  const privateMapId = `bench-private:${offer.id}`;
+  activeIds.forEach((id, index) => {
+    const player = players[id];
+    const playerSocket = io.sockets.sockets.get(id);
+    stopCampusBenchRest(player);
+    playerSocket?.leave('map:campus');
+    playerSocket?.to('map:campus').emit('playerLeftMap', id);
+    Object.assign(player, { mapId: privateMapId, x: index ? 455 : 345, y: 310 });
+    playerSocket?.join(`map:${privateMapId}`);
+  });
+  emitCampusBenchOccupants();
+  activeIds.forEach((id) => {
+    const playerSocket = io.sockets.sockets.get(id);
+    playerSocket?.emit('mapChanged', { mapId: privateMapId, players: getMapPlayers(privateMapId) });
+    playerSocket?.emit('benchPrivateSeatEntered', { message: 'Đã chuyển vào không gian ghế riêng. Hai người có thể ngồi không giới hạn thời gian.' });
+  });
+  return true;
+}
+
+function createBenchPrivateOffer(benchId, playerIds) {
+  if (playerIds.length !== 2 || playerIds.some((id) => getBenchPrivateOfferForPlayer(id))) return;
+  const id = crypto.randomUUID();
+  const offer = { id, benchId, playerIds, accepted: new Set(), expiresAt: Date.now() + CAMPUS_BENCH_PRIVATE_CONFIRM_MS };
+  campusBenchPrivateOffers.set(id, offer);
+  playerIds.forEach((playerId) => {
+    const player = players[playerId];
+    io.sockets.sockets.get(playerId)?.emit('benchPrivateSeatOffer', {
+      offerId: id,
+      benchId,
+      partnerName: playerIds.find((id2) => id2 !== playerId) ? (players[playerIds.find((id2) => id2 !== playerId)]?.nickname || 'người chơi') : 'người chơi',
+      expiresAt: offer.expiresAt
+    });
+  });
+  setTimeout(() => {
+    const current = campusBenchPrivateOffers.get(id);
+    if (!current) return;
+    campusBenchPrivateOffers.delete(id);
+    if (current.accepted.size === 2 && moveBenchPairToPrivateSpace(current)) return;
+    ejectBenchPair(current.playerIds, 'Hai người chưa cùng xác nhận trong 10 giây nên đã rời ghế để nhường chỗ.');
+  }, CAMPUS_BENCH_PRIVATE_CONFIRM_MS);
+}
+
 function tickCampusBenchRest() {
   const now = Date.now();
   let occupancyChanged = false;
@@ -609,9 +677,13 @@ function tickCampusBenchRest() {
       });
     }
 
-    if (elapsed >= CAMPUS_BENCH_REST_DURATION_MS
-      || player.benchRestRecovered >= CAMPUS_BENCH_REST
-      || player.stats.fatigue <= 0) {
+    const benchOccupants = getCampusBenchOccupants()[player.sittingAtBench] || [];
+    if (benchOccupants.length === 2 && elapsed >= CAMPUS_BENCH_REST_DURATION_MS) {
+      createBenchPrivateOffer(player.sittingAtBench, benchOccupants);
+    }
+    const hasPrivateOffer = Boolean(getBenchPrivateOfferForPlayer(id));
+    if ((elapsed >= CAMPUS_BENCH_REST_DURATION_MS && benchOccupants.length < 2)
+      || (player.benchRestRecovered >= CAMPUS_BENCH_REST && !hasPrivateOffer)) {
       const totalRecovered = player.benchRestRecovered;
       occupancyChanged = stopCampusBenchRest(player) || occupancyChanged;
       io.sockets.sockets.get(id)?.emit('benchRestResult', {
@@ -644,8 +716,9 @@ function tickPlayerStats() {
     player.statsTickAt = now;
     const statsBefore = `${player.stats.hunger}|${player.stats.strength}|${player.stats.fatigue}`;
     const isAuditorium = player.mapId === 'auditorium';
-    const safeForHunger = ['khu-a', 'canteen', 'auditorium'].includes(player.mapId);
-    const safeForMovementFatigue = ['khu-a', 'farm', 'auditorium'].includes(player.mapId);
+    const isPrivateBenchSpace = player.mapId.startsWith('bench-private:');
+    const safeForHunger = ['khu-a', 'canteen', 'auditorium'].includes(player.mapId) || isPrivateBenchSpace;
+    const safeForMovementFatigue = ['khu-a', 'farm', 'auditorium'].includes(player.mapId) || isPrivateBenchSpace;
     if (!safeForHunger) {
       player.hungerElapsed += elapsed;
       while (player.hungerElapsed >= 300_000) {
@@ -661,7 +734,16 @@ function tickPlayerStats() {
         player.stats.fatigue = clampStat(player.stats.fatigue + 1);
       }
     }
-    if (isAuditorium) player.weaknessElapsed = 0;
+    if (isPrivateBenchSpace) {
+      player.privateBenchRecoveryElapsed += elapsed;
+      while (player.privateBenchRecoveryElapsed >= PRIVATE_BENCH_REST_RECOVERY_MS) {
+        player.privateBenchRecoveryElapsed -= PRIVATE_BENCH_REST_RECOVERY_MS;
+        player.stats.fatigue = clampStat(player.stats.fatigue - 1);
+      }
+    } else {
+      player.privateBenchRecoveryElapsed = 0;
+    }
+    if (isAuditorium || isPrivateBenchSpace) player.weaknessElapsed = 0;
     else if (player.stats.hunger === 0) {
       player.weaknessElapsed += elapsed;
       while (player.weaknessElapsed >= 60_000) {
@@ -712,13 +794,13 @@ function getCropYield(plot, now = Date.now()) {
 }
 
 function applyFarmWorkCost(player, action) {
-  const counterKey = action === 'plant' ? 'farmPlantCount' : 'farmHarvestCount';
-  if (player[counterKey] < FARM_HARVEST_COST_EVERY) return '';
-  player[counterKey] -= FARM_HARVEST_COST_EVERY;
-  player.stats.strength = clampStat(player.stats.strength - 0.5);
-  player.stats.fatigue = clampStat(player.stats.fatigue + 0.5);
-  player.stats.hunger = clampStat(player.stats.hunger - 0.5);
-  return ' Đủ 4 lần: sức mạnh −0.5, mệt +0.5, đói −0.5.';
+  // Mỗi ô đất được trồng hoặc thu hoạch là một lần lao động độc lập.
+  // Không gom theo nhóm 4 nữa: sức mạnh −1, mệt +1 và đói −1 cho từng thao tác.
+  player.stats.strength = clampStat(player.stats.strength - 1);
+  player.stats.fatigue = clampStat(player.stats.fatigue + 1);
+  player.stats.hunger = clampStat(player.stats.hunger - 1);
+  const actionLabel = action === 'plant' ? 'gieo trồng' : 'thu hoạch';
+  return ` ${actionLabel}: sức mạnh −1, mệt +1, đói −1.`;
 }
 
 function farmMembers() {
@@ -967,6 +1049,7 @@ io.on('connection', (socket) => {
     farmHarvestCount: Math.max(0, Math.floor(Number(savedProfile?.farm_harvest_count) || 0)),
     hungerElapsed: 0,
     fatigueElapsed: 0,
+    privateBenchRecoveryElapsed: 0,
     weaknessElapsed: 0,
     statsTickAt: Date.now(),
     lastMovementAt: Date.now(),
@@ -1233,9 +1316,6 @@ io.on('connection', (socket) => {
         state: getPlayerState(player)
       });
     }
-    if (player.stats.fatigue <= 0) {
-      return socket.emit('benchRestResult', { message: 'Bạn chưa mệt, không cần nghỉ lúc này.', state: getPlayerState(player) });
-    }
     if (now - (player.lastBenchRestAt || 0) < CAMPUS_BENCH_COOLDOWN_MS) {
       return socket.emit('benchRestResult', { message: 'Bạn vừa nghỉ xong, hãy chờ một chút.' });
     }
@@ -1249,6 +1329,22 @@ io.on('connection', (socket) => {
       message: 'Bạn bắt đầu nghỉ. Độ mệt giảm dần 1 điểm mỗi 3 giây, tối đa 10 điểm trong 30 giây. Di chuyển sẽ dừng nghỉ.',
       state: getPlayerState(player)
     });
+  });
+
+  socket.on('benchPrivateSeatResponse', ({ offerId, accept } = {}) => {
+    const offer = campusBenchPrivateOffers.get(offerId);
+    const player = players[socket.id];
+    if (!offer || !player || !offer.playerIds.includes(socket.id) || Date.now() > offer.expiresAt) return;
+    if (player.mapId !== 'campus' || player.sittingAtBench !== offer.benchId) return;
+    if (accept !== true) {
+      campusBenchPrivateOffers.delete(offerId);
+      return ejectBenchPair(offer.playerIds, 'Bạn chưa cùng xác nhận không gian riêng nên đã rời ghế để nhường chỗ.');
+    }
+    offer.accepted.add(socket.id);
+    if (offer.accepted.size === 2) {
+      campusBenchPrivateOffers.delete(offerId);
+      if (!moveBenchPairToPrivateSpace(offer)) ejectBenchPair(offer.playerIds, 'Không thể chuyển vào ghế riêng; cả hai đã được đưa ra xa ghế.');
+    }
   });
 
   socket.on('canteenPurchase', (payload = {}) => {

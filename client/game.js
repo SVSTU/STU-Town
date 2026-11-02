@@ -257,6 +257,20 @@ function create() {
     socket.on('benchRestResult', (result) => {
         document.getElementById('interaction-feedback').textContent = String(result?.message || '');
         if (result?.state) updatePlayerStats(result.state);
+        if (players[socket.id] && Number.isFinite(result?.x) && Number.isFinite(result?.y)) {
+            players[socket.id].x = result.x;
+            players[socket.id].y = result.y;
+        }
+    });
+
+    socket.on('benchPrivateSeatOffer', (offer) => {
+        const partnerName = String(offer?.partnerName || 'người chơi');
+        const accepted = window.confirm(`Bạn và ${partnerName} đã ngồi cùng ghế hơn 30 giây. Chuyển cả hai vào không gian ghế riêng?\n\nCả hai phải đồng ý trong 10 giây.`);
+        socket.emit('benchPrivateSeatResponse', { offerId: offer?.offerId, accept: accepted });
+    });
+
+    socket.on('benchPrivateSeatEntered', (result) => {
+        document.getElementById('interaction-feedback').textContent = String(result?.message || 'Đã vào không gian ghế riêng.');
     });
 
     socket.on('mapChangeDenied', (message) => {
