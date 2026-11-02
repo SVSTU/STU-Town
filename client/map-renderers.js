@@ -186,7 +186,10 @@ function drawCampusBenches(scene) {
     }
     campusBenchGraphics.clear();
     CAMPUS_BENCHES.forEach(({ id, x, y }) => {
-        const occupied = Boolean(campusBenchOccupants[id]);
+        const occupantIds = Array.isArray(campusBenchOccupants[id])
+            ? campusBenchOccupants[id]
+            : (campusBenchOccupants[id] ? [campusBenchOccupants[id]] : []);
+        const occupied = occupantIds.length > 0;
         const backDark = occupied ? 0x31543a : 0x51351f;
         const backWood = occupied ? 0x56875a : 0xb4773e;
         const seatDark = occupied ? 0x31543a : 0x684326;

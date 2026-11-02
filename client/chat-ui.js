@@ -92,6 +92,19 @@ function setChatMode(mode) {
     if (isPrivate) updatePrivateRecipientList();
 }
 
+function prioritizeBenchPrivateChat(peerId) {
+    if (!peerId || peerId === socket.id || !players[peerId]) return;
+    const select = document.getElementById('private-recipient');
+    if (!select) return;
+    activePrivatePeerId = peerId;
+    updatePrivateRecipientList();
+    select.value = peerId;
+    setChatMode('private');
+    document.getElementById('private-status').textContent = `Đang chat riêng với ${players[peerId].playerNickname || 'người chơi'} (cùng ghế).`;
+    document.getElementById('private-conversation-title').textContent = `🔒 Chat riêng · ${players[peerId].playerNickname || 'Người chơi'} (${peerId.substring(0, 4)})`;
+    renderPrivateMessages();
+}
+
 function updatePrivateRecipientList() {
     const select = document.getElementById('private-recipient');
     if (!select) return;

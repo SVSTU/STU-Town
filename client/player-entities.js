@@ -45,6 +45,13 @@ function createPlayer(scene, info, id) {
 
     scene.add.existing(container);
     players[id] = container;
+    if (typeof campusBenchOccupants !== 'undefined') {
+        const seated = Object.values(campusBenchOccupants).some((ids) => {
+            const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
+            return list.includes(id);
+        });
+        setPlayerSeatedVisual(container, seated);
+    }
 }
 
 function updatePlayerName(player, nickname, id) {
@@ -78,7 +85,9 @@ function setAvatarFromBase64(scene, container, base64Str) {
     img.onload = function() {
         if (!player.scene || !createCircularTexture(scene, textureKey, img)) return;
         if (player.avatarSprite) player.avatarSprite.destroy();
-        player.avatarSprite = scene.add.image(0, 0, textureKey).setDisplaySize(player.playerRadius * 2, player.playerRadius * 2);
+        player.avatarSprite = scene.add.image(0, 0, textureKey)
+            .setDisplaySize(player.playerRadius * 2, player.playerRadius * 2)
+            .setVisible(!player.isSeatedAtBench);
         player.addAt(player.avatarSprite, 1);
         if (player.textLabel) player.bringToTop(player.textLabel);
     };
@@ -88,4 +97,11 @@ function setAvatarFromBase64(scene, container, base64Str) {
 
 function updatePlayerAvatar(scene, container, base64Str) {
     setAvatarFromBase64(scene, container, base64Str);
+}
+
+function setPlayerSeatedVisual(container, seated) {
+    if (!container) return;
+    if (container.avatarSprite) container.avatarSprite.setVisible(!seated);
+    if (container.borderRing) container.borderRing.setFillStyle(seated ? 0x31543a : 0x000000, seated ? 0.75 : 0);
+    container.isSeatedAtBench = Boolean(seated);
 }

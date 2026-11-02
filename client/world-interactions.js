@@ -75,13 +75,16 @@ function updateInteractionZone(player) {
 
 function updateBenchInteractionState(bench) {
     const button = document.getElementById('interaction-button');
-    const occupantId = campusBenchOccupants[bench.id];
-    const occupiedByOther = Boolean(occupantId && occupantId !== socket.id);
-    const occupiedBySelf = Boolean(occupantId && occupantId === socket.id);
-    button.disabled = occupiedByOther || occupiedBySelf;
-    button.textContent = occupiedByOther ? 'Ghế đang có người' : occupiedBySelf ? 'Bạn đang ngồi nghỉ' : 'Ngồi nghỉ (E)';
+    const occupantIds = Array.isArray(campusBenchOccupants[bench.id])
+        ? campusBenchOccupants[bench.id]
+        : (campusBenchOccupants[bench.id] ? [campusBenchOccupants[bench.id]] : []);
+    const occupiedBySelf = occupantIds.includes(socket.id);
+    const occupiedByOther = occupantIds.some((id) => id !== socket.id);
+    const full = occupantIds.length >= 2 && !occupiedBySelf;
+    button.disabled = full || occupiedBySelf;
+    button.textContent = full ? 'Ghế đã đủ 2 người' : occupiedBySelf ? 'Bạn đang ngồi nghỉ' : 'Ngồi nghỉ (E)';
     document.getElementById('interaction-zone-description').textContent = occupiedByOther
-        ? 'Ghế đang được người chơi khác sử dụng.'
+        ? `Ghế đang có ${occupantIds.length}/2 người.`
         : occupiedBySelf ? 'Bạn đang ngồi nghỉ. Di chuyển để nhường ghế.' : bench.detail;
 }
 

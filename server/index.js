@@ -561,9 +561,14 @@ function emitSessionLeaderboard() {
 }
 
 function getCampusBenchOccupants() {
-  return Object.fromEntries(Object.entries(players)
+  const occupants = {};
+  Object.entries(players)
     .filter(([, player]) => player.mapId === 'campus' && player.sittingAtBench)
-    .map(([id, player]) => [player.sittingAtBench, id]));
+    .forEach(([id, player]) => {
+      if (!occupants[player.sittingAtBench]) occupants[player.sittingAtBench] = [];
+      occupants[player.sittingAtBench].push(id);
+    });
+  return occupants;
 }
 
 function emitCampusBenchOccupants() {
@@ -1026,6 +1031,7 @@ io.on('connection', (socket) => {
     Object.assign(players[socket.id], spawn, { mapId });
     socket.join(`map:${mapId}`);
     socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
+    if (mapId === 'campus') socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
     socket.to(`map:${mapId}`).emit('newPlayer', { id: socket.id, ...players[socket.id] });
     if (mapId === 'canteen') void emitCanteenBestSellingProducts(socket);
     if (mapId === 'khu-c') socket.emit('sessionLeaderboard', getSessionLeaderboard());
@@ -1053,6 +1059,7 @@ io.on('connection', (socket) => {
     socket.join('map:campus');
     emitSessionLeaderboard();
     socket.emit('mapChanged', { mapId: 'campus', players: getMapPlayers('campus') });
+    socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
     socket.to('map:campus').emit('newPlayer', { id: socket.id, ...players[socket.id] });
     if (previousMapId === 'farm' && farmMembers().length === 0) {
       clearFarmMouseTimers();
@@ -1216,10 +1223,9 @@ io.on('connection', (socket) => {
     }
     const distance = Math.hypot(player.x - bench.x, player.y - bench.y);
     if (distance > 55) return socket.emit('benchRestResult', { message: 'Hãy đến gần ghế để ngồi nghỉ.' });
-    const occupiedByOther = Object.entries(players).some(([id, otherPlayer]) =>
-      id !== socket.id && otherPlayer.mapId === 'campus' && otherPlayer.sittingAtBench === benchId
-    );
-    if (occupiedByOther) return socket.emit('benchRestResult', { message: 'Ghế đang có người ngồi.' });
+    const occupants = getCampusBenchOccupants()[benchId] || [];
+    const occupiedByOther = occupants.filter((id) => id !== socket.id);
+    if (occupiedByOther.length >= 2) return socket.emit('benchRestResult', { message: 'Ghế đã đủ 2 người.' });
     const now = Date.now();
     if (player.sittingAtBench === benchId && player.benchRestStartedAt) {
       return socket.emit('benchRestResult', {

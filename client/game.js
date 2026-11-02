@@ -221,6 +221,24 @@ function create() {
     socket.on('playerState', updatePlayerStats);
     socket.on('campusBenchOccupancy', (occupants) => {
         campusBenchOccupants = occupants && typeof occupants === 'object' ? occupants : {};
+        Object.values(campusBenchOccupants).forEach((ids) => {
+            const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
+            list.forEach((id) => setPlayerSeatedVisual(players[id], true));
+        });
+        Object.entries(players).forEach(([id, player]) => {
+            const seated = Object.values(campusBenchOccupants).some((ids) => {
+                const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
+                return list.includes(id);
+            });
+            setPlayerSeatedVisual(player, seated);
+        });
+        const myBench = Object.entries(campusBenchOccupants).find(([, ids]) => {
+            const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
+            return list.includes(socket.id);
+        });
+        const myBenchIds = myBench ? (Array.isArray(myBench[1]) ? myBench[1] : [myBench[1]]) : [];
+        const benchPartner = myBenchIds.find((id) => id !== socket.id && players[id]);
+        if (benchPartner && typeof prioritizeBenchPrivateChat === 'function') prioritizeBenchPrivateChat(benchPartner);
         if (currentMapId === 'campus' && sceneRef) drawCampusBenches(sceneRef);
         if (currentMapId === 'campus' && socket.id && players[socket.id]) updateInteractionZone(players[socket.id]);
     });
