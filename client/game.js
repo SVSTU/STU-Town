@@ -1,11 +1,14 @@
 const pendingGameConfirmations = new Map();
 const openGameConfirmations = new Set();
 
-function requestGameConfirmation({ dialogId, title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm }) {
+function requestGameConfirmation({ dialogId, title = 'Xác nhận', message = 'Bạn có chắc chắn muốn thực hiện?', confirmText = 'Đồng ý', onConfirm, onCancel }) {
     const modal = document.getElementById(dialogId);
     if (!modal || openGameConfirmations.has(dialogId) || modal.dataset.open === 'true' || !modal.hidden) return false;
     if (modal.parentElement !== document.body) document.body.appendChild(modal);
-    pendingGameConfirmations.set(dialogId, typeof onConfirm === 'function' ? onConfirm : null);
+    pendingGameConfirmations.set(dialogId, {
+        onConfirm: typeof onConfirm === 'function' ? onConfirm : null,
+        onCancel: typeof onCancel === 'function' ? onCancel : null
+    });
     document.getElementById(`${dialogId}-title`).textContent = title;
     document.getElementById(`${dialogId}-message`).textContent = message;
     const acceptButton = document.getElementById(`${dialogId}-accept`);
@@ -29,9 +32,10 @@ function closeGameConfirmation(dialogId, accepted = false) {
     modal.style.display = 'none';
     const acceptButton = document.getElementById(`${dialogId}-accept`);
     if (acceptButton) acceptButton.disabled = false;
-    const callback = pendingGameConfirmations.get(dialogId);
+    const callbacks = pendingGameConfirmations.get(dialogId);
     pendingGameConfirmations.delete(dialogId);
-    if (accepted && callback) callback();
+    if (accepted) callbacks?.onConfirm?.();
+    else callbacks?.onCancel?.();
 }
 console.log("GAME STARTING...");
 
@@ -265,8 +269,14 @@ function create() {
 
     socket.on('benchPrivateSeatOffer', (offer) => {
         const partnerName = String(offer?.partnerName || 'người chơi');
-        const accepted = window.confirm(`Bạn và ${partnerName} đã ngồi cùng ghế hơn 30 giây. Chuyển cả hai vào không gian ghế riêng?\n\nCả hai phải đồng ý trong 10 giây.`);
-        socket.emit('benchPrivateSeatResponse', { offerId: offer?.offerId, accept: accepted });
+        requestGameConfirmation({
+            dialogId: 'bench-private-confirm-modal',
+            title: 'Mời vào không gian ghế riêng',
+            message: `Bạn và ${partnerName} đã ngồi cùng ghế hơn 30 giây. Cả hai cần xác nhận trong 10 giây để chuyển sang không gian riêng, không giới hạn thời gian ngồi.`,
+            confirmText: 'Đồng ý chuyển',
+            onConfirm: () => socket.emit('benchPrivateSeatResponse', { offerId: offer?.offerId, accept: true }),
+            onCancel: () => socket.emit('benchPrivateSeatResponse', { offerId: offer?.offerId, accept: false })
+        });
     });
 
     socket.on('benchPrivateSeatEntered', (result) => {

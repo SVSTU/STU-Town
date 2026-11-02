@@ -13,6 +13,13 @@ function createPlayer(scene, info, id) {
     const container = scene.add.container(info.x, info.y);
     container.playerRadius = radius;
     container.borderColor = borderColor;
+    const isPrivateBenchGuest = String(info.mapId || '').startsWith('bench-private:');
+    if (isPrivateBenchGuest) {
+        container.seatedShadow = scene.add.ellipse(0, 19, radius * 2.4, radius * 0.75, 0x1f3426, 0.42);
+        container.seatedBody = scene.add.ellipse(0, 10, radius * 1.45, radius * 1.8, isMe ? 0x3a83b8 : 0xb76a45, 0.95);
+        container.add(container.seatedShadow);
+        container.addAt(container.seatedBody, 1);
+    }
 
     // 1. Nhãn tên hiển thị trên đầu
     const shortId = id.substring(0, 4);

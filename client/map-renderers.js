@@ -388,6 +388,50 @@ function drawCanteenHallOfFame(scene) {
     renderCanteenQuickBuyButtons(scene);
 }
 
+function drawBenchPrivateScene(scene, g) {
+    // Sân vườn isometric giả lập 3D: nền nổi, bóng đổ, cây và bồn hoa.
+    g.fillStyle(0x29402d, 0.28).fillEllipse(405, 410, 560, 46);
+    g.fillStyle(0x5f8c54, 1).fillRoundedRect(120, 165, 560, 285, 22);
+    g.lineStyle(3, 0xb9d99d, 0.75).strokeRoundedRect(132, 177, 536, 261, 18);
+    g.fillStyle(0x789e62, 0.6).fillRoundedRect(170, 220, 460, 170, 85);
+    g.fillStyle(0x6c9158, 0.7).fillEllipse(400, 350, 420, 105);
+
+    const drawTree = (x, y, scale = 1) => {
+        g.fillStyle(0x29402d, 0.28).fillEllipse(x + 5, y + 26 * scale, 60 * scale, 16 * scale);
+        g.fillStyle(0x754c2d, 1).fillRoundedRect(x - 5 * scale, y + 8 * scale, 10 * scale, 27 * scale, 3);
+        g.fillStyle(0x4d7d48, 1).fillCircle(x - 13 * scale, y, 19 * scale);
+        g.fillStyle(0x629a52, 1).fillCircle(x + 9 * scale, y - 4 * scale, 23 * scale);
+        g.fillStyle(0x82b866, 0.9).fillCircle(x - 1 * scale, y - 17 * scale, 16 * scale);
+        g.fillStyle(0xb9dc8f, 0.65).fillCircle(x - 8 * scale, y - 20 * scale, 5 * scale);
+    };
+    drawTree(180, 215, 1.05); drawTree(620, 215, 1.05);
+    drawTree(165, 385, 0.82); drawTree(640, 385, 0.82);
+
+    const drawFlowerBed = (x, y) => {
+        g.fillStyle(0x61432f, 1).fillRoundedRect(x - 46, y - 13, 92, 26, 8);
+        g.fillStyle(0xb58a58, 1).fillRoundedRect(x - 42, y - 9, 84, 5, 3);
+        [x - 26, x, x + 26].forEach((flowerX, index) => {
+            g.fillStyle(index % 2 ? 0xf3b3c6 : 0xf6d272, 1).fillCircle(flowerX, y - 19, 6);
+            g.fillStyle(0x51834d, 1).fillRoundedRect(flowerX - 2, y - 15, 4, 14, 2);
+        });
+    };
+    drawFlowerBed(245, 205); drawFlowerBed(555, 205);
+
+    // Ghế gỗ có mặt ngồi, tựa lưng, tay vịn và chân tạo cảm giác nổi khối.
+    g.fillStyle(0x29402d, 0.35).fillEllipse(400, 365, 330, 35);
+    g.fillStyle(0x6d4329, 1).fillRoundedRect(250, 295, 300, 20, 6);
+    g.fillStyle(0xb8783f, 1).fillRoundedRect(255, 288, 290, 13, 5);
+    g.fillStyle(0x6d4329, 1).fillRoundedRect(260, 258, 280, 16, 5);
+    g.fillStyle(0xb8783f, 1).fillRoundedRect(265, 253, 270, 10, 4);
+    g.fillStyle(0x58371f, 1)
+        .fillRoundedRect(275, 310, 9, 48, 3).fillRoundedRect(516, 310, 9, 48, 3)
+        .fillRoundedRect(310, 310, 8, 43, 3).fillRoundedRect(482, 310, 8, 43, 3);
+    g.lineStyle(2, 0xd9a064, 0.8).strokeRoundedRect(255, 288, 290, 13, 5);
+    scene.add.text(400, 220, '🌿 GHẾ VƯỜN RIÊNG', {
+        font: 'bold 18px Arial', color: '#fff', backgroundColor: '#29402d', padding: { x: 10, y: 6 }
+    }).setOrigin(0.5).setDepth(-9);
+}
+
 function drawInteriorMap(scene, mapId) {
     const firstMapChild = scene.children.list.length;
     const labels = mapId.startsWith('halloween:') ? ['Tầng Halloween', '50 hộp quà · Mỗi hộp chỉ mở một lần']
@@ -445,7 +489,9 @@ function drawInteriorMap(scene, mapId) {
     } else {
         g.fillStyle(0x5f9a61, 1).fillRoundedRect(180, 160, 440, 280, 12);
         g.lineStyle(3, 0xd5e6c2, 0.8).strokeRoundedRect(196, 176, 408, 248, 8);
-        if (mapId === 'sports') {
+        if (mapId.startsWith('bench-private:')) {
+            drawBenchPrivateScene(scene, g);
+        } else if (mapId === 'sports') {
             // Bright field stripes, center spot and goal mouths.
             g.fillStyle(0x6da967, 0.45).fillRoundedRect(204, 184, 392, 232, 8);
             g.lineStyle(3, 0xe4f0d1, 0.9).strokeRoundedRect(204, 184, 392, 232, 8);
