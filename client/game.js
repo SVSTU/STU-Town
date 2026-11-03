@@ -56,6 +56,7 @@ let activeInteractionZoneId = '';
 let activeInteriorObjectId = '';
 let activeFarmPlotId = '';
 let interactedFarmPlotId = '';
+let selectedFarmSeedKey = 'carrot';
 let currentMapId = 'campus';
 let activeFarmMouseId = '';
 let mapExitTarget = null;

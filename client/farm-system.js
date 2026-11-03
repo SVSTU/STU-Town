@@ -31,14 +31,19 @@ function registerFarmSocketHandlers() {
 }
 
 function registerFarmDomHandlers() {
+        document.getElementById('farm-seed-options').addEventListener('click', (event) => {
+            const card = event.target.closest('[data-seed-key]');
+            if (!card) return;
+            selectedFarmSeedKey = card.dataset.seedKey;
+            updateFarmPlotControls();
+        });
         document.getElementById('farm-plot-list').addEventListener('click', (event) => {
             const button = event.target.closest('[data-farm-plot]');
             if (!button || !socket.connected || currentMapId !== 'farm') return;
             socket.emit('interactFarmPlot', {
                 plotId: button.dataset.farmPlot,
                 action: button.dataset.action,
-                cropKey: document.getElementById('farm-seed-type').value
+                cropKey: selectedFarmSeedKey
             });
         });
-        document.getElementById('farm-seed-type').addEventListener('change', updateFarmPlotControls);
 }

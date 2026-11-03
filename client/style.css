@@ -275,6 +275,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .farm-action-card small, .trade-item-card small { margin-top: 3px; color: #c5dbb9; font-size: 11px; font-weight: 400; }
 .trade-item-card { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid #90b878; border-radius: 10px; background: linear-gradient(145deg, #315d35, #1d3824); }
 .trade-item-icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 10px; background: #172a1d; font-size: 28px; box-shadow: inset 0 1px rgba(255,255,255,.12); }
+#farm-plot-list { grid-template-columns: 1fr; }
+#farm-plot-list .farm-action-card { min-height: 40px !important; padding: 5px 8px !important; }
+#farm-plot-list .farm-action-card .farm-action-icon { width: 27px; height: 27px; flex-basis: 27px; font-size: 17px; }
 #map-exit { right: 258px; }
 #player-stats { position: fixed; z-index: 12; top: 12px; left: 12px; width: 205px; padding: 10px; border: 1px solid #698064; border-radius: 9px; background: #151b18eF; color: #fff; font-size: 12px; }
 #player-stats > .panel-heading { margin-bottom: 6px; }
@@ -789,8 +792,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 #interaction-button:hover { background: linear-gradient(180deg,#ffe9a9,#d9b75f); transform: translateY(-1px); }
 #interaction-button:active { transform: translateY(1px); box-shadow: 0 1px 0 #80683a; }
-#farm-seed-picker { display: grid; gap: 4px; color: #dbe8cd; font-size: 11px; }
-#farm-seed-type { width: 100%; min-height: 34px; border-radius: 8px; }
+#farm-seed-picker { display: grid; gap: 5px; color: #dbe8cd; font-size: 11px; }
+.farm-seed-picker-title { color: #dbe8cd; font-weight: 800; }
+.farm-seed-options { display: flex; gap: 5px; overflow-x: auto; padding: 2px 1px 4px; scrollbar-width: thin; }
+.farm-seed-card { display: grid; min-width: 65px; flex: 0 0 65px; gap: 1px; place-items: center; padding: 5px 4px; border: 1px solid #587f55; border-radius: 7px; background: #203c26; color: #fff; cursor: pointer; }
+.farm-seed-card > span { font-size: 20px; line-height: 22px; }
+.farm-seed-card strong { max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.farm-seed-card small { color: #ffe7a6; font-size: 10px; }
+.farm-seed-card.is-selected { border-color: #f0d57c; background: linear-gradient(160deg, #477747, #315d35); box-shadow: 0 0 0 1px #f0d57c55; }
 #farm-plot-list { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
 #farm-plot-list button { min-height: 36px; border-radius: 8px; }
 #interaction-feedback { min-height: 14px; color: #ffe7a6; font-size: 11px; }

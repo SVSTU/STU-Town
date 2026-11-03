@@ -11,7 +11,10 @@ function updateFarmPlotControls() {
     const selectedPlot = FARM_PLOT_LAYOUT.find((plot) => plot.id === activeFarmPlotId);
     const hasInteracted = currentMapId === 'farm' && selectedPlot && interactedFarmPlotId === selectedPlot.id;
     list.hidden = !hasInteracted;
-    document.getElementById('farm-seed-picker').hidden = true;
+    const seedPicker = document.getElementById('farm-seed-picker');
+    const seedOptions = document.getElementById('farm-seed-options');
+    seedPicker.hidden = true;
+    if (seedOptions) seedOptions.replaceChildren();
     if (hasInteracted) {
         const plotIndex = FARM_PLOT_LAYOUT.findIndex((plot) => plot.id === selectedPlot.id) + 1;
         const state = farmPlots[selectedPlot.id];
@@ -21,9 +24,20 @@ function updateFarmPlotControls() {
         button.className = 'farm-action-card';
         button.dataset.farmPlot = selectedPlot.id;
         if (!state?.plantedAt) {
-            const cropKey = document.getElementById('farm-seed-type')?.value || 'carrot';
+            const availableSeeds = Object.keys(CROP_INFO).filter((key) => Number(inventory.seeds?.[key]) > 0);
+            if (!availableSeeds.includes(selectedFarmSeedKey)) selectedFarmSeedKey = availableSeeds[0] || 'carrot';
+            const cropKey = selectedFarmSeedKey;
             const seedCount = Number(inventory.seeds?.[cropKey]) || 0;
-            document.getElementById('farm-seed-picker').hidden = false;
+            seedPicker.hidden = false;
+            availableSeeds.forEach((key) => {
+                const crop = CROP_INFO[key];
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = `farm-seed-card${key === selectedFarmSeedKey ? ' is-selected' : ''}`;
+                card.dataset.seedKey = key;
+                card.innerHTML = `<span>${crop.icon}</span><strong>${crop.name}</strong><small>×${Number(inventory.seeds[key]) || 0}</small>`;
+                seedOptions?.append(card);
+            });
             button.disabled = seedCount < 1;
             button.dataset.action = 'plant';
             button.innerHTML = `<span class="farm-action-icon">🌱</span><span><strong>Gieo hạt</strong><small>Luống ${plotIndex} · Có ${seedCount} gói</small></span>`;
