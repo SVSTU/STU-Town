@@ -429,16 +429,21 @@ function renderTradeScreen(content, title) {
     title.textContent = isBuying ? 'Mua hạt giống' : 'Bán nông sản';
     addServiceButton(content, '← Quay lại thương nhân', 'service-back');
 
-    const selectedCrop = CROP_INFO[zoneServiceView.cropKey] || CROP_INFO.carrot;
-    const itemCard = document.createElement('div');
-    itemCard.className = 'trade-item-card';
-    itemCard.innerHTML = `<span class="trade-item-icon">${selectedCrop.icon}</span><span><strong>${selectedCrop.name}</strong><small>${selectedCrop.price.toLocaleString('vi-VN')}đ / ${isBuying ? 'gói hạt' : 'quả'}</small></span>`;
-    content.appendChild(itemCard);
-
+    const itemOptions = document.createElement('div');
+    itemOptions.className = 'trade-item-options';
+    Object.entries(CROP_INFO).forEach(([key, crop]) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `trade-item-card${key === zoneServiceView.cropKey ? ' is-selected' : ''}`;
+        card.dataset.tradeCrop = key;
+        card.innerHTML = `<span class="trade-item-icon">${crop.icon}</span><span><strong>${crop.name}</strong><small>${crop.price.toLocaleString('vi-VN')}đ / ${isBuying ? 'gói hạt' : 'quả'}</small></span>`;
+        itemOptions.appendChild(card);
+    });
     const cropLabel = document.createElement('label');
-    cropLabel.textContent = 'Chọn loại';
+    cropLabel.textContent = 'Loại đã chọn';
     const cropSelect = document.createElement('select');
     cropSelect.id = 'trade-crop';
+    cropSelect.className = 'visually-hidden-select';
     Object.entries(CROP_INFO).forEach(([key, crop]) => {
         const option = new Option(`${crop.icon} ${crop.name} · ${crop.price}đ/${isBuying ? 'gói' : 'quả'}`, key);
         option.selected = key === zoneServiceView.cropKey;
@@ -446,6 +451,7 @@ function renderTradeScreen(content, title) {
     });
     cropLabel.appendChild(cropSelect);
     content.appendChild(cropLabel);
+    content.appendChild(itemOptions);
 
     const quantityLabel = document.createElement('label');
     quantityLabel.textContent = 'Số lượng';

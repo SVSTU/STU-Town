@@ -589,6 +589,27 @@ function create() {
         if (button && socket.connected) socket.emit('useInventoryItem', button.dataset.useItem);
     });
     document.getElementById('zone-service-content').addEventListener('click', (event) => {
+        const cropCard = event.target.closest('[data-trade-crop]');
+        if (cropCard) {
+            zoneServiceView.cropKey = cropCard.dataset.tradeCrop;
+            zoneServiceView.quantity = 1;
+            renderZoneServices(currentMapId);
+            return;
+        }
+        const foodCard = event.target.closest('[data-food-item]');
+        if (foodCard) {
+            zoneServiceView.itemId = foodCard.dataset.foodItem;
+            zoneServiceView.quantity = 1;
+            renderZoneServices(currentMapId);
+            return;
+        }
+        const currencyCard = event.target.closest('[data-food-currency]');
+        if (currencyCard) {
+            zoneServiceView.currency = currencyCard.dataset.foodCurrency;
+            zoneServiceView.quantity = 1;
+            renderZoneServices(currentMapId);
+            return;
+        }
         const button = event.target.closest('[data-service-action]');
         if (!button) return;
         const action = button.dataset.serviceAction;

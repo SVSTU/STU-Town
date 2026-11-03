@@ -275,6 +275,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .farm-action-card small, .trade-item-card small { margin-top: 3px; color: #c5dbb9; font-size: 11px; font-weight: 400; }
 .trade-item-card { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid #90b878; border-radius: 10px; background: linear-gradient(145deg, #315d35, #1d3824); }
 .trade-item-icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 10px; background: #172a1d; font-size: 28px; box-shadow: inset 0 1px rgba(255,255,255,.12); }
+.trade-item-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.trade-item-options .trade-item-card { width: 100%; min-width: 0; min-height: 58px; padding: 6px; color: #fff; text-align: left; cursor: pointer; }
+.trade-item-options .trade-item-card.is-selected { border-color: #f0d57c; background: linear-gradient(145deg, #477747, #315d35); box-shadow: 0 0 0 1px #f0d57c55; }
+.trade-item-options .trade-item-icon { width: 34px; height: 34px; flex: 0 0 34px; font-size: 21px; }
+.trade-item-options .trade-item-card small { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.visually-hidden-select { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+.currency-options { display: flex; gap: 6px; }
+.currency-card { flex: 1; min-height: 34px; padding: 5px 7px; border: 1px solid #587f55; border-radius: 7px; background: #203c26; color: #fff; font-weight: 700; cursor: pointer; }
+.currency-card.is-selected { border-color: #f0d57c; background: linear-gradient(145deg, #477747, #315d35); }
 #farm-plot-list { grid-template-columns: 1fr; }
 #farm-plot-list .farm-action-card { min-height: 40px !important; padding: 5px 8px !important; }
 #farm-plot-list .farm-action-card .farm-action-icon { width: 27px; height: 27px; flex-basis: 27px; font-size: 17px; }
@@ -745,12 +754,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     bottom: 22px;
     left: 50%;
     display: flex;
-    width: min(430px, calc(100vw - 32px));
-    max-height: min(42vh, 300px);
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(34vh, 240px);
     overflow: hidden auto;
     flex-direction: column;
     gap: 10px;
-    padding: 13px 15px 14px;
+    padding: 10px 11px 11px;
     transform: translateX(-50%);
     border: 1px solid rgba(205, 226, 157, .78);
     border-radius: 15px;
@@ -807,9 +816,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #interaction-hud.is-collapsed .interaction-context-label,
 #interaction-hud.is-collapsed #interaction-zone-description { display: none; }
 @media (max-width: 600px) {
-    #interaction-hud.game-interaction-frame { bottom: 12px; width: min(390px,calc(100vw - 20px)); max-height: 36vh; padding: 10px 12px; }
-    #interaction-zone-name { font-size: 14px; }
-    #interaction-button { min-height: 39px; }
+    #interaction-hud.game-interaction-frame { right: 8px; bottom: max(10px, env(safe-area-inset-bottom)); left: auto; width: min(270px,calc(100vw - 16px)); max-height: 30vh; padding: 8px 9px; transform: none; gap: 6px; border-radius: 11px; }
+    #interaction-zone-name { font-size: 13px; }
+    #interaction-zone-description { font-size: 10px; }
+    #interaction-button { min-height: 34px; padding: 6px 9px; font-size: 11px; }
+    #farm-seed-picker { gap: 3px; }
+    .farm-seed-card { min-width: 54px; flex-basis: 54px; padding: 3px; }
+    .farm-seed-card > span { font-size: 17px; line-height: 18px; }
+    .farm-seed-card strong, .farm-seed-card small { font-size: 9px; }
+    #farm-plot-list .farm-action-card { min-height: 34px !important; }
     #farm-plot-list { grid-template-columns: 1fr; }
 }
 

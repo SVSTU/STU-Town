@@ -44,9 +44,20 @@ function renderFoodOrder(content, title) {
     title.textContent = 'Căn tin · Chọn món và số lượng';
     addServiceButton(content, '← Đóng quầy ẩm thực', 'service-back');
     const itemLabel = document.createElement('label');
-    itemLabel.textContent = 'Chọn món';
+    itemLabel.textContent = 'Món đã chọn';
+    const itemOptions = document.createElement('div');
+    itemOptions.className = 'trade-item-options food-item-options';
+    Object.entries(FOOD_INFO).forEach(([key, item]) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `trade-item-card${key === zoneServiceView.itemId ? ' is-selected' : ''}`;
+        card.dataset.foodItem = key;
+        card.innerHTML = `<span class="trade-item-icon">${item.icon}</span><span><strong>${item.name}</strong><small>${item.coins}đ · ${item.effect}</small></span>`;
+        itemOptions.appendChild(card);
+    });
     const itemSelect = document.createElement('select');
     itemSelect.id = 'food-item';
+    itemSelect.className = 'visually-hidden-select';
     Object.entries(FOOD_INFO).forEach(([key, item]) => {
         const option = new Option(`${item.icon} ${item.name}`, key);
         option.selected = key === zoneServiceView.itemId;
@@ -54,11 +65,23 @@ function renderFoodOrder(content, title) {
     });
     itemLabel.appendChild(itemSelect);
     content.appendChild(itemLabel);
+    content.appendChild(itemOptions);
 
     const currencyLabel = document.createElement('label');
     currencyLabel.textContent = 'Thanh toán bằng';
+    const currencyOptions = document.createElement('div');
+    currencyOptions.className = 'currency-options';
+    [['coins', '🪙 Tiền đồng'], ['reputation', '⭐ Danh tiếng']].forEach(([key, label]) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `currency-card${key === zoneServiceView.currency ? ' is-selected' : ''}`;
+        card.dataset.foodCurrency = key;
+        card.textContent = label;
+        currencyOptions.appendChild(card);
+    });
     const currencySelect = document.createElement('select');
     currencySelect.id = 'food-currency';
+    currencySelect.className = 'visually-hidden-select';
     [['coins', 'Tiền đồng'], ['reputation', 'Danh tiếng']].forEach(([key, label]) => {
         const option = new Option(label, key);
         option.selected = key === zoneServiceView.currency;
@@ -66,6 +89,7 @@ function renderFoodOrder(content, title) {
     });
     currencyLabel.appendChild(currencySelect);
     content.appendChild(currencyLabel);
+    content.appendChild(currencyOptions);
 
     const quantityLabel = document.createElement('label');
     quantityLabel.textContent = 'Số lượng';
