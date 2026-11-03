@@ -263,11 +263,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #inventory-panel.is-collapsed #inventory-content { display: none; }
 .inventory-compartment { margin-top: 8px; padding: 7px; border: 1px solid #3c5940; border-radius: 7px; background: #1d2921; }
 .inventory-compartment h3 { margin: 0 0 5px; color: #b9f29c; font-size: 12px; }
-.inventory-list { display: grid; gap: 4px; }
-.inventory-entry { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px; border-radius: 4px; background: #263b2c; font-size: 12px; }
-.inventory-entry strong { color: #ffe7a6; }
+.inventory-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.inventory-entry { position: relative; display: flex; min-height: 54px; flex-direction: column; align-items: stretch; justify-content: space-between; gap: 4px; padding: 7px; border: 1px solid #426445; border-radius: 7px; background: linear-gradient(145deg, #2d4931, #1d3022); font-size: 11px; box-shadow: inset 0 1px rgba(255,255,255,.08); }
+.inventory-entry-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-entry strong { align-self: flex-end; color: #ffe7a6; font-size: 12px; }
 .inventory-use-item { padding: 3px 7px; border: 1px solid #78a06b; border-radius: 4px; background: #315d35; color: #fff; cursor: pointer; }
 .inventory-empty, #inventory-panel > small { color: #bbb; font-size: 11px; }
+.farm-action-card { display: flex !important; align-items: center; gap: 9px; min-height: 56px !important; padding: 7px 9px !important; text-align: left !important; }
+.farm-action-card .farm-action-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 8px; background: #172a1d; font-size: 21px; }
+.farm-action-card strong, .farm-action-card small, .trade-item-card strong, .trade-item-card small { display: block; }
+.farm-action-card small, .trade-item-card small { margin-top: 3px; color: #c5dbb9; font-size: 11px; font-weight: 400; }
+.trade-item-card { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid #90b878; border-radius: 10px; background: linear-gradient(145deg, #315d35, #1d3824); }
+.trade-item-icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 10px; background: #172a1d; font-size: 28px; box-shadow: inset 0 1px rgba(255,255,255,.12); }
 #map-exit { right: 258px; }
 #player-stats { position: fixed; z-index: 12; top: 12px; left: 12px; width: 205px; padding: 10px; border: 1px solid #698064; border-radius: 9px; background: #151b18eF; color: #fff; font-size: 12px; }
 #player-stats > .panel-heading { margin-bottom: 6px; }

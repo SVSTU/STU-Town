@@ -18,6 +18,7 @@ function updateFarmPlotControls() {
         list.replaceChildren();
         const button = document.createElement('button');
         button.type = 'button';
+        button.className = 'farm-action-card';
         button.dataset.farmPlot = selectedPlot.id;
         if (!state?.plantedAt) {
             const cropKey = document.getElementById('farm-seed-type')?.value || 'carrot';
@@ -25,18 +26,18 @@ function updateFarmPlotControls() {
             document.getElementById('farm-seed-picker').hidden = false;
             button.disabled = seedCount < 1;
             button.dataset.action = 'plant';
-            button.textContent = `🌱 Gieo hạt · Luống ${plotIndex} (${seedCount})`;
+            button.innerHTML = `<span class="farm-action-icon">🌱</span><span><strong>Gieo hạt</strong><small>Luống ${plotIndex} · Có ${seedCount} gói</small></span>`;
         } else {
             const ageMs = Date.now() - state.plantedAt;
             if (ageMs >= FARM_GROWTH_MS) {
                 const wilted = ageMs >= FARM_WILT_MS;
                 button.disabled = false;
                 button.dataset.action = 'harvest';
-                button.textContent = `🧺 Thu hoạch · Luống ${plotIndex} (${wilted ? 1 : 3}) · ${wilted ? 'héo' : 'khỏe'}`;
+                button.innerHTML = `<span class="farm-action-icon">🧺</span><span><strong>Thu hoạch</strong><small>Luống ${plotIndex} · ${wilted ? '1 quả · cây héo' : '3 quả · cây khỏe'}</small></span>`;
             } else {
                 button.disabled = true;
                 button.dataset.action = '';
-                button.textContent = `🌿 ${state.crop || 'Cây trồng'} · ${Math.ceil((FARM_GROWTH_MS - ageMs) / 1000)} giây nữa`;
+                button.innerHTML = `<span class="farm-action-icon">🌿</span><span><strong>${state.crop || 'Cây trồng'}</strong><small>Còn ${Math.ceil((FARM_GROWTH_MS - ageMs) / 1000)} giây</small></span>`;
             }
         }
         list.append(button);
@@ -246,6 +247,7 @@ function renderInventorySection(id, entries, emptyMessage) {
         row.className = 'inventory-entry';
         const itemName = document.createElement('span');
         itemName.textContent = String(label);
+        itemName.className = 'inventory-entry-name';
         const itemCount = document.createElement('strong');
         itemCount.textContent = `×${Math.max(0, Number(count) || 0)}`;
         row.append(itemName, itemCount);
@@ -412,6 +414,12 @@ function renderTradeScreen(content, title) {
     const isBuying = zoneServiceView.tradeAction === 'buy-seed';
     title.textContent = isBuying ? 'Mua hạt giống' : 'Bán nông sản';
     addServiceButton(content, '← Quay lại thương nhân', 'service-back');
+
+    const selectedCrop = CROP_INFO[zoneServiceView.cropKey] || CROP_INFO.carrot;
+    const itemCard = document.createElement('div');
+    itemCard.className = 'trade-item-card';
+    itemCard.innerHTML = `<span class="trade-item-icon">${selectedCrop.icon}</span><span><strong>${selectedCrop.name}</strong><small>${selectedCrop.price.toLocaleString('vi-VN')}đ / ${isBuying ? 'gói hạt' : 'quả'}</small></span>`;
+    content.appendChild(itemCard);
 
     const cropLabel = document.createElement('label');
     cropLabel.textContent = 'Chọn loại';
