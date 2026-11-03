@@ -587,7 +587,9 @@ function drawInteriorMap(scene, mapId) {
             showToast('Mất kết nối máy chủ. Vui lòng thử lại.');
             return;
         }
-        socket.emit('returnToCampus');
+        mapExitTarget = { x: 690, y: 475 };
+        targetPosition = { x: 690, y: 475 };
+        showToast('Đang đi đến vòng xoáy để thoát map…');
     });
     exitVortex.on('pointerover', () => exitVortex.setScale(1.12));
     exitVortex.on('pointerout', () => exitVortex.setScale(1));

@@ -56,6 +56,7 @@ function update(time, delta) {
 
     if (keyActive) {
         targetPosition = null;
+        mapExitTarget = null;
         isMoved = true;
     } 
     else if (targetPosition !== null) {
@@ -88,6 +89,14 @@ function update(time, delta) {
 
     if (isMoved) {
         socket.emit('playerMovement', { x: p.x, y: p.y });
+    }
+    if (mapExitTarget && currentMapId !== 'campus') {
+        const exitDistance = Phaser.Math.Distance.Between(p.x, p.y, mapExitTarget.x, mapExitTarget.y);
+        if (exitDistance <= 42) {
+            mapExitTarget = null;
+            targetPosition = null;
+            socket.emit('returnToCampus');
+        }
     }
     updateInteractionZone(p);
 }

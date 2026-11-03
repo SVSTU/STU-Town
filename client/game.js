@@ -58,6 +58,7 @@ let activeFarmPlotId = '';
 let interactedFarmPlotId = '';
 let currentMapId = 'campus';
 let activeFarmMouseId = '';
+let mapExitTarget = null;
 let farmMouseMarker = null;
 let halloweenOpenedBoxes = new Set();
 let activeHalloweenBox = -1;
@@ -120,6 +121,9 @@ function create() {
     });
 
     sceneRef.input.on('pointerdown', (pointer) => {
+        if (mapExitTarget && Phaser.Math.Distance.Between(pointer.x, pointer.y, mapExitTarget.x, mapExitTarget.y) > 58) {
+            mapExitTarget = null;
+        }
         targetPosition = { x: pointer.x, y: pointer.y };
     });
     sceneRef.input.keyboard.on('keydown-E', interactWithCurrentZone);
@@ -294,6 +298,7 @@ function create() {
         Object.values(players).forEach((player) => player.destroy());
         players = {};
         targetPosition = null;
+        mapExitTarget = null;
         activeInteractionZoneId = '';
         activeHalloweenBox = -1;
         switchMapVisuals(currentMapId);
