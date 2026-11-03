@@ -573,6 +573,21 @@ function getCampusBenchOccupants() {
   return occupants;
 }
 
+function positionCampusBenchOccupants(benchId) {
+  const bench = CAMPUS_BENCHES.find((item) => item.id === benchId);
+  const occupantIds = getCampusBenchOccupants()[benchId] || [];
+  if (!bench) return;
+  const offsets = [-16, 16];
+  occupantIds.slice(0, 2).forEach((id, index) => {
+    const player = players[id];
+    if (!player) return;
+    player.x = bench.x + offsets[index];
+    player.y = bench.y + 28;
+    io.sockets.sockets.get(id)?.emit('playerMoved', { id, x: player.x, y: player.y });
+    io.to('map:campus').emit('playerMoved', { id, x: player.x, y: player.y });
+  });
+}
+
 function emitCampusBenchOccupants() {
   io.to('map:campus').emit('campusBenchOccupancy', getCampusBenchOccupants());
 }
@@ -1324,10 +1339,11 @@ io.on('connection', (socket) => {
     player.lastBenchRestAt = now;
     player.benchRestStartedAt = now;
     player.benchRestRecovered = 0;
+    positionCampusBenchOccupants(benchId);
     emitCampusBenchOccupants();
     socket.emit('benchRestResult', {
       message: 'Bạn bắt đầu nghỉ. Độ mệt giảm dần 1 điểm mỗi 3 giây, tối đa 10 điểm trong 30 giây. Di chuyển sẽ dừng nghỉ.',
-      state: getPlayerState(player)
+      state: getPlayerState(player), x: player.x, y: player.y
     });
   });
 

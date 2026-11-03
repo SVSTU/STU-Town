@@ -52,7 +52,11 @@ function createPlayer(scene, info, id) {
 
     scene.add.existing(container);
     players[id] = container;
-    if (typeof campusBenchOccupants !== 'undefined') {
+    if (isPrivateBenchGuest) {
+        // Không gian riêng luôn dùng hình người ngồi phong cách 3D giả lập,
+        // không hiển thị avatar/vòng tròn; màu tên là dấu hiệu duy nhất.
+        setPlayerSeatedVisual(container, true);
+    } else if (typeof campusBenchOccupants !== 'undefined') {
         const seated = Object.values(campusBenchOccupants).some((ids) => {
             const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
             return list.includes(id);
@@ -66,6 +70,7 @@ function updatePlayerName(player, nickname, id) {
     player.playerNickname = nickname || '';
     const shortId = id.substring(0, 4);
     player.textLabel.setText(nickname || (id === socket.id ? 'Bạn' : `Khách (${shortId})`));
+    if (player.isSeatedAtBench) player.textLabel.setColor(id === socket.id ? '#62ff9a' : '#ff9a4a');
 }
 
 // Hàm gán ảnh tải lên dạng Base64 vào nhân vật
@@ -109,6 +114,22 @@ function updatePlayerAvatar(scene, container, base64Str) {
 function setPlayerSeatedVisual(container, seated) {
     if (!container) return;
     if (container.avatarSprite) container.avatarSprite.setVisible(!seated);
-    if (container.borderRing) container.borderRing.setFillStyle(seated ? 0x31543a : 0x000000, seated ? 0.75 : 0);
+    if (container.borderRing) container.borderRing.setVisible(!seated);
+    if (seated && !container.seatedFigure && container.scene) {
+        const figure = container.scene.add.container(0, 0);
+        const bodyColor = container.playerId === socket.id.replace(/[^a-zA-Z0-9_-]/g, '_') ? 0x26a866 : 0xe67835;
+        const shadow = container.scene.add.ellipse(0, 14, 25, 8, 0x18251c, 0.5);
+        const torso = container.scene.add.ellipse(0, 5, 17, 22, bodyColor, 1);
+        const head = container.scene.add.circle(0, -10, 8, 0xf4c7a1, 1);
+        const leg = container.scene.add.rectangle(0, 17, 22, 5, 0x493322, 1).setOrigin(0.5);
+        figure.add([shadow, torso, head, leg]);
+        figure.setDepth(2);
+        container.add(figure);
+        container.seatedFigure = figure;
+    }
+    if (container.seatedFigure) container.seatedFigure.setVisible(seated);
+    if (container.textLabel) container.textLabel.setColor(seated
+        ? (container.playerId === socket.id.replace(/[^a-zA-Z0-9_-]/g, '_') ? '#62ff9a' : '#ff9a4a')
+        : '#ffffff');
     container.isSeatedAtBench = Boolean(seated);
 }
