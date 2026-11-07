@@ -11,6 +11,7 @@ function registerFarmSocketHandlers() {
         });
     
         socket.on('farmMouseState', (state) => {
+            farmMouse3DState=state;
             activeFarmMouseId = state?.active && typeof state.id === 'string' ? state.id : '';
             if (!activeFarmMouseId) {
                 farmMouseMarker?.destroy();

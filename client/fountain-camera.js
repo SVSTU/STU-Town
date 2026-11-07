@@ -17,6 +17,10 @@ function bindFountainCamera(scene, canvas, overview) {
         const bounds=canvas.getBoundingClientRect();
         button.style.left=`${bounds.left+bounds.width/2}px`;
         button.style.top=`${bounds.bottom-45}px`;
+        const title=document.querySelector('.map-3d-title');
+        if(title){title.style.left=`${bounds.left+12}px`;title.style.top=`${bounds.top+12}px`;}
+        const pad=document.getElementById('mobile-movement-pad');
+        if(pad){pad.style.left=`${Math.max(bounds.left+8,bounds.right-176)}px`;pad.style.top=`${bounds.bottom-150}px`;pad.style.bottom='auto';}
     };
     button.addEventListener('click',()=>{
         eyeMode=!eyeMode;
@@ -44,5 +48,8 @@ function bindFountainCamera(scene, canvas, overview) {
             if(root._nameLabel)root._nameLabel.alpha=alpha;
         });
     });
-    scene.onDisposeObservable.add(()=>button.remove());
+    scene.onDisposeObservable.add(()=>{
+        button.remove();const pad=document.getElementById('mobile-movement-pad');
+        if(pad){pad.style.left='';pad.style.top='';pad.style.bottom='';}
+    });
 }

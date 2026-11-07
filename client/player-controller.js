@@ -1,12 +1,34 @@
 /* Local player movement controller and server movement synchronization. */
 
 const mobileMoveState = { up: false, down: false, left: false, right: false };
+let lastMovementSentAt=0, movementWasActive=false;
+
+function resetMovementInput() {
+    Object.keys(mobileMoveState).forEach(direction=>mobileMoveState[direction]=false);
+    sceneRef?.input?.keyboard?.resetKeys();
+    movementWasActive=false;lastMovementSentAt=0;
+    readMovementDirections();
+}
+
+function readMovementDirections() {
+    const enabled=sceneRef?.input?.keyboard?.enabled!==false;
+    const state={};
+    for(const direction of Object.keys(mobileMoveState)) {
+        state[direction]=Boolean((enabled&&cursors?.[direction]?.isDown)||mobileMoveState[direction]);
+        const button=document.querySelector(`[data-move-direction="${direction}"]`);
+        button?.classList.toggle('is-pressed',state[direction]);
+        button?.setAttribute('aria-pressed',String(state[direction]));
+    }
+    return state;
+}
 
 function bindMobileMovementControls() {
     const pad = document.getElementById('mobile-movement-pad');
     if (!pad || pad.dataset.bound === 'true') return;
     pad.dataset.bound = 'true';
-    const stopAll = () => Object.keys(mobileMoveState).forEach((direction) => { mobileMoveState[direction] = false; });
+    const stopAll = () => {
+        resetMovementInput();
+    };
     pad.querySelectorAll('[data-move-direction]').forEach((button) => {
         const direction = button.dataset.moveDirection;
         const start = (event) => {
@@ -26,6 +48,13 @@ function bindMobileMovementControls() {
         button.addEventListener('pointercancel', stop);
         button.addEventListener('lostpointercapture', stop);
         button.addEventListener('contextmenu', (event) => event.preventDefault());
+        button.addEventListener('keydown',event=>{
+            if((event.code==='Space'||event.code==='Enter')&&!event.repeat){event.preventDefault();mobileMoveState[direction]=true;}
+        });
+        button.addEventListener('keyup',event=>{
+            if(event.code==='Space'||event.code==='Enter'){event.preventDefault();mobileMoveState[direction]=false;}
+        });
+        button.addEventListener('blur',()=>{mobileMoveState[direction]=false;});
     });
     window.addEventListener('blur', stopAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopAll(); });
@@ -36,7 +65,8 @@ function update(time, delta) {
     if (!socket.id || !players[socket.id]) return;
 
     const p = players[socket.id];
-    if (currentMapId === 'fountain') targetPosition = null;
+    const is3D=Boolean(babylonFountain);
+    if (is3D) targetPosition = null;
     const previousX = p.x;
     const previousY = p.y;
     const fatigue = Number(playerStatsState.stats.fatigue) || 0;
@@ -45,17 +75,26 @@ function update(time, delta) {
     let isMoved = false;
 
     let keyActive = false;
-    const moveLeft = cursors.left.isDown || mobileMoveState.left;
-    const moveRight = cursors.right.isDown || mobileMoveState.right;
-    const moveUp = cursors.up.isDown || mobileMoveState.up;
-    const moveDown = cursors.down.isDown || mobileMoveState.down;
+    const directions=readMovementDirections();
+    const {left:moveLeft,right:moveRight,up:moveUp,down:moveDown}=directions;
     speed *= Math.min(Number(delta) || 16.667, 50) / 16.667;
     if ((moveLeft || moveRight) && (moveUp || moveDown)) speed /= Math.SQRT2;
-    if (moveLeft) { p.x -= speed; keyActive = true; }
+    if(is3D) {
+        const horizontal=Number(moveRight)-Number(moveLeft), vertical=Number(moveUp)-Number(moveDown);
+        keyActive=Boolean(horizontal||vertical);
+        const camera=babylonFountain.scene.activeCamera;
+        const forward=camera.getForwardRay().direction;
+        let fx=forward.x,fz=forward.z;
+        if(Math.hypot(fx,fz)<.01){fx=Math.sin(camera.rotation?.y||0);fz=Math.cos(camera.rotation?.y||0);}
+        const length=Math.hypot(fx,fz)||1;fx/=length;fz/=length;
+        p.x+=(fz*horizontal+fx*vertical)*speed;
+        p.y+=(-fx*horizontal+fz*vertical)*speed;
+    }
+    else if (moveLeft) { p.x -= speed; keyActive = true; }
     else if (moveRight) { p.x += speed; keyActive = true; }
 
-    if (moveUp) { p.y -= speed; keyActive = true; }
-    else if (moveDown) { p.y += speed; keyActive = true; }
+    if (!is3D && moveUp) { p.y -= speed; keyActive = true; }
+    else if (!is3D && moveDown) { p.y += speed; keyActive = true; }
 
     if (keyActive) {
         targetPosition = null;
@@ -83,15 +122,28 @@ function update(time, delta) {
     p.x = Phaser.Math.Clamp(p.x, 15, 785);
     p.y = Phaser.Math.Clamp(p.y, 15, 585);
 
-    if (isBlockedPosition(p.x, p.y) || (currentMapId === 'fountain' && FountainPhysics.blockedPath(previousX,previousY,p.x,p.y))) {
-        p.x = previousX;
-        p.y = previousY;
+    const blocked=(x,y)=>isBlockedPosition(x,y)
+        ||(currentMapId==='fountain'&&FountainPhysics.blockedPath(previousX,previousY,x,y))
+        ||(Map3DLayouts.get(currentMapId)&&Map3DLayouts.blockedPath(currentMapId,previousX,previousY,x,y));
+    if (blocked(p.x,p.y)) {
+        if(!blocked(p.x,previousY))p.y=previousY;
+        else if(!blocked(previousX,p.y))p.x=previousX;
+        else {p.x=previousX;p.y=previousY;}
         targetPosition = null;
-        isMoved = false;
+        isMoved = p.x!==previousX||p.y!==previousY;
     }
 
-    if (isMoved) {
+    if ((isMoved && time-lastMovementSentAt>=50) || (!isMoved&&movementWasActive)) {
         socket.emit('playerMovement', { x: p.x, y: p.y });
+        lastMovementSentAt=time;
+    }
+    movementWasActive=isMoved;
+    if(is3D) {
+        babylonFountain.localMoving=isMoved;
+        const exit=babylonFountain.exit;
+        if(exit&&!babylonFountain.exitPending&&Math.hypot(p.x-exit.x,p.y-exit.y)<=24) {
+            babylonFountain.exitPending=true;socket.emit('returnToCampus');
+        }
     }
     if (mapExitTarget && currentMapId !== 'campus') {
         const exitDistance = Phaser.Math.Distance.Between(p.x, p.y, mapExitTarget.x, mapExitTarget.y);
@@ -102,5 +154,4 @@ function update(time, delta) {
         }
     }
     updateInteractionZone(p);
-    updateBabylonFountainPlayers?.();
 }

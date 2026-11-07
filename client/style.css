@@ -859,6 +859,15 @@ body > .game-confirm-modal { position: fixed !important; inset: 0 !important; }
 
 /* Mobile touch D-pad: hold a direction to walk, release to stop. */
 #mobile-movement-pad { display: none; }
+body.is-map-3d #mobile-movement-pad { position:fixed; z-index:40; display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(2,44px) 14px; gap:4px; width:max-content; padding:8px; border:1px solid #9cbdba; border-radius:15px; background:#173b47df; touch-action:none; user-select:none; }
+body.is-map-3d #mobile-movement-pad button { width:44px; height:44px; padding:0; border:1px solid #9cbdba; border-radius:10px; background:#244b45; color:#fff1bf; font-size:21px; touch-action:none; }
+body.is-map-3d #mobile-movement-pad button.is-pressed { background:#799d55; transform:translateY(2px); }
+body.is-map-3d #mobile-movement-pad [data-move-direction="up"] {grid-column:2;grid-row:1;}
+body.is-map-3d #mobile-movement-pad [data-move-direction="left"] {grid-column:1;grid-row:2;}
+body.is-map-3d #mobile-movement-pad [data-move-direction="down"] {grid-column:2;grid-row:2;}
+body.is-map-3d #mobile-movement-pad [data-move-direction="right"] {grid-column:3;grid-row:2;}
+body.is-map-3d #mobile-movement-pad span {grid-column:1/4;grid-row:3;font-size:9px;text-align:center;color:#dcebd0;}
+.map-3d-title {position:fixed;z-index:3;max-width:calc(100vw - 30px);padding:6px 10px;border-radius:8px;background:#14281cce;color:#eff5e6;font-size:12px;pointer-events:none;}
 .fountain-camera-toggle { position: fixed; z-index: 35; transform: translateX(-50%); padding: 7px 12px; border: 1px solid #9cbdba; border-radius: 18px; color: #f1fbff; background: #173b47e8; cursor: pointer; touch-action: manipulation; font-size: 13px; }
 @media (max-width: 600px) and (pointer: coarse) {
     #mobile-movement-pad {

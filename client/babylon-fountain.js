@@ -109,9 +109,10 @@ function addFountainPlazaRings(scene) {
     }
 }
 
-function addFountainExitVortex(scene) {
+function addFountainExitVortex(scene, exit = {x:690,y:475}) {
     const portal = new BABYLON.TransformNode('fountain-exit-vortex', scene);
-    portal.position.set(8.15, .08, 5.15);
+    const portalPosition = fountainWorldPosition(exit.x,exit.y);
+    portal.position.set(portalPosition.x, .08, portalPosition.z);
     const glow = createFountainMaterial(scene, 'exit-glow', '#54d8ff', '#1b9fcb');
     const coreMat = createFountainMaterial(scene, 'exit-core', '#b9f7ff', '#54d8ff');
     const dark = createFountainMaterial(scene, 'exit-dark-teal', '#163f4b');
@@ -138,7 +139,7 @@ function addFountainExitVortex(scene) {
     const labelTexture = new BABYLON.DynamicTexture('exit-label-texture', { width: 512, height: 100 }, scene, true);
     labelTexture.hasAlpha = true; labelTexture.drawText('THOÁT MAP', 256, 65, 'bold 42px Arial', 'white', 'transparent', true);
     const labelMaterial = new BABYLON.StandardMaterial('exit-label-material', scene); labelMaterial.diffuseTexture = labelTexture; labelMaterial.emissiveColor = BABYLON.Color3.White(); label.material = labelMaterial;
-    [base, baseTrim, ringOuter, ringInner, core, label, ...sparks.map(({ mesh }) => mesh)].forEach((mesh) => { mesh.isPickable = true; mesh.actionManager = new BABYLON.ActionManager(scene); mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => { mapExitTarget = { x: 690, y: 475 }; targetPosition = { x: 690, y: 475 }; showToast('Đang đi đến vòng xoáy để thoát map…'); })); });
+    [base, baseTrim, ringOuter, ringInner, core, label, ...sparks.map(({ mesh }) => mesh)].forEach((mesh) => { mesh.isPickable = true; mesh.actionManager = new BABYLON.ActionManager(scene); mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => { targetPosition = null; showToast('Dùng mũi tên đi vào vòng xoáy để thoát map.'); })); });
     scene.onBeforeRenderObservable.add(() => {
         const now = performance.now();
         ringOuter.rotation.z += .012; ringInner.rotation.z -= .018;
@@ -340,12 +341,16 @@ function activateBabylonFountain() {
     window.addEventListener('keydown', sitKey);
     scene.onDisposeObservable.add(()=>window.removeEventListener('keydown',sitKey));
     const proceduralMeshes = scene.meshes.slice();
-    babylonFountain = { canvas, engine, scene, gui, players: new Map() };
+    babylonFountain = { canvas, engine, scene, gui, mapId:'fountain', camera, exit:{x:690,y:475}, players: new Map() };
+    document.body.classList.add('is-map-3d');
     createFountainWeather(scene, sunlight, ambient);
     bindFountainCamera(scene, canvas, camera);
     void loadReferenceFountainAssets(scene, proceduralMeshes);
     const phaserCanvas = document.querySelector('canvas:not(#babylon-fountain-canvas)'); if (phaserCanvas) phaserCanvas.classList.add('phaser-map-hidden');
-    engine.runRenderLoop(() => scene.render()); window.addEventListener('resize', () => engine.resize());
+    const onResize = () => engine.resize();
+    window.addEventListener('resize',onResize);
+    scene.onDisposeObservable.add(()=>window.removeEventListener('resize',onResize));
+    engine.runRenderLoop(() => {updateBabylonFountainPlayers();scene.render();});
     updateBabylonFountainPlayers(); return true;
 }
 
@@ -353,8 +358,18 @@ function updateBabylonFountainPlayers() {
     if (!babylonFountain) return;
     Object.entries(players || {}).forEach(([id, player]) => {
         if (!babylonFountain.players.has(id)) babylonFountain.players.set(id, createBabylonHuman(babylonFountain.scene, id));
-        const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y); mesh.position.x = pos.x; mesh.position.z = pos.z;
-        const seat = Object.entries(campusBenchOccupants || {}).find(([benchId,ids])=>benchId.startsWith('fountain-') && Array.isArray(ids) && ids.includes(id));
+        const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y);
+        const dt = Math.min(babylonFountain.engine.getDeltaTime()/1000,.05);
+        const dx = pos.x-(mesh._lastTargetX??pos.x), dz=pos.z-(mesh._lastTargetZ??pos.z);
+        mesh._lastTargetX=pos.x;mesh._lastTargetZ=pos.z;
+        const moving = Math.hypot(dx,dz)>.0001;
+        if(moving)mesh._walkUntil=performance.now()+120;
+        const walk = id===socket.id ? Boolean(babylonFountain.localMoving) : performance.now()<(mesh._walkUntil||0);
+        const lerp = mesh._placed && (id!==socket.id||walk) ? 1-Math.exp(-(id===socket.id?32:14)*dt) : 1;
+        mesh.position.x+=(pos.x-mesh.position.x)*lerp;mesh.position.z+=(pos.z-mesh.position.z)*lerp;mesh._placed=true;
+        if(moving)mesh._heading=Math.atan2(-dx,-dz);
+        if(mesh._heading!==undefined) {const angle=Math.atan2(Math.sin(mesh._heading-mesh.rotation.y),Math.cos(mesh._heading-mesh.rotation.y));mesh.rotation.y+=angle*(1-Math.exp(-18*dt));}
+        const seat = babylonFountain.mapId==='fountain' && Object.entries(campusBenchOccupants || {}).find(([benchId,ids])=>benchId.startsWith('fountain-') && Array.isArray(ids) && ids.includes(id));
         if (seat) {
             const bench = FountainPhysics.benches.find(b=>b.id===seat[0]);
             if (bench) {
@@ -371,6 +386,10 @@ function updateBabylonFountainPlayers() {
                 part.mesh.position.z=part.position.z-.30;
                 if (/trouser_leg/.test(part.mesh.name)) part.mesh.rotation.x=-Math.PI/2;
             }
+            if(!seat&&walk&&/student_forearm|student_sleeve|student_hand|student_trouser_leg/.test(part.mesh.name)) {
+                const phase=performance.now()*.010;
+                part.mesh.rotation.x+=Math.sin(phase+(part.position.x<0?0:Math.PI))*.22;
+            }
         }
         if (mesh._nameText) mesh._nameText.text = player.playerNickname || (id === socket.id ? 'Bạn' : `Khách (${id.slice(0, 4)})`);
     });
@@ -379,6 +398,8 @@ function updateBabylonFountainPlayers() {
 
 function deactivateBabylonFountain() {
     if (!babylonFountain) return;
-    babylonFountain.engine.dispose(); babylonFountain.canvas.remove(); babylonFountain = null;
+    const world=babylonFountain;babylonFountain=null;
+    world.scene.dispose();world.engine.dispose();world.canvas.remove();
+    document.body.classList.remove('is-map-3d');
     document.querySelector('canvas:not(#babylon-fountain-canvas)')?.classList.remove('phaser-map-hidden');
 }

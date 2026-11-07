@@ -563,6 +563,7 @@ function emitSessionLeaderboard() {
 }
 
 const FountainPhysics = require('../client/fountain-physics.js');
+const Map3DLayouts = require('../client/map-3d-layouts.js');
 const ALL_REST_BENCHES = [...CAMPUS_BENCHES, ...FountainPhysics.benches];
 function getCampusBenchOccupants() {
   const occupants = {};
@@ -1128,7 +1129,7 @@ io.on('connection', (socket) => {
     socket.leave(`map:${previousMapId}`);
     socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
     if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();
-    const spawn = mapId === 'fountain' ? FountainPhysics.spawn : mapId === 'farm' ? { x: 400, y: 430 } : { x: 400, y: 300 };
+    const spawn = mapId === 'fountain' ? FountainPhysics.spawn : Map3DLayouts.get(mapId)?.spawn || {x:400,y:300};
     Object.assign(players[socket.id], spawn, { mapId });
     socket.join(`map:${mapId}`);
     socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
@@ -1178,6 +1179,9 @@ io.on('connection', (socket) => {
       const y = Math.max(15, Math.min(585, data.y));
       if (players[socket.id].mapId === 'campus' && isBlockedPosition(x, y)) return;
       if (players[socket.id].mapId === 'fountain' && FountainPhysics.blockedPath(players[socket.id].x,players[socket.id].y,x,y)) return;
+      if (Map3DLayouts.get(players[socket.id].mapId) && Map3DLayouts.blockedPath(players[socket.id].mapId,players[socket.id].x,players[socket.id].y,x,y)) {
+        socket.emit('movementCorrection',{x:players[socket.id].x,y:players[socket.id].y});return;
+      }
       stopCampusBenchRest(players[socket.id]);
       if (wasSittingAtBench) {
         socket.emit('benchRestResult', { message: 'Bạn đứng dậy; lượt nghỉ đã dừng.' });
@@ -1435,7 +1439,7 @@ io.on('connection', (socket) => {
       socket.leave(`map:${previousMapId}`);
       socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
       if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();
-      Object.assign(player, { x: 400, y: 500, mapId });
+      Object.assign(player, Map3DLayouts.get(mapId).spawn, {mapId});
       socket.join(`map:${mapId}`);
       socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
       const progress = ensureHalloweenProgress(socket.id);

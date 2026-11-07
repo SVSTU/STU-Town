@@ -689,6 +689,7 @@ function switchMapVisuals(mapId) {
     if (mapId === 'fountain' && activateBabylonFountain()) {
         // Babylon owns this pilot map; Phaser remains active underneath for state/input sync.
     } else if (mapId === 'campus') drawCampusMap(sceneRef);
+    else if (Map3DLayouts.get(mapId) && activateBabylonMapPack(mapId)) { /* Shared 3D host. */ }
     else drawInteriorMap(sceneRef, mapId);
     document.getElementById('map-exit').hidden = true;
     document.getElementById('announcements-panel').hidden = mapId !== 'auditorium';

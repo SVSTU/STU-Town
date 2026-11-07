@@ -122,6 +122,7 @@ function create() {
     });
 
     sceneRef.input.on('pointerdown', (pointer) => {
+        if (babylonFountain) return;
         if (mapExitTarget && Phaser.Math.Distance.Between(pointer.x, pointer.y, mapExitTarget.x, mapExitTarget.y) > 58) {
             mapExitTarget = null;
         }
@@ -209,6 +210,7 @@ function create() {
         }
     });
     socket.on('halloweenBoxResult', (result) => {
+        babylonFountain?.showEvent?.(result || {});
         halloweenBoxResultMessage = String(result?.message || '');
         document.getElementById('interaction-feedback').textContent = halloweenBoxResultMessage;
         if (result?.foundPumpkin) document.getElementById('halloween-leaderboard').hidden = false;
@@ -293,6 +295,7 @@ function create() {
     });
 
     socket.on('mapChanged', ({ mapId, players: mapPlayers }) => {
+        resetMovementInput();
         currentMapId = mapId || 'campus';
         // Public chat belongs to a single map room; do not leave old room messages visible.
         document.getElementById('chat-messages').replaceChildren();
@@ -308,6 +311,10 @@ function create() {
         if (currentMapId === 'auditorium') loadAnnouncements();
         Object.entries(mapPlayers || {}).forEach(([id, info]) => createPlayer(sceneRef, info, id));
         updatePrivateRecipientList();
+    });
+    socket.on('movementCorrection',position=>{
+        const player=players[socket.id];if(!player||!Number.isFinite(position?.x)||!Number.isFinite(position?.y))return;
+        player.x=position.x;player.y=position.y;targetPosition=null;
     });
 
     socket.on('currentPlayers', (serverPlayers) => {

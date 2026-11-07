@@ -1,0 +1,151 @@
+{
+  "units": "metres",
+  "sourceUp": "Z",
+  "gltfUp": "Y",
+  "front": "-Y in Blender",
+  "packs": {
+    "halloween": [
+      {
+        "file": "halloween/pumpkin.glb",
+        "name": "pumpkin",
+        "bytes": 106784
+      },
+      {
+        "file": "halloween/gift-closed.glb",
+        "name": "gift-closed",
+        "bytes": 49524
+      },
+      {
+        "file": "halloween/gift-open.glb",
+        "name": "gift-open",
+        "bytes": 57460
+      },
+      {
+        "file": "halloween/spider.glb",
+        "name": "spider",
+        "bytes": 48704
+      },
+      {
+        "file": "halloween/lantern.glb",
+        "name": "lantern",
+        "bytes": 202932
+      },
+      {
+        "file": "halloween/exit-portal.glb",
+        "name": "exit-portal",
+        "bytes": 323588
+      },
+      {
+        "file": "halloween/dead-tree.glb",
+        "name": "dead-tree",
+        "bytes": 8840
+      },
+      {
+        "file": "halloween/fence.glb",
+        "name": "fence",
+        "bytes": 75804
+      }
+    ],
+    "khu-a": [
+      {
+        "file": "khu-a/seed-stall.glb",
+        "name": "seed-stall",
+        "bytes": 217212
+      },
+      {
+        "file": "khu-a/produce-stall.glb",
+        "name": "produce-stall",
+        "bytes": 367448
+      },
+      {
+        "file": "khu-a/professor.glb",
+        "name": "professor",
+        "bytes": 368432
+      },
+      {
+        "file": "khu-a/recovery-station.glb",
+        "name": "recovery-station",
+        "bytes": 132744
+      }
+    ],
+    "canteen": [
+      {
+        "file": "canteen/food-counter.glb",
+        "name": "food-counter",
+        "bytes": 140148
+      },
+      {
+        "file": "canteen/card-machine.glb",
+        "name": "card-machine",
+        "bytes": 126072
+      },
+      {
+        "file": "canteen/picnic-table.glb",
+        "name": "picnic-table",
+        "bytes": 85952
+      },
+      {
+        "file": "canteen/bread.glb",
+        "name": "bread",
+        "bytes": 33668
+      },
+      {
+        "file": "canteen/bao.glb",
+        "name": "bao",
+        "bytes": 19916
+      },
+      {
+        "file": "canteen/water.glb",
+        "name": "water",
+        "bytes": 17520
+      },
+      {
+        "file": "canteen/soda.glb",
+        "name": "soda",
+        "bytes": 17520
+      }
+    ],
+    "community-farm": [
+      {
+        "file": "community-farm/plot-empty.glb",
+        "name": "plot-empty",
+        "bytes": 40392
+      },
+      {
+        "file": "community-farm/plot-carrot.glb",
+        "name": "plot-carrot",
+        "bytes": 172916
+      },
+      {
+        "file": "community-farm/plot-tomato.glb",
+        "name": "plot-tomato",
+        "bytes": 376056
+      },
+      {
+        "file": "community-farm/plot-corn.glb",
+        "name": "plot-corn",
+        "bytes": 220960
+      },
+      {
+        "file": "community-farm/plot-strawberry.glb",
+        "name": "plot-strawberry",
+        "bytes": 376116
+      },
+      {
+        "file": "community-farm/mouse.glb",
+        "name": "mouse",
+        "bytes": 63968
+      },
+      {
+        "file": "community-farm/fence.glb",
+        "name": "fence",
+        "bytes": 75804
+      },
+      {
+        "file": "community-farm/tool-shed.glb",
+        "name": "tool-shed",
+        "bytes": 114248
+      }
+    ]
+  }
+}

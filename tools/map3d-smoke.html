@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><base href="../client/"><link rel="stylesheet" href="style.css"></head><body>
+<canvas id="phaser-placeholder" width="800" height="600"></canvas><pre id="smoke-result" style="position:fixed;top:0;left:0;z-index:100;color:white;background:#111">Loading</pre>
+<div id="mobile-movement-pad"><button data-move-direction="up">↑</button><button data-move-direction="left">←</button><button data-move-direction="down">↓</button><button data-move-direction="right">→</button><span>DI CHUYỂN</span></div>
+<script>
+const smokeErrors=[];window.addEventListener('error',e=>smokeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>smokeErrors.push(String(e.reason)));
+const io=()=>({id:'demo',connected:true,emit(){},auth:{}});
+let players={demo:{x:400,y:430,playerNickname:'Kiểm tra 3D'}};
+let currentMapId=new URLSearchParams(location.search).get('map')||'farm';
+let farmPlots={'plot-1':{plantedAt:Date.now()-40000,crop:'🥕'},'plot-2':{plantedAt:Date.now()-5000,crop:'🌽'},'plot-3':{plantedAt:Date.now()-400000,crop:'🍅'}};
+let halloweenOpenedBoxes=new Set([0,2,8]),campusBenchOccupants={},activeHalloweenBox=-1,activeFarmPlotId='',activeInteriorObjectId='',targetPosition=null,mapExitTarget=null;
+let environmentConditions={isDay:true,cloudCover:20,weatherCode:1};
+function showToast(text){console.log(text);}function updateInteractionZone(){}function interactWithCurrentZone(){}
+</script>
+<script src="../client/game-config.js"></script>
+<script src="https://cdn.babylonjs.com/babylon.js"></script><script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script><script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<script src="../client/fountain-physics.js"></script><script src="../client/map-3d-layouts.js"></script><script src="../client/fountain-weather.js"></script><script src="../client/fountain-camera.js"></script><script src="../client/fountain-water.js"></script><script src="../client/babylon-fountain.js"></script><script src="../client/babylon-map-packs.js"></script>
+<script>
+players.demo={...players.demo,...Map3DLayouts.get(currentMapId).spawn};
+activateBabylonMapPack(currentMapId);
+setTimeout(()=>{
+ const world=babylonFountain;
+ const loaded=world.scene.meshes.filter(m=>m.name.includes(':'));
+ const result={map:currentMapId,meshes:loaded.length,portal:!!world.scene.getTransformNodeByName('fountain-exit-vortex'),errors:smokeErrors};
+ document.getElementById('smoke-result').textContent=JSON.stringify(result);
+ if(new URLSearchParams(location.search).has('cycle')) {
+    deactivateBabylonFountain();
+    currentMapId='canteen';activateBabylonMapPack(currentMapId);
+    setTimeout(()=>{
+        deactivateBabylonFountain();
+        currentMapId='halloween:cycle';activateBabylonMapPack(currentMapId);
+        setTimeout(()=>{
+            document.getElementById('smoke-result').textContent=JSON.stringify({map:currentMapId,meshes:babylonFountain.scene.meshes.length,canvases:document.querySelectorAll('#babylon-fountain-canvas').length,errors:smokeErrors});
+        },4000);
+    },500);
+ }
+},16000);
+</script></body></html>
