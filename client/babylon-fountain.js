@@ -24,13 +24,24 @@ function addFountainTree(scene, x, z, scale = 1) {
 function addFountainBench(scene, x, z) {
     const wood = createFountainMaterial(scene, 'bench-wood', '#a9683c');
     const dark = createFountainMaterial(scene, 'bench-dark', '#4e311f');
+    const stone = createFountainMaterial(scene, 'bench-stone', '#e7dcc1');
     const seat = BABYLON.MeshBuilder.CreateBox('bench-seat', { width: 2.8, height: .18, depth: .48 }, scene);
-    seat.position.set(x, .72, z); seat.material = wood;
-    const back = BABYLON.MeshBuilder.CreateBox('bench-back', { width: 2.8, height: .75, depth: .14 }, scene);
-    back.position.set(x, 1.2, z + .23); back.material = wood;
+    seat.position.set(x, .78, z); seat.material = wood;
+    for (let index = -1; index <= 1; index++) {
+        const slat = BABYLON.MeshBuilder.CreateBox('bench-seat-slat', { width: 2.78, height: .08, depth: .13 }, scene);
+        slat.position.set(x, .84 + index * .14, z - index * .03); slat.material = wood;
+    }
+    const back = BABYLON.MeshBuilder.CreateBox('bench-back', { width: 2.72, height: .68, depth: .12 }, scene);
+    back.position.set(x, 1.32, z + .25); back.material = wood;
     [-1.05, 1.05].forEach((offset) => {
-        const leg = BABYLON.MeshBuilder.CreateBox('bench-leg', { width: .14, height: .7, depth: .2 }, scene);
-        leg.position.set(x + offset, .35, z); leg.material = dark;
+        const support = BABYLON.MeshBuilder.CreateBox('bench-stone-support', { width: .42, height: 1.18, depth: .72 }, scene);
+        support.position.set(x + offset, .59, z); support.material = stone;
+        const cap = BABYLON.MeshBuilder.CreateBox('bench-stone-cap', { width: .62, height: .18, depth: .84 }, scene);
+        cap.position.set(x + offset, 1.16, z); cap.material = stone;
+        const base = BABYLON.MeshBuilder.CreateBox('bench-stone-base', { width: .62, height: .18, depth: .86 }, scene);
+        base.position.set(x + offset, .08, z); base.material = stone;
+        const bracket = BABYLON.MeshBuilder.CreateBox('bench-metal-bracket', { width: .12, height: .72, depth: .13 }, scene);
+        bracket.position.set(x + offset, .86, z + .34); bracket.material = dark;
     });
 }
 
@@ -111,11 +122,36 @@ function addFountainObject(scene) {
     basin.position.y = .6; basin.material = water;
     const inner = BABYLON.MeshBuilder.CreateCylinder('fountain-inner', { diameter: 3.7, height: .12, tessellation: 48 }, scene);
     inner.position.y = .72; inner.material = createFountainMaterial(scene, 'fountain-inner', '#68d8e6', '#155f75');
-    const pillar = BABYLON.MeshBuilder.CreateCylinder('fountain-pillar', { diameter: .42, height: 1.7, tessellation: 24 }, scene);
-    pillar.position.y = 1.35; pillar.material = stone;
+    const lowerPedestal = BABYLON.MeshBuilder.CreateCylinder('fountain-lower-pedestal', { diameter: 1.25, height: .7, tessellation: 32 }, scene);
+    lowerPedestal.position.y = 1.02; lowerPedestal.material = stone;
+    const middleBowl = BABYLON.MeshBuilder.CreateCylinder('fountain-middle-bowl', { diameter: 2.65, height: .35, tessellation: 40 }, scene);
+    middleBowl.position.y = 1.62; middleBowl.material = stone;
+    const pillar = BABYLON.MeshBuilder.CreateCylinder('fountain-pillar', { diameter: .42, height: 1.15, tessellation: 24 }, scene);
+    pillar.position.y = 2.08; pillar.material = stone;
+    const upperBowl = BABYLON.MeshBuilder.CreateCylinder('fountain-upper-bowl', { diameter: 1.75, height: .25, tessellation: 32 }, scene);
+    upperBowl.position.y = 2.68; upperBowl.material = stone;
     const jet = BABYLON.MeshBuilder.CreateCylinder('fountain-jet', { diameterTop: .03, diameterBottom: .22, height: 2.1, tessellation: 16 }, scene);
-    jet.position.y = 2.65; jet.material = createFountainMaterial(scene, 'fountain-jet', '#a9f4ff', '#5ddbe9');
-    scene.onBeforeRenderObservable.add(() => { jet.scaling.y = 1 + Math.sin(performance.now() / 220) * .08; });
+    jet.position.y = 3.55; jet.material = createFountainMaterial(scene, 'fountain-jet', '#a9f4ff', '#5ddbe9');
+    const waterMat = createFountainMaterial(scene, 'fountain-droplets', '#a9f4ff', '#5ddbe9');
+    const droplets = [];
+    for (let index = 0; index < 14; index++) {
+        const angle = (Math.PI * 2 * index) / 14;
+        const droplet = BABYLON.MeshBuilder.CreateSphere('fountain-droplet', { diameter: .11, segments: 6 }, scene);
+        droplet.material = waterMat;
+        droplets.push({ mesh: droplet, angle, phase: index * .42, radius: .65 + (index % 3) * .18 });
+    }
+    scene.onBeforeRenderObservable.add(() => {
+        const time = performance.now() / 520;
+        jet.scaling.y = 1 + Math.sin(performance.now() / 220) * .08;
+        droplets.forEach(({ mesh, angle, phase, radius }) => {
+            const progress = (time + phase) % 1.8;
+            const normalized = progress / 1.8;
+            mesh.position.x = Math.cos(angle) * radius * normalized;
+            mesh.position.z = Math.sin(angle) * radius * normalized;
+            mesh.position.y = 2.55 + Math.sin(normalized * Math.PI) * (1.45 + radius * .25);
+            mesh.scaling.setAll(.72 + Math.sin(normalized * Math.PI) * .28);
+        });
+    });
 }
 
 function createBabylonHuman(scene, id) {
@@ -163,7 +199,6 @@ function activateBabylonFountain() {
     addFountainFlowerBed(scene, -4.3, -1.8, 1.1); addFountainFlowerBed(scene, 4.3, -1.8, 1.1); addFountainFlowerBed(scene, -4.3, 1.8, 1.1); addFountainFlowerBed(scene, 4.3, 1.8, 1.1);
     const gui = BABYLON.GUI ? BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('fountain-gui', true, scene) : null;
     babylonFountain = { canvas, engine, scene, gui, players: new Map() };
-    canvas.addEventListener('pointerdown', (event) => { const rect = canvas.getBoundingClientRect(); targetPosition = { x: ((event.clientX - rect.left) / rect.width) * 800, y: ((event.clientY - rect.top) / rect.height) * 600 }; });
     const phaserCanvas = document.querySelector('canvas:not(#babylon-fountain-canvas)'); if (phaserCanvas) phaserCanvas.classList.add('phaser-map-hidden');
     engine.runRenderLoop(() => scene.render()); window.addEventListener('resize', () => engine.resize());
     updateBabylonFountainPlayers(); return true;
