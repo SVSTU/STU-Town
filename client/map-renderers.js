@@ -685,7 +685,10 @@ function switchMapVisuals(mapId) {
     halloweenBoxGraphics = null;
     halloweenBoxLabels = [];
     campusBenchGraphics = null;
-    if (mapId === 'campus') drawCampusMap(sceneRef);
+    deactivateBabylonFountain();
+    if (mapId === 'fountain' && activateBabylonFountain()) {
+        // Babylon owns this pilot map; Phaser remains active underneath for state/input sync.
+    } else if (mapId === 'campus') drawCampusMap(sceneRef);
     else drawInteriorMap(sceneRef, mapId);
     document.getElementById('map-exit').hidden = true;
     document.getElementById('announcements-panel').hidden = mapId !== 'auditorium';

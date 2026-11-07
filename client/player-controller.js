@@ -99,4 +99,5 @@ function update(time, delta) {
         }
     }
     updateInteractionZone(p);
+    updateBabylonFountainPlayers?.();
 }

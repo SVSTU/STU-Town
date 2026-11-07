@@ -29,6 +29,9 @@ canvas {
         0 0 28px rgba(145, 200, 121, 0.12);
     cursor: pointer;
 }
+#babylon-fountain-canvas { position: fixed; z-index: 1; width: min(800px, 100vw); height: min(600px, 100dvh); border: 2px solid rgba(225, 239, 202, 0.75); border-radius: 14px; box-shadow: 0 0 0 5px rgba(13,35,25,.52), 0 16px 48px rgba(0,0,0,.4); cursor: grab; }
+#babylon-fountain-canvas:active { cursor: grabbing; }
+canvas.phaser-map-hidden { visibility: hidden; }
 button, input, select, textarea { font: inherit; }
 button {
     transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
@@ -293,6 +296,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #player-stats label { display: grid; grid-template-columns: 1fr auto; gap: 3px 7px; margin: 5px 0; }
 #player-stats progress { grid-column: 1 / -1; width: 100%; height: 10px; accent-color: #77c46b; }
 #wallet-summary { margin-top: 7px; color: #ffe7a6; }
+.player-info-card { position: fixed; z-index: 12000; top: 50%; left: 50%; width: min(290px, calc(100vw - 28px)); padding: 14px; transform: translate(-50%, -50%); border: 1px solid #9fca82; border-radius: 13px; background: linear-gradient(145deg, #29472e, #14251b 78%); color: #f4f7e9; box-shadow: 0 16px 45px rgba(0,0,0,.55); }
+.player-info-card[hidden] { display: none; }
+.player-info-close { position: absolute; top: 8px; right: 8px; width: 27px; height: 27px; border: 1px solid rgba(255,255,255,.25); border-radius: 7px; background: rgba(255,255,255,.1); color: #fff; cursor: pointer; }
+.player-info-main { display: flex; align-items: center; gap: 10px; padding-right: 28px; }
+.player-info-main img, .player-info-avatar-placeholder { display: grid; width: 58px; height: 58px; place-items: center; border: 2px solid #a9d78d; border-radius: 50%; background: #203b29; object-fit: cover; font-size: 27px; }
+.player-info-main strong, .player-info-main small { display: block; }
+.player-info-main strong { color: #fff0b4; font-size: 16px; }
+.player-info-main small { margin-top: 4px; color: #c7ddba; font-size: 11px; }
+.player-info-id { margin-top: 9px; color: #b9d3ac; font-size: 11px; }
+.player-info-id code { color: #ffe7a6; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
+.player-info-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 12px; }
+.player-info-stats span { padding: 6px 4px; border-radius: 6px; background: #203b29; color: #c7ddba; font-size: 10px; text-align: center; }
+.player-info-stats b { display: block; margin-top: 2px; color: #ffe7a6; font-size: 13px; }
+.player-info-wallet { margin-top: 10px; color: #ffe7a6; font-size: 12px; }
 #zone-service-panel.game-service-dialog[hidden] { display: none !important; }
 #zone-service-panel.game-service-dialog {
     box-sizing: border-box; position: fixed; inset: 0; z-index: 11000;

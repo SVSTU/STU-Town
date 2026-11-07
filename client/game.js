@@ -337,6 +337,7 @@ function create() {
     socket.on('playerProfileUpdated', (data) => {
         const player = players[data.id];
         if (!player) return;
+        player.playerInfo = { ...(player.playerInfo || {}), ...data };
         updatePlayerName(player, data.nickname, data.id);
         if (data.avatar) updatePlayerAvatar(sceneRef, player, data.avatar);
         updatePrivateRecipientList();

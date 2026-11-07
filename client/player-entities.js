@@ -31,6 +31,11 @@ function createPlayer(scene, info, id) {
         backgroundColor: '#00000088',
         padding: { x: 4, y: 2 }
     }).setOrigin(0.5);
+    textLabel.setInteractive({ useHandCursor: true });
+    textLabel.on('pointerdown', (pointer, localX, localY, event) => {
+        event?.stopPropagation?.();
+        showPlayerInfoCard(container);
+    });
     container.add(textLabel);
     container.textLabel = textLabel;
 
@@ -41,6 +46,8 @@ function createPlayer(scene, info, id) {
     container.borderRing = borderRing;
 
     container.playerId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    container.playerSocketId = id;
+    container.playerInfo = { ...info };
     // 3. Avatar tùy chỉnh hoặc ảnh mặc định
     const avatar = info.avatar || (isMe ? profile.avatar : null);
     if (avatar && typeof avatar === 'string' && avatar.startsWith('data:image/')) {
@@ -52,7 +59,7 @@ function createPlayer(scene, info, id) {
 
     scene.add.existing(container);
     players[id] = container;
-    if (String(info.mapId || '') === 'fountain') {
+    if (String(info.mapId || '') !== 'campus' && !isPrivateBenchGuest) {
         setPlayerHumanVisual(container, false);
     } else if (isPrivateBenchGuest) {
         // Không gian riêng luôn dùng hình người ngồi phong cách 3D giả lập,
@@ -70,6 +77,7 @@ function createPlayer(scene, info, id) {
 function updatePlayerName(player, nickname, id) {
     if (!player.textLabel) return;
     player.playerNickname = nickname || '';
+    if (player.playerInfo) player.playerInfo.nickname = nickname || '';
     const shortId = id.substring(0, 4);
     player.textLabel.setText(nickname || (id === socket.id ? 'Bạn' : `Khách (${shortId})`));
     if (player.isSeatedAtBench) player.textLabel.setColor(id === socket.id ? '#62ff9a' : '#ff9a4a');
@@ -111,7 +119,35 @@ function setAvatarFromBase64(scene, container, base64Str) {
 }
 
 function updatePlayerAvatar(scene, container, base64Str) {
+    if (container?.playerInfo) container.playerInfo.avatar = base64Str;
     setAvatarFromBase64(scene, container, base64Str);
+}
+
+function showPlayerInfoCard(player) {
+    if (!player) return;
+    let card = document.getElementById('player-info-card');
+    if (!card) {
+        card = document.createElement('section');
+        card.id = 'player-info-card';
+        card.className = 'player-info-card';
+        document.body.appendChild(card);
+    }
+    const info = player.playerInfo || {};
+    const isMe = player.playerId === socket.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    const stats = info.stats && typeof info.stats === 'object' ? info.stats : {};
+    const avatar = typeof info.avatar === 'string' && info.avatar.startsWith('data:image/')
+        ? `<img src="${escapeHtml(info.avatar)}" alt="Avatar của ${escapeHtml(player.playerNickname || 'người chơi')}">`
+        : '<div class="player-info-avatar-placeholder">👤</div>';
+    const fullId = String(player.playerSocketId || '');
+    const shortId = fullId ? fullId.slice(0, 8) : '--------';
+    card.innerHTML = `<button type="button" class="player-info-close" aria-label="Đóng thông tin">×</button>
+        <div class="player-info-main">${avatar}<div><strong>${escapeHtml(player.playerNickname || (isMe ? 'Bạn' : 'Khách'))}</strong><small>${isMe ? 'Bạn' : 'Khách'} · ${escapeHtml(info.mapId || currentMapId)}</small></div></div>
+        <div class="player-info-id">Mã định danh: <code title="${escapeHtml(fullId)}">${escapeHtml(shortId)}</code></div>
+        <div class="player-info-stats"><span>Đói <b>${Number(stats.hunger ?? 100)}</b></span><span>Sức mạnh <b>${Number(stats.strength ?? 100)}</b></span><span>Mệt <b>${Number(stats.fatigue ?? 0)}</b></span></div>
+        <div class="player-info-wallet">🪙 ${Number(info.coins || 0)} · ⭐ ${Number(info.reputation || 0)}</div>`;
+    card.querySelector('.player-info-close').addEventListener('click', () => card.remove());
+    card.hidden = false;
 }
 
 function setPlayerSeatedVisual(container, seated) {
