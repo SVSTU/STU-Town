@@ -302,7 +302,7 @@ function clearCanteenQuickBuyButtons() {
 
 function renderCanteenQuickBuyButtons(scene) {
     // A delayed server event must never draw canteen controls on another map.
-    if (currentMapId !== 'canteen' || !scene || !scene.scene.isActive()) {
+    if (currentMapId !== 'canteen' || !scene || !scene.scene.isActive() || babylonFountain?.mapId==='canteen') {
         clearCanteenQuickBuyButtons();
         return;
     }
@@ -562,27 +562,16 @@ function drawInteriorMap(scene, mapId) {
             scene.add.text(500, 250, '👨‍🏫 GIÁO SƯ', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
             scene.add.text(400, 378, '🩺 TRẠM HỖ TRỢ · 500 ĐỒNG', { font: 'bold 13px Arial', color: '#fff', align: 'center' }).setOrigin(0.5).setDepth(-9);
         } else if (mapId === 'canteen') {
-            // Counter with a soft shadow, wood face, cream trim and striped canopy.
-            g.fillStyle(0x29402d, 0.28).fillEllipse(402, 291, 390, 42);
-            g.fillStyle(0x8b633d, 1).fillRoundedRect(216, 218, 368, 66, 10);
-            // Raised counter top with a bright front lip to suggest an isometric block.
-            g.fillStyle(0x29402d, 0.28).fillRoundedRect(213, 218, 374, 76, 12);
-            g.fillStyle(0xb9955d, 1).fillRoundedRect(216, 199, 368, 82, 12);
-            g.fillStyle(0xf1d9a2, 1).fillRoundedRect(220, 202, 360, 72, 9);
-            g.fillStyle(0xd4b67d, 1).fillRoundedRect(220, 205, 360, 63, 8);
-            for (let i = 0; i < 8; i++) {
-                g.fillStyle(i % 2 ? 0xf4e7c8 : 0xc86f55, 0.95)
-                    .fillRoundedRect(228 + i * 43, 202, 22, 10, 3);
+            // The 2D fallback uses the same footprints as the playable 3D room.
+            g.fillStyle(0xddc49d,1).fillRect(128,96,544,408);
+            const layout=Map3DLayouts.get('canteen');
+            const names={'food-counter':'QUẦY ĂN','ticket-machine':'THẺ','picnic-table':'BÀN ĂN','recycling-station':'RÁC','potted-plant':'🌿'};
+            for(const prop of layout.props.concat(layout.boards||[])) {
+                g.fillStyle(prop.action?0x22574e:0x94693e,1).fillRoundedRect(prop.x-prop.w,prop.y-prop.d,prop.w*2,prop.d*2,3);
+                const text=prop.id==='ranking-reputation'?'DANH TIẾNG':prop.id==='ranking-coins'?'TIỀN ĐỒNG':names[prop.file];
+                scene.add.text(prop.x,prop.y,text,{font:'bold 8px Arial',color:'#fff5df'}).setOrigin(.5).setDepth(-9);
             }
-            g.fillStyle(0x9b7148, 1).fillRoundedRect(234, 264, 332, 10, 4);
-            g.fillStyle(0xf6e9c9, 0.85).fillRoundedRect(248, 216, 304, 37, 7);
-            scene.add.text(400, 235, '🍽️ QUẦY ẨM THỰC', { font: 'bold 16px Arial', color: '#5d472d' }).setOrigin(0.5).setDepth(-9);
-            drawCanteenHallOfFame(scene);
-            g.fillStyle(0x3c5364, 1).fillRoundedRect(620, 300, 60, 100, 8);
-            g.fillStyle(0x9ed2d1, 1).fillRoundedRect(628, 309, 44, 30, 4);
-            g.fillStyle(0x243b2d, 1).fillRoundedRect(628, 345, 44, 38, 4);
-            scene.add.text(650, 324, '🎫', { font: '20px Arial' }).setOrigin(0.5).setDepth(-9);
-            scene.add.text(650, 393, 'MÁY THẺ', { font: 'bold 9px Arial', color: '#fff' }).setOrigin(0.5).setDepth(-9);
+            for(const wall of layout.barriers)g.fillStyle(0x80532e,1).fillRect(wall.x-wall.w,wall.y-wall.d,wall.w*2,wall.d*2);
         } else {
             g.lineStyle(3, 0xc9e6a8, 0.8).strokeRoundedRect(240, 220, 320, 150, 8);
         }
@@ -599,7 +588,8 @@ function drawInteriorMap(scene, mapId) {
 
     // A glowing spiral is the single, in-world exit for every interior map.
     // It replaces the fixed DOM back button and remains at a consistent corner.
-    const exitVortex = scene.add.container(690, 475).setDepth(20);
+    const exitPosition=Map3DLayouts.get(mapId)?.exit||{x:690,y:475};
+    const exitVortex = scene.add.container(exitPosition.x, exitPosition.y).setDepth(20);
     const vortexGlow = scene.add.graphics();
     vortexGlow.fillStyle(0x70eaff, 0.16).fillCircle(0, 0, 39);
     vortexGlow.lineStyle(3, 0x9cf5ff, 0.9).strokeCircle(0, 0, 29);
@@ -627,8 +617,8 @@ function drawInteriorMap(scene, mapId) {
             showToast('Mất kết nối máy chủ. Vui lòng thử lại.');
             return;
         }
-        mapExitTarget = { x: 690, y: 475 };
-        targetPosition = { x: 690, y: 475 };
+        mapExitTarget = { ...exitPosition };
+        targetPosition = { ...exitPosition };
         showToast('Đang đi đến vòng xoáy để thoát map…');
     });
     exitVortex.on('pointerover', () => exitVortex.setScale(1.12));

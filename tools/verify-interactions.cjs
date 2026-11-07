@@ -1,9 +1,11 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const layouts=require('../client/map-3d-layouts'),fountain=require('../client/fountain-physics');
-const services=[['khu-a','merchant',270,245,17],['khu-a','recovery',400,378,12],['canteen','canteen-counter',400,242,29],['canteen','elevator-vending',650,345,12],['canteen','ranking-reputation',240,190,8],['canteen','ranking-coins',560,190,8]];
-for(const [map,action,x,y,d] of services){
-    assert(layouts.canInteract(map,{x,y:y-d-18},action),'front access '+action);
-    assert(!layouts.canInteract(map,{x,y:y+d+18},action),'rear blocked '+action);
+const services=[['khu-a','merchant'],['khu-a','recovery'],['canteen','canteen-counter'],['canteen','elevator-vending'],['canteen','ranking-reputation'],['canteen','ranking-coins']];
+for(const [map,action] of services){
+    const config=layouts.get(map),p=config.props.concat(config.boards||[]).find(p=>(p.action||p.id)===action);
+    const fx=-Math.sin(p.rotation||0),fy=-Math.cos(p.rotation||0),distance=Math.abs(fx)*p.w+Math.abs(fy)*p.d+18;
+    assert(layouts.canInteract(map,{x:p.x+fx*distance,y:p.y+fy*distance},action),'front access '+action);
+    assert(!layouts.canInteract(map,{x:p.x-fx*distance,y:p.y-fy*distance},action),'rear blocked '+action);
     assert(!layouts.canInteract(map,layouts.get(map).spawn,action),'remote access '+action);
 }
 const props=layouts.get('khu-a').props;
@@ -31,8 +33,8 @@ const cases=[
     ['interactFarmPlot','farm',{x:239,y:270},{plotId:'plot-1',action:'plant',cropKey:'carrot'},s=>s.inventory.seeds.carrot===2],
     ['farmShopAction','khu-a',{x:270,y:205},{action:'buy-seed',cropKey:'carrot',quantity:1},s=>s.player.coins===1400],
     ['useRecoveryStation','khu-a',{x:400,y:350},undefined,s=>s.player.coins===1000],
-    ['canteenPurchase','canteen',{x:400,y:195},{itemId:'bread',currency:'coins',quantity:1},s=>s.inventory.items.bread===1],
-    ['buyElevatorTicket','canteen',{x:650,y:315},undefined,s=>s.inventory.items.elevatorTicket===2]
+    ['canteenPurchase','canteen',{x:400,y:415},{itemId:'bread',currency:'coins',quantity:1},s=>s.inventory.items.bread===1],
+    ['buyElevatorTicket','canteen',{x:610,y:330},undefined,s=>s.inventory.items.elevatorTicket===2]
 ];
 for(const [event,map,near,payload,succeeded]of cases){
     assert(succeeded(execute(event,map,near,payload)),'valid nearby '+event);
@@ -49,5 +51,5 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync('client/world-interactions
 ctx.updateHalloweenBoxInteraction({x:112,y:212});assert(doc.getElementById('interaction-button').disabled);
 ctx.halloweenOpenedBoxes.clear();ctx.updateHalloweenBoxInteraction({x:112,y:212});assert(!doc.getElementById('interaction-button').disabled&&!doc.getElementById('interaction-button').hidden);
 ctx.currentMapId='farm';doc.getElementById('interaction-button').disabled=true;ctx.updateFarmPlotInteraction({x:239,y:270});assert(!doc.getElementById('interaction-button').disabled);
-ctx.currentMapId='canteen';doc.getElementById('interaction-button').disabled=true;ctx.updateInteriorInteraction({x:400,y:195});assert(!doc.getElementById('interaction-button').disabled);
+ctx.currentMapId='canteen';doc.getElementById('interaction-button').disabled=true;ctx.updateInteriorInteraction({x:400,y:415});assert(!doc.getElementById('interaction-button').disabled);
 console.log('PASS UI: same Halloween box becomes usable after reset; farm/canteen buttons recover');

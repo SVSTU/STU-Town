@@ -53,8 +53,8 @@ const INTERIOR_OBJECTS = {
         { id: 'recovery', name: 'Trạm hồi phục', detail: 'Gói hồi phục giá 500 tiền đồng.', x: 400, y: 378, radius: 70, bounds: { x: 300, y: 350, width: 200, height: 55 } }
     ],
     canteen: [
-        { id: 'canteen-counter', name: 'Quầy ẩm thực', detail: 'Tới gần quầy để chọn món ăn hoặc thức uống.', x: 400, y: 242, radius: 82, bounds: { x: 220, y: 205, width: 360, height: 75 } },
-        { id: 'elevator-vending', name: 'Máy bán thẻ thang máy', detail: 'Đổi 1 đồng vàng sự kiện lấy thẻ dùng một lần. Máy hoạt động ngoài giờ giảng đường.', x: 650, y: 345, radius: 58, bounds: { x: 610, y: 300, width: 80, height: 100 } }
+        { id: 'canteen-counter', name: 'Quầy ẩm thực', detail: 'Tới gần quầy để chọn món ăn hoặc thức uống.', x: 400, y: 455, radius: 82, bounds: { x: 312, y: 427, width: 176, height: 56 } },
+        { id: 'elevator-vending', name: 'Máy bán thẻ thang máy', detail: 'Đổi 1 đồng vàng sự kiện lấy thẻ dùng một lần. Máy hoạt động ngoài giờ giảng đường.', x: 640, y: 330, radius: 58, bounds: { x: 628, y: 315, width: 24, height: 30 } }
     ]
 };
 const CAMPUS_BUILDINGS = [

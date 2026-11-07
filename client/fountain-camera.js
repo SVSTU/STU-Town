@@ -16,7 +16,7 @@ function bindFountainCamera(scene, canvas, overview) {
     const positionButton=()=>{
         const bounds=canvas.getBoundingClientRect();
         button.style.left=`${bounds.left+bounds.width/2}px`;
-        button.style.top=`${bounds.bottom-45}px`;
+        button.style.top=`${bounds.bottom-(bounds.width<520?190:45)}px`;
         const title=document.querySelector('.map-3d-title');
         if(title){title.style.left=`${bounds.left+12}px`;title.style.top=`${bounds.top+12}px`;}
         const pad=document.getElementById('mobile-movement-pad');

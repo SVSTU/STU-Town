@@ -31,7 +31,8 @@ canvas {
 }
 #babylon-fountain-canvas { position: fixed; z-index: 1; width: min(800px, 100vw); height: min(600px, 100dvh); border: 2px solid rgba(225, 239, 202, 0.75); border-radius: 14px; box-shadow: 0 0 0 5px rgba(13,35,25,.52), 0 16px 48px rgba(0,0,0,.4); cursor: grab; }
 #babylon-fountain-canvas:active { cursor: grabbing; }
-canvas.phaser-map-hidden { visibility: hidden; }
+/* Keep the hidden state/input canvas aligned without forcing an 800px mobile viewport. */
+canvas.phaser-map-hidden { visibility: hidden; width: min(800px, 100vw) !important; height: min(600px, 100dvh) !important; }
 button, input, select, textarea { font: inherit; }
 button {
     transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;

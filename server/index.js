@@ -1002,7 +1002,7 @@ function returnHalloweenToCanteen(socket, reason = '') {
   halloweenProgress.delete(socket.id);
   socket.leave(`map:${oldMapId}`);
   socket.to(`map:${oldMapId}`).emit('playerLeftMap', socket.id);
-  Object.assign(player, { x: 650, y: 410, mapId: 'canteen' });
+  Object.assign(player, Map3DLayouts.get('canteen').returnSpawn, { mapId: 'canteen' });
   socket.join('map:canteen');
   socket.emit('mapChanged', { mapId: 'canteen', players: getMapPlayers('canteen') });
   socket.to('map:canteen').emit('newPlayer', { id: socket.id, ...player });

@@ -1,16 +1,21 @@
 /* Shared map footprints in existing server coordinates; Babylon uses 34 px/metre. */
 const Map3DLayouts = (() => {
-    const prop=(file,x,y,scale=1,action='',w=0,d=0)=>({file,x,y,scale,action,w,d,front:['seed-stall','produce-stall','food-counter','card-machine','recovery-station'].includes(file)});
+    const prop=(file,x,y,scale=1,action='',w=0,d=0)=>({file,x,y,scale,action,w,d,front:['seed-stall','produce-stall','food-counter','card-machine','ticket-machine','recovery-station'].includes(file)});
     const maps={
         'khu-a': {title:'Khu A · Giao dịch',pack:'khu-a',floor:'#b6ac8e',spawn:{x:400,y:455},props:[
             prop('seed-stall',270,245,1,'merchant',29,17),
             prop('produce-stall',340,245,1,'merchant',29,17),
             prop('professor',500,255,1,'professor',10,10),
             prop('recovery-station',400,378,1,'recovery',15,12)]},
-        canteen:{title:'Căn tin',pack:'canteen',floor:'#d0bb91',spawn:{x:400,y:420},props:[
-            prop('food-counter',400,242,1.8,'canteen-counter',72,29),
-            prop('card-machine',650,345,1,'elevator-vending',15,12),
-            prop('picnic-table',250,365,1,'',27,29),prop('picnic-table',500,365,1,'',27,29)]},
+        canteen:{title:'Căn tin · STU',pack:'canteen-v2',theme:'canteen-v2',floor:'#c9b292',spawn:{x:400,y:155},returnSpawn:{x:610,y:330},exit:{x:620,y:160},props:[
+            prop('food-counter',400,455,1,'canteen-counter',88,28),
+            {...prop('ticket-machine',640,330,1,'elevator-vending',12,15),rotation:Math.PI/2},
+            prop('picnic-table',300,280,1.25,'',37,36),prop('picnic-table',510,280,1.25,'',37,36),
+            prop('recycling-station',155,230,1,'',21,12),
+            prop('potted-plant',165,470,1,'',14,14),prop('potted-plant',640,470,1,'',14,14),
+            prop('potted-plant',165,135,1,'',14,14),prop('potted-plant',650,230,1,'',14,14)],
+            barriers:[{id:'wall-left',x:128,y:300,w:4,d:208},{id:'wall-right',x:672,y:300,w:4,d:208},
+                {id:'wall-back',x:400,y:504,w:276,d:5},{id:'wall-front',x:400,y:96,w:276,d:2}]},
         farm:{title:'Vườn cộng đồng',pack:'community-farm',floor:'#72995c',spawn:{x:400,y:430},props:[
             prop('tool-shed',620,155,1,'',28,25)]},
         halloween:{title:'Tầng Halloween · 50 hộp quà',pack:'halloween',floor:'#30263d',spawn:{x:400,y:535},props:[
@@ -19,14 +24,14 @@ const Map3DLayouts = (() => {
             prop('lantern',300,150,1.5),prop('lantern',500,150,1.5)]}
     };
     maps.canteen.boards=[
-        {id:'ranking-reputation',action:'ranking-reputation',name:'Vinh danh · Danh tiếng',x:240,y:190,w:34,d:8,front:true},
-        {id:'ranking-coins',action:'ranking-coins',name:'Vinh danh · Tiền đồng',x:560,y:190,w:34,d:8,front:true}
+        {id:'ranking-reputation',action:'ranking-reputation',name:'Vinh danh · Danh tiếng',file:'honor-gold',x:220,y:455,w:41,d:11,front:true},
+        {id:'ranking-coins',action:'ranking-coins',name:'Vinh danh · Tiền đồng',file:'honor-silver',x:590,y:455,w:41,d:11,front:true}
     ];
     const key=id=>String(id).startsWith('halloween:')?'halloween':id;
     const get=id=>maps[key(id)];
     function obstacles(id) {
         const map=get(id); if(!map)return [];
-        const result=map.props.map((p,i)=>({...p,id:'prop:'+i})).filter(p=>p.w).concat(map.boards||[]);
+        const result=map.props.map((p,i)=>({...p,id:'prop:'+i})).filter(p=>p.w).concat(map.boards||[],map.barriers||[]);
         if(key(id)==='farm') for(let i=0;i<4;i++)result.push({id:'plot:plot-'+(i+1),action:'plot:plot-'+(i+1),x:239+i*110,y:311,w:38,d:24});
         if(key(id)==='halloween')for(let i=0;i<50;i++)result.push({id:'box:'+i,action:'box:'+i,x:112+i%10*64,y:242+Math.floor(i/10)*54,w:11,d:10});
         return result;
@@ -50,8 +55,12 @@ const Map3DLayouts = (() => {
     function canReachTarget(id,player,target,all) {
         const dx=Math.max(0,Math.abs(player.x-target.x)-target.w),dy=Math.max(0,Math.abs(player.y-target.y)-target.d);
         if(Math.hypot(dx,dy)>26)return false;
-        // Counter backs are solid; service is provided on their front side (-Z).
-        if(target.front&&player.y>target.y-target.d-1)return false;
+        // Use the same rotated front normal as the rendered model.
+        if(target.front) {
+            const rotation=target.rotation||0,fx=-Math.sin(rotation),fy=-Math.cos(rotation);
+            const depth=Math.abs(fx)*target.w+Math.abs(fy)*target.d;
+            if((player.x-target.x)*fx+(player.y-target.y)*fy<depth+1)return false;
+        }
         return !all.some(box=>box.id!==target.id&&segmentHitsBox(player.x,player.y,target.x,target.y,box));
     }
     function interactionTargets(id,player) {
