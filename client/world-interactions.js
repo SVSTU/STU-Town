@@ -89,9 +89,10 @@ function updateBenchInteractionState(bench) {
 }
 
 function updateFarmPlotInteraction(player) {
+    const reachable=new Set(Map3DLayouts.interactionTargets(currentMapId,player).map(target=>target.action));
     const nearestPlot = FARM_PLOT_LAYOUT
         .map((plot) => ({ plot, distance: Phaser.Math.Distance.Between(player.x, player.y, plot.x + plot.width / 2, plot.y + plot.height / 2) }))
-        .filter(({ plot }) => isWithinInteractionArea(player, plot, 18))
+        .filter(({ plot }) => reachable.has('plot:'+plot.id))
         .sort((a, b) => a.distance - b.distance)[0]?.plot || null;
     const nextPlotId = nearestPlot?.id || '';
     if (nextPlotId !== activeFarmPlotId) {
@@ -128,23 +129,18 @@ function updateFarmPlotInteraction(player) {
     document.getElementById('interaction-zone-description').textContent = detail;
     const hasInteracted = interactedFarmPlotId === nearestPlot.id;
     interactionButton.hidden = hasInteracted;
+    interactionButton.disabled = false;
     interactionButton.textContent = `Tương tác luống ${plotNumber} (E)`;
 }
 
 function updateHalloweenBoxInteraction(player) {
+    const reachable=new Set(Map3DLayouts.interactionTargets(currentMapId,player).map(target=>target.action));
     const nearest = HALLOWEEN_BOX_POSITIONS
         .map((box, index) => ({ box, index, distance: Phaser.Math.Distance.Between(player.x, player.y, box.x, box.y) }))
-        .filter(({ distance }) => distance <= 38)
+        .filter(({ index }) => reachable.has('box:'+index))
         .sort((a, b) => a.distance - b.distance)[0];
     const nextIndex = nearest?.index ?? -1;
     const nextZoneId = nextIndex >= 0 ? `halloween-box:${nextIndex}` : '';
-    if (nextIndex === activeHalloweenBox) {
-        if (nearest && halloweenOpenedBoxes.has(nextIndex)) {
-            document.getElementById('interaction-zone-description').textContent = 'Hộp quà này đã được mở.';
-            document.getElementById('interaction-button').hidden = true;
-        }
-        return;
-    }
     activeHalloweenBox = nextIndex;
     activeInteractionZoneId = nextZoneId;
     const hud = document.getElementById('interaction-hud');
@@ -231,10 +227,9 @@ function renderSessionLeaderboard() {
 /* Contextual interaction routing for interior and campus objects. */
 
 function updateInteriorInteraction(player) {
-    const nearestObject = (INTERIOR_OBJECTS[currentMapId] || [])
-        .map((object) => ({ object, distance: Phaser.Math.Distance.Between(player.x, player.y, object.x, object.y) }))
-        .filter(({ object }) => isWithinInteractionArea(player, object, 20))
-        .sort((a, b) => a.distance - b.distance)[0]?.object || null;
+    const target=Map3DLayouts.interactionTargets(currentMapId,player)[0];
+    const nearestObject=target ? (INTERIOR_OBJECTS[currentMapId]||[]).find(object=>object.id===target.action)
+        || {...target,id:target.action,detail:'Đến gần và nhấn E để xem TOP 10 toàn server.'} : null;
     const nextObjectId = nearestObject?.id || '';
     if (nextObjectId === activeInteriorObjectId) return;
 
@@ -255,10 +250,12 @@ function updateInteriorInteraction(player) {
     document.getElementById('farm-plot-list').hidden = true;
     document.getElementById('farm-seed-picker').hidden = true;
     document.getElementById('interaction-button').hidden = false;
+    document.getElementById('interaction-button').disabled = false;
     document.getElementById('interaction-button').textContent = 'Tương tác (E)';
 }
 
 function interactWithCurrentZone() {
+    if(Map3DLayouts.get(currentMapId)&&players[socket.id])updateInteractionZone(players[socket.id]);
     if (currentMapId.startsWith('halloween:') && activeHalloweenBox >= 0) {
         if (!halloweenOpenedBoxes.has(activeHalloweenBox) && socket.connected) socket.emit('openHalloweenBox', activeHalloweenBox);
         return;
@@ -271,6 +268,9 @@ function interactWithCurrentZone() {
     }
     if (activeInteractionZoneId.startsWith('interior:')) {
         const objectId = activeInteriorObjectId;
+        if(objectId==='ranking-reputation'||objectId==='ranking-coins') {
+            openCanteenRanking(objectId.slice(8));return;
+        }
         const target = objectId === 'canteen-counter' ? 'canteen' : objectId;
         if (!target) return;
         const screen = target === 'merchant' ? 'merchant-home'

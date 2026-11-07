@@ -17,8 +17,8 @@ for(const map of ['khu-a','canteen','farm','halloween:test']) {
     }
     assert(!layouts.blocked(map,config.spawn.x,config.spawn.y),map+' spawn');
     assert(reachable.some(p=>Math.hypot(p.x-layouts.exit.x,p.y-layouts.exit.y)<24),map+' exit unreachable');
-    for(const prop of config.props.filter(p=>p.action))assert(reachable.some(p=>Math.hypot(p.x-prop.x,p.y-prop.y)<45),map+' action '+prop.action);
-    if(map.startsWith('halloween:'))for(let i=0;i<50;i++)assert(reachable.some(p=>Math.hypot(p.x-(112+i%10*64),p.y-(242+Math.floor(i/10)*54))<38),'box '+i+' unreachable');
+    for(const prop of config.props.filter(p=>p.action).concat(config.boards||[]))assert(reachable.some(p=>layouts.canInteract(map,p,prop.action)),map+' action '+prop.action);
+    if(map.startsWith('halloween:'))for(let i=0;i<50;i++)assert(reachable.some(p=>layouts.canInteract(map,p,'box:'+i)),'box '+i+' unreachable');
     console.log('PASS footprints/spawn/exit/actions:',map);
 }
 

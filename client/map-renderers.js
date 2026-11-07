@@ -694,6 +694,10 @@ function switchMapVisuals(mapId) {
     document.getElementById('map-exit').hidden = true;
     document.getElementById('announcements-panel').hidden = mapId !== 'auditorium';
     document.getElementById('interaction-hud').hidden = true;
+    document.getElementById('interaction-button').disabled = false;
+    document.getElementById('interaction-button').hidden = false;
+    const rankingModal=document.getElementById('canteen-ranking-modal');
+    if(rankingModal)rankingModal.hidden=true;
     document.getElementById('farm-seed-picker').hidden = true;
     document.getElementById('farm-plot-list').hidden = true;
     if (mapId !== 'farm') {

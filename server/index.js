@@ -585,7 +585,7 @@ function positionCampusBenchOccupants(benchId) {
     const player = players[id];
     if (!player) return;
     player.x = bench.x + offsets[index];
-    player.y = bench.y + 28;
+    player.y = bench.y + (benchId.startsWith('fountain-') ? -Math.cos(bench.rotation)*32 : 28);
     io.sockets.sockets.get(id)?.emit('playerMoved', { id, x: player.x, y: player.y });
     io.to(`map:${player.mapId}`).emit('playerMoved', { id, x: player.x, y: player.y });
   });
@@ -1218,6 +1218,7 @@ io.on('connection', (socket) => {
       socket.emit('farmInteractionResult', { message: 'Hãy vào bản đồ nông trại cộng đồng để tương tác.' });
       return;
     }
+    if (!Map3DLayouts.canInteract('farm',player,'plot:'+plotId)) return socket.emit('farmInteractionResult',{message:'Hãy đến sát luống đất, không tương tác qua vật cản.'});
     const actionDelay = 800 + player.stats.fatigue * 25;
     if (Date.now() - player.lastFarmActionAt < actionDelay) {
       socket.emit('farmInteractionResult', { message: 'Hãy chậm lại và nghỉ một chút trước hành động tiếp theo.' });
@@ -1280,6 +1281,7 @@ io.on('connection', (socket) => {
 
   socket.on('farmShopAction', (payload = {}) => {
     if (players[socket.id]?.mapId !== 'khu-a') return socket.emit('serviceResult', { message: 'Hãy đến quầy thương nhân ở Khu A.' });
+    if (!Map3DLayouts.canInteract('khu-a',players[socket.id],'merchant')) return socket.emit('serviceResult',{message:'Hãy đến phía trước quầy thương nhân.'});
     const { action, cropKey } = payload || {};
     const quantity = Number(payload?.quantity);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
@@ -1312,6 +1314,7 @@ io.on('connection', (socket) => {
   socket.on('useRecoveryStation', () => {
     const player = players[socket.id];
     if (!player || player.mapId !== 'khu-a') return socket.emit('serviceResult', { message: 'Trạm hồi phục đặt tại Khu A.' });
+    if (!Map3DLayouts.canInteract('khu-a',player,'recovery')) return socket.emit('serviceResult',{message:'Hãy đến phía trước trạm hồi phục.'});
     if (player.coins < 500) return socket.emit('serviceResult', { message: 'Cần 500 tiền đồng để dùng gói hồi phục.' });
     player.coins -= 500;
     player.stats.hunger = clampStat(player.stats.hunger + 50);
@@ -1330,6 +1333,7 @@ io.on('connection', (socket) => {
     }
     const distance = Math.hypot(player.x - bench.x, player.y - bench.y);
     if (distance > 55) return socket.emit('benchRestResult', { message: 'Hãy đến gần ghế để ngồi nghỉ.' });
+    if(player.mapId==='fountain'&&!FountainPhysics.canUseBench(player,benchId))return socket.emit('benchRestResult',{message:'Hãy đến phía trước ghế; không ngồi xuyên tựa lưng hoặc vật cản.'});
     const occupants = getCampusBenchOccupants()[benchId] || [];
     const occupiedByOther = occupants.filter((id) => id !== socket.id);
     if (occupiedByOther.length >= 2) return socket.emit('benchRestResult', { message: 'Ghế đã đủ 2 người.' });
@@ -1376,6 +1380,7 @@ io.on('connection', (socket) => {
     const player = players[socket.id];
     const inventory = playerInventories.get(socket.id);
     if (!player || player.mapId !== 'canteen') return socket.emit('serviceResult', { message: 'Hãy đến Căn tin để mua thực phẩm.' });
+    if (!Map3DLayouts.canInteract('canteen',player,'canteen-counter')) return socket.emit('serviceResult',{message:'Hãy đến phía trước quầy ẩm thực.'});
     if (!inventory) return;
     const { itemId, currency } = payload || {};
     const quantity = Number(payload?.quantity);
@@ -1413,7 +1418,7 @@ io.on('connection', (socket) => {
     const player = players[socket.id];
     const inventory = playerInventories.get(socket.id);
     if (!player || player.mapId !== 'canteen' || !inventory) return socket.emit('serviceResult', { message: 'Máy bán thẻ chỉ dùng được tại Căng tin.' });
-    if (Math.hypot(player.x - 650, player.y - 350) > 85) return socket.emit('serviceResult', { message: 'Hãy đến gần máy bán thẻ trong Căng tin.' });
+    if (!Map3DLayouts.canInteract('canteen',player,'elevator-vending')) return socket.emit('serviceResult', { message: 'Hãy đến phía trước máy bán thẻ trong Căng tin.' });
     if (isKhuCScheduleOpen()) return socket.emit('serviceResult', { message: 'Máy chỉ hoạt động ngoài giờ giảng đường: 11:30–13:00 và sau 17:00.' });
     if ((Number(inventory.items.eventGoldCoin) || 0) < 1) return socket.emit('serviceResult', { message: 'Cần 1 đồng vàng sự kiện để đổi thẻ thang máy.' });
     inventory.items.eventGoldCoin -= 1;
@@ -1426,7 +1431,7 @@ io.on('connection', (socket) => {
     const player = players[socket.id];
     const inventory = playerInventories.get(socket.id);
     if (!player || player.mapId !== 'canteen' || !inventory) return socket.emit('serviceResult', { message: 'Hãy đến máy bán thẻ ở Căng tin.' });
-    if (Math.hypot(player.x - 650, player.y - 350) > 85) return socket.emit('serviceResult', { message: 'Hãy đến gần máy bán thẻ trong Căng tin.' });
+    if (!Map3DLayouts.canInteract('canteen',player,'elevator-vending')) return socket.emit('serviceResult', { message: 'Hãy đến phía trước máy bán thẻ trong Căng tin.' });
     if (isKhuCScheduleOpen()) return socket.emit('serviceResult', { message: 'Thang máy sự kiện chỉ hoạt động ngoài giờ giảng đường.' });
     if ((Number(inventory.items.elevatorTicket) || 0) < 1) return socket.emit('serviceResult', { message: 'Bạn chưa có thẻ thang máy.' });
     inventory.items.elevatorTicket -= 1;
@@ -1501,9 +1506,7 @@ io.on('connection', (socket) => {
     const progress = halloweenProgress.get(socket.id);
     if (!player || !inventory || !progress || player.mapId !== `halloween:${socket.id}`) return;
     if (!Number.isInteger(boxIndex) || boxIndex < 0 || boxIndex >= HALLOWEEN_BOX_COUNT) return;
-    const boxX = 112 + (boxIndex % 10) * 64;
-    const boxY = 242 + Math.floor(boxIndex / 10) * 54;
-    if (Math.hypot(player.x - boxX, player.y - boxY) > 58) return;
+    if (!Map3DLayouts.canInteract(player.mapId,player,'box:'+boxIndex)) return;
     if (progress.opened.has(boxIndex)) return socket.emit('halloweenBoxResult', { message: 'Hộp này đã được mở rồi.' });
     progress.opened.add(boxIndex);
     progress.openedCount = (Number(progress.openedCount) || 0) + 1;

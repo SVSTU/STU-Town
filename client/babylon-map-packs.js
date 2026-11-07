@@ -10,6 +10,7 @@ function activateBabylonMapPack(mapId) {
     const engine=new B.Engine(canvas,true,{stencil:true});
     engine.setHardwareScalingLevel(Math.max(1,window.devicePixelRatio/1.5));
     const scene=new B.Scene(engine);
+    bind3DOcclusion(scene);
     const halloween=Map3DLayouts.key(mapId)==='halloween';
     scene.clearColor=halloween?new B.Color4(.055,.035,.09,1):new B.Color4(.44,.60,.53,1);
     const camera=new B.ArcRotateCamera('map-camera',-Math.PI/2,.72,27,new B.Vector3(0,0,0),scene);
@@ -84,7 +85,7 @@ function activateBabylonMapPack(mapId) {
         const pos=fountainWorldPosition(x,y);root.position.set(pos.x,0,pos.z);root.scaling.setAll(scale);
         instance.rootNodes.forEach(node=>node.parent=root);
         for(const mesh of root.getChildMeshes()) {
-            mesh.receiveShadows=true;mesh.isPickable=Boolean(action);shadows.addShadowCaster(mesh);
+            mesh.receiveShadows=true;mesh.isPickable=id!=='event';shadows.addShadowCaster(mesh);
             if(action){mesh.actionManager=new B.ActionManager(scene);mesh.actionManager.registerAction(new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger,()=>interact(action,x,y)));}
             if(variant==='growing'&&/leaf|foliage|fruit|root|cob|stalk/.test(mesh.name))mesh.scaling.scaleInPlace(.45);
             if(variant==='wilted'&&/leaf|foliage|fruit|root|cob|stalk/.test(mesh.name)) {
@@ -95,6 +96,43 @@ function activateBabylonMapPack(mapId) {
         token.instance=instance;token.root=root;
     }
     layout.props.forEach((p,i)=>void place('static-'+i,`${layout.pack}/${p.file}.glb`,p.x,p.y,p.scale,p.action));
+    const rankingBoards=(layout.boards||[]).map(board=>{
+        const root=new B.TransformNode(board.id,scene),p=fountainWorldPosition(board.x,board.y);
+        root.position.set(p.x,0,p.z);
+        const category=board.id.slice(8),accent=category==='reputation'?'#ffd166':'#8bd9ff';
+        const wood=createFountainMaterial(scene,'award-wood-'+category,'#533d28');
+        const trim=createFountainMaterial(scene,'award-trim-'+category,accent);
+        const box=B.MeshBuilder.CreateBox(board.id+'-frame',{width:2.06,height:1.30,depth:.19},scene);
+        box.parent=root;box.position.y=1.35;box.material=trim;
+        for(const x of [-.8,.8]) {
+            const post=B.MeshBuilder.CreateBox(board.id+'-post',{width:.10,height:.75,depth:.13},scene);
+            post.parent=root;post.position.set(x,.375,0);post.material=wood;
+        }
+        const face=B.MeshBuilder.CreatePlane(board.id+'-face',{width:1.94,height:1.18},scene);
+        face.parent=root;face.position.set(0,1.35,-.105);
+        const texture=new B.DynamicTexture(board.id+'-texture',{width:1024,height:640},scene,false);
+        const ink=new B.StandardMaterial(board.id+'-ink',scene);ink.diffuseTexture=texture;
+        ink.emissiveColor=new B.Color3(.42,.42,.42);ink.specularColor=B.Color3.Black();face.material=ink;
+        root.getChildMeshes().forEach(mesh=>{
+            mesh.isPickable=true;mesh.receiveShadows=true;shadows.addShadowCaster(mesh);
+            mesh.actionManager=new B.ActionManager(scene);
+            mesh.actionManager.registerAction(new B.ExecuteCodeAction(B.ActionManager.OnPickTrigger,()=>interact(board.id,board.x,board.y)));
+        });
+        let signature='';
+        return ()=>{
+            const top=getServerRankingRows(category)[0];
+            const next=JSON.stringify(top||{});if(signature===next)return;signature=next;
+            const ctx=texture.getContext();ctx.fillStyle='#17332a';ctx.fillRect(0,0,1024,640);
+            ctx.textAlign='center';ctx.fillStyle=accent;ctx.font='bold 55px Arial';
+            ctx.fillText(category==='reputation'?'TOP 1 · DANH TIẾNG':'TOP 1 · TIỀN ĐỒNG',512,110);
+            const name=String(top?.nickname||'Chưa có dữ liệu');ctx.fillStyle='#ffffff';
+            let fontSize=62;do{ctx.font=`bold ${fontSize}px Arial`;fontSize-=2;}while(ctx.measureText(name).width>940&&fontSize>20);
+            ctx.fillText(name,512,290,940);ctx.fillStyle=accent;ctx.font='bold 64px Arial';
+            ctx.fillText(top?(Number(top.score)||0).toLocaleString('vi-VN'):'—',512,400);
+            ctx.fillStyle='#d1e4d4';ctx.font='34px Arial';ctx.fillText('TOÀN SERVER · ĐẾN GẦN + E XEM TOP 10',512,550);
+            texture.update();
+        };
+    });
     // Scatter lights/decor outside the walkable interaction rows.
     if(halloween)for(const x of [85,720]) {
         const light=new B.PointLight('lantern-light',new B.Vector3((x-400)/34,2,-3),scene);
@@ -109,6 +147,7 @@ function activateBabylonMapPack(mapId) {
         const now=performance.now();
         if(now>=stateTick){
             stateTick=now+250;
+            rankingBoards.forEach(update=>update());
             if(mapId==='farm') {
                 for(const plot of FARM_PLOT_LAYOUT) {
                     const state=farmPlots[plot.id],age=state?.plantedAt?Date.now()-state.plantedAt:0;

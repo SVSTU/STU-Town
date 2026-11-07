@@ -1,6 +1,12 @@
 /* Babylon.js pilot renderer for the fountain map. The game/server state stays in Phaser/Socket.IO. */
 let babylonFountain = null;
 
+function bind3DOcclusion(scene) {
+    const visibleSolid=mesh=>mesh.isPickable&&mesh.isVisible&&mesh.visibility>0&&mesh.isEnabled();
+    scene.pointerDownPredicate=visibleSolid;
+    scene.pointerUpPredicate=visibleSolid;
+}
+
 function fountainWorldPosition(x, y) {
     return { x: (Number(x) - 400) / 34, z: (Number(y) - 300) / 34 };
 }
@@ -164,19 +170,21 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
                 const roots = result.meshes.filter((mesh) => !mesh.parent);
                 const root = roots[0] || result.meshes[0];
                 if (root) {
-                    root.position.set(x, 0, z);
-                    root.rotationQuaternion = null;
-                    root.rotation.y = rotation;
-                    root.scaling.scaleInPlace(scale);
+                    // Keep the import root's quaternion/scale: they convert glTF
+                    // coordinates. Place/rotate the prop using a separate parent.
+                    const placement = new BABYLON.TransformNode(`placement-${file}-${x}-${z}`,scene);
+                    placement.position.set(x,0,z);placement.rotation.y=rotation;placement.scaling.setAll(scale);
+                    roots.forEach(node=>node.parent=placement);
                 }
-                result.meshes.forEach((mesh) => { mesh.isPickable = false; });
+                result.meshes.forEach((mesh) => { mesh.isPickable = true; });
                 if (file === 'stone-bench.glb') {
                     const bench = FountainPhysics.benches.find(b => Math.abs(b.x-(400+x*34))<1 && Math.abs(b.y-(300+z*34))<1);
                     result.meshes.forEach(mesh => {
                         mesh.isPickable = true;
                         mesh.actionManager = new BABYLON.ActionManager(scene);
                         mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
-                            if (bench) socket.emit('restAtCampusBench',bench.id);
+                            if (bench&&FountainPhysics.canUseBench(players[socket.id],bench.id)) socket.emit('restAtCampusBench',bench.id);
+                            else showToast('Hãy đến phía trước ghế để ngồi.');
                         }));
                     });
                 }
@@ -193,13 +201,13 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
     try {
         const fountain = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'fountain.glb?v=park-detail-2', scene);
         proceduralMeshes.filter((mesh) => mesh.name.startsWith('fountain-') && mesh.name !== 'fountain-ground' && mesh.name !== 'fountain-path').forEach((mesh) => mesh.setEnabled(false));
-        fountain.meshes.forEach((mesh) => { mesh.isPickable = false; });
+        fountain.meshes.forEach((mesh) => { mesh.isPickable = true; });
         fountain.meshes.filter(mesh=>/water|jet/i.test(mesh.name)).forEach(mesh=>mesh.setEnabled(false));
         createFountainWater(scene);
     } catch (error) {
         console.warn('Không tải được fountain.glb, dùng mesh dự phòng:', error.message);
     }
-    await importPlacements('stone-bench.glb', [[-3.8, 3.8, Math.PI], [3.8, 3.8, Math.PI], [-3.8, -3.8], [3.8, -3.8]], { disablePrefixes: ['bench-'], scale: .85 });
+    await importPlacements('stone-bench.glb', FountainPhysics.benches.map(bench=>[(bench.x-400)/34,(bench.y-300)/34,bench.rotation]), { disablePrefixes: ['bench-'], scale: .85 });
 
     // Additional park props are loaded as reusable GLB modules. If one is unavailable,
     // its procedural counterpart remains visible so the map is still usable.
@@ -316,6 +324,7 @@ function activateBabylonFountain() {
     const canvas = document.createElement('canvas'); canvas.id = 'babylon-fountain-canvas'; document.body.appendChild(canvas);
     const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
     const scene = new BABYLON.Scene(engine); scene.clearColor = new BABYLON.Color4(.34, .58, .38, 1);
+    bind3DOcclusion(scene);
     const camera = new BABYLON.ArcRotateCamera('fountain-camera', -Math.PI / 2, 1.12, 23, new BABYLON.Vector3(0, .5, 0), scene);
     camera.attachControl(canvas, true); camera.lowerRadiusLimit = 13; camera.upperRadiusLimit = 24; camera.wheelPrecision = 70;
     // Arrow/WASD keys belong to the player controller, never to the 3D camera.
@@ -343,7 +352,7 @@ function activateBabylonFountain() {
     const sitKey = event => {
         if (event.code !== 'KeyE' || event.repeat || /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName)) return;
         const player = players[socket.id];
-        const bench = player && FountainPhysics.benches.find(b => Math.hypot(player.x-b.x,player.y-b.y)<=55);
+        const bench = player && FountainPhysics.benches.find(b => FountainPhysics.canUseBench(player,b.id));
         if (bench) socket.emit('restAtCampusBench', bench.id);
     };
     window.addEventListener('keydown', sitKey);
@@ -391,7 +400,7 @@ function updateBabylonFountainPlayers() {
                 mesh.position.x=(bench.x-400)/34+(seat[1].indexOf(id)===0?-.35:.35);
                 mesh.position.z=(bench.y-300)/34;
                 mesh.position.y=.36;
-                mesh.rotation.y=bench.rotation;
+                mesh.rotation.y=bench.rotation+Math.PI-(mesh._modelForwardYaw??Math.PI);
             }
         } else { mesh.position.y=0; }
         mesh._animateStudent?.(dt,Math.hypot(mesh.position.x-previousVisualX,mesh.position.z-previousVisualZ),walk,Boolean(seat));

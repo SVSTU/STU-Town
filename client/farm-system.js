@@ -41,6 +41,7 @@ function registerFarmDomHandlers() {
         document.getElementById('farm-plot-list').addEventListener('click', (event) => {
             const button = event.target.closest('[data-farm-plot]');
             if (!button || !socket.connected || currentMapId !== 'farm') return;
+            if (!Map3DLayouts.canInteract('farm',players[socket.id],'plot:'+button.dataset.farmPlot)) return;
             socket.emit('interactFarmPlot', {
                 plotId: button.dataset.farmPlot,
                 action: button.dataset.action,

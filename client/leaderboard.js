@@ -13,6 +13,11 @@ function registerLeaderboardSocketHandlers() {
             sessionLeaderboard = data && typeof data === 'object' ? data : { reputation: [], coins: [], event: [] };
             renderSessionLeaderboard();
             if (currentMapId === 'canteen' && sceneRef) {
+                const modal=document.getElementById('canteen-ranking-modal');
+                if(modal&&!modal.hidden) {
+                    const selected=modal.querySelector('[data-canteen-ranking][aria-pressed="true"]');
+                    renderCanteenRankingModal(selected?.dataset.canteenRanking||'reputation');
+                }
                 // Refresh the two clickable top-player plaques without redrawing the whole room.
                 sceneRef.children.list.filter((object) => object.type === 'Text' && object.getData('canteenAwardCategory')).forEach((object) => {
                     const category = object.getData('canteenAwardCategory');
