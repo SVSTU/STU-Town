@@ -16,8 +16,13 @@ const Map3DLayouts = (() => {
             prop('potted-plant',165,135,1,'',14,14),prop('potted-plant',650,230,1,'',14,14)],
             barriers:[{id:'wall-left',x:128,y:300,w:4,d:208},{id:'wall-right',x:672,y:300,w:4,d:208},
                 {id:'wall-back',x:400,y:504,w:276,d:5},{id:'wall-front',x:400,y:96,w:276,d:2}]},
-        farm:{title:'Vườn cộng đồng',pack:'community-farm',floor:'#72995c',spawn:{x:400,y:430},props:[
-            prop('tool-shed',620,155,1,'',28,25)]},
+        farm:{title:'Nông trại cộng đồng',pack:'community-farm-v2',theme:'garden-v2',floor:'#b7a27d',playerRadius:12,spawn:{x:400,y:147},exit:{x:196,y:164},bounds:{minX:128,maxX:672,minY:96,maxY:504},props:[
+            prop('tool-shed',196,470,1,'',53,50),prop('water-barrel',604,467,1,'',20,20),
+            prop('watering-can',628,442,1,'',12,10),prop('garden-tree',155,337,1,'',15,15),prop('garden-tree',645,337,1,'',15,15)],
+            plots:[{id:'plot-1',x:301.4,y:232,w:74.1,d:49.6,scale:1.2},{id:'plot-2',x:301.4,y:368,w:74.1,d:49.6,scale:1.2},
+                {id:'plot-3',x:498.6,y:368,w:74.1,d:49.6,scale:1.2},{id:'plot-4',x:498.6,y:232,w:74.1,d:49.6,scale:1.2}],
+            barriers:[{id:'hedge-left',x:140,y:300,w:8,d:196},{id:'hedge-right',x:660,y:300,w:8,d:196},
+                {id:'hedge-back',x:400,y:493,w:264,d:8},{id:'hedge-front-left',x:240,y:107,w:101,d:8},{id:'hedge-front-right',x:560,y:107,w:101,d:8}]},
         halloween:{title:'Tầng Halloween · 50 hộp quà',pack:'halloween',floor:'#30263d',spawn:{x:400,y:535},props:[
             prop('dead-tree',65,170,1,'',10,10),prop('dead-tree',740,180,1,'',10,10),
             prop('pumpkin',180,145,1.4),prop('pumpkin',620,145,1.4),
@@ -32,11 +37,15 @@ const Map3DLayouts = (() => {
     function obstacles(id) {
         const map=get(id); if(!map)return [];
         const result=map.props.map((p,i)=>({...p,id:'prop:'+i})).filter(p=>p.w).concat(map.boards||[],map.barriers||[]);
-        if(key(id)==='farm') for(let i=0;i<4;i++)result.push({id:'plot:plot-'+(i+1),action:'plot:plot-'+(i+1),x:239+i*110,y:311,w:38,d:24});
+        if(key(id)==='farm')for(const p of map.plots)result.push({...p,id:'plot:'+p.id,action:'plot:'+p.id});
         if(key(id)==='halloween')for(let i=0;i<50;i++)result.push({id:'box:'+i,action:'box:'+i,x:112+i%10*64,y:242+Math.floor(i/10)*54,w:11,d:10});
         return result;
     }
-    function blocked(id,x,y) {return obstacles(id).some(p=>Math.abs(x-p.x)<p.w+7&&Math.abs(y-p.y)<p.d+7);}
+    function blocked(id,x,y) {
+        const map=get(id),b=map?.bounds,radius=map?.playerRadius||7;
+        if(b&&(x<b.minX+radius||x>b.maxX-radius||y<b.minY+radius||y>b.maxY-radius))return true;
+        return obstacles(id).some(p=>Math.abs(x-p.x)<p.w+radius&&Math.abs(y-p.y)<p.d+radius);
+    }
     function blockedPath(id,ax,ay,bx,by) {
         const n=Math.max(1,Math.ceil(Math.hypot(bx-ax,by-ay)/5));
         for(let i=1;i<=n;i++)if(blocked(id,ax+(bx-ax)*i/n,ay+(by-ay)*i/n))return true;
@@ -66,11 +75,27 @@ const Map3DLayouts = (() => {
     function interactionTargets(id,player) {
         if(!player||!Number.isFinite(player.x)||!Number.isFinite(player.y))return [];
         const all=obstacles(id);
-        if(all.some(p=>Math.abs(player.x-p.x)<p.w+7&&Math.abs(player.y-p.y)<p.d+7))return [];
+        if(blocked(id,player.x,player.y))return [];
         return all.filter(target=>target.action&&canReachTarget(id,player,target,all))
             .sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y));
     }
     function canInteract(id,player,action) {return interactionTargets(id,player).some(target=>target.action===action);}
-    return {get,key,blocked,blockedPath,canInteract,interactionTargets,segmentHitsBox,exit:{x:690,y:550}};
+    const walkSamples=new Map();
+    function sampleWalkPoint(id,random=Math.random) {
+        const map=get(id);if(!map?.bounds)return {...(map?.spawn||{x:400,y:300})};
+        if(!walkSamples.has(key(id))){
+            const queue=[map.spawn],seen=new Set(),samples=[];
+            for(let i=0;i<queue.length;i++){
+                const p=queue[i],tag=p.x+','+p.y;if(seen.has(tag))continue;seen.add(tag);samples.push(p);
+                for(const [dx,dy] of [[10,0],[-10,0],[0,10],[0,-10]]){
+                    const next={x:p.x+dx,y:p.y+dy};
+                    if(!seen.has(next.x+','+next.y)&&!blockedPath(id,p.x,p.y,next.x,next.y))queue.push(next);
+                }
+            }
+            walkSamples.set(key(id),samples);
+        }
+        const samples=walkSamples.get(key(id));return {...samples[Math.min(samples.length-1,Math.floor(random()*samples.length))]};
+    }
+    return {get,key,blocked,blockedPath,canInteract,interactionTargets,segmentHitsBox,sampleWalkPoint,exit:{x:690,y:550}};
 })();
 if(typeof module!=='undefined')module.exports=Map3DLayouts;

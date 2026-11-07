@@ -23,10 +23,15 @@ for(const map of ['khu-a','canteen','farm','halloween:test']) {
         assert(layouts.canInteract(map,config.returnSpawn,'elevator-vending'),map+' event return near machine');
         assert(reachable.some(p=>Math.hypot(p.x-config.returnSpawn.x,p.y-config.returnSpawn.y)<=step),map+' event return reachable');
     }
-    for(const prop of config.props.filter(p=>p.action).concat(config.boards||[]))assert(reachable.some(p=>layouts.canInteract(map,p,prop.action)),map+' action '+prop.action);
+    for(const prop of config.props.filter(p=>p.action).concat(config.boards||[],(config.plots||[]).map(p=>({action:'plot:'+p.id}))))assert(reachable.some(p=>layouts.canInteract(map,p,prop.action)),map+' action '+prop.action);
     if(map.startsWith('halloween:'))for(let i=0;i<50;i++)assert(reachable.some(p=>layouts.canInteract(map,p,'box:'+i)),'box '+i+' unreachable');
     console.log('PASS footprints/spawn/exit/actions:',map);
 }
+for(let i=0;i<500;i++){
+    const point=layouts.sampleWalkPoint('farm',()=>i/500);
+    assert(!layouts.blocked('farm',point.x,point.y),'mouse must spawn in a clear reachable position');
+}
+console.log('PASS community farm: all four plots reachable, bounded mouse spawn samples');
 
 function controller(fps,direction,source='keyboard',forward={x:0,z:1}) {
     const player={x:400,y:400},emits=[];

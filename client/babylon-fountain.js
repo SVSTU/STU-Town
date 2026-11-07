@@ -279,7 +279,7 @@ function addFountainObject(scene) {
 function createBabylonHuman(scene, id) {
     const root = new BABYLON.TransformNode(`player-${id}`, scene);
     const isMe = id === socket.id;
-    const shirt = createFountainMaterial(scene, `shirt-${id}`, isMe ? '#2aa96b' : '#d87536');
+    const shirt = createFountainMaterial(scene, `shirt-${id}`, '#236344');
     const skin = createFountainMaterial(scene, `skin-${id}`, '#f2c39f');
     const body = BABYLON.MeshBuilder.CreateCylinder('human-body', { height: 1.05, diameterTop: .42, diameterBottom: .58, tessellation: 8 }, scene);
     body.parent = root; body.position.y = .85; body.material = shirt;
@@ -291,15 +291,27 @@ function createBabylonHuman(scene, id) {
         const leg = BABYLON.MeshBuilder.CreateBox('human-leg', { width: .16, height: .72, depth: .2 }, scene);
         leg.parent = root; leg.position.set(x * .55, .28, 0); leg.material = createFountainMaterial(scene, `pants-${id}`, '#334b75');
     });
-    const shadow = BABYLON.MeshBuilder.CreateDisc('human-shadow', { radius: .48, tessellation: 24 }, scene);
+    const shadow = BABYLON.MeshBuilder.CreateDisc('human-shadow', { radius: .30, tessellation: 24 }, scene);
     shadow.parent = root; shadow.rotation.x = Math.PI / 2; shadow.position.y = .015; shadow.material = createFountainMaterial(scene, `shadow-${id}`, '#14251b');
+    shadow.material.alpha=.18;shadow.isPickable=false;root._contactShadow=shadow;
     const fallbackMeshes = root.getChildMeshes().filter((mesh) => mesh !== shadow);
-    BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'student.glb?v=3-joints', scene).then((asset) => {
-        if (scene.isDisposed || root.isDisposed()) { asset.meshes.forEach((mesh) => mesh.dispose()); return; }
+    let assetRequest=0;
+    root._setCharacterAsset=async descriptor=>{
+        root._characterKey=descriptor.id;root._seatOffset=descriptor.seatOffset??.20;const request=++assetRequest;
+        let asset;
+        try{asset=await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', descriptor.file+'?v='+descriptor.version, scene);}
+        catch(error){
+            if(scene.isDisposed||root.isDisposed()||request!==assetRequest)return;
+            console.warn('Character asset fallback:',error.message);
+            try{asset=await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'student.glb?v=3-joints', scene);}
+            catch(fallbackError){console.warn('Student model fallback:',fallbackError.message);return;}
+        }
+        if (scene.isDisposed || root.isDisposed() || request!==assetRequest) { asset.meshes.filter(mesh=>!mesh.parent).forEach(mesh=>mesh.dispose()); return; }
         const modelRoot = asset.meshes.find((mesh) => !mesh.parent);
-        if (modelRoot) modelRoot.parent = root;
+        if (modelRoot) {root._characterModel?.dispose();modelRoot.parent = root;root._characterModel=modelRoot;}
         const face=asset.meshes.find(mesh=>mesh.name==='student_nose');
         const skull=asset.meshes.find(mesh=>mesh.name==='student_head');
+        if(skull)root._nameLabel?.linkWithMesh(skull);
         if(face&&skull) {
             root.computeWorldMatrix(true);skull.computeWorldMatrix(true);face.computeWorldMatrix(true);
             const direction=BABYLON.Vector3.TransformNormal(face.getAbsolutePosition().subtract(skull.getAbsolutePosition()),root.getWorldMatrix().clone().invert());
@@ -308,13 +320,14 @@ function createBabylonHuman(scene, id) {
         }
         if(modelRoot)root._animateStudent=bindStudentAnimation(root,modelRoot);
         fallbackMeshes.forEach((mesh) => { mesh.visibility = 0; mesh._cameraBaseVisibility = 0; });
-    }).catch((error) => console.warn('Student model fallback:', error.message));
+    };
+    void root._setCharacterAsset(CharacterAssets.resolve(players[id]?.characterAssetId));
     if (BABYLON.GUI) {
         const label = new BABYLON.GUI.Rectangle(`name-${id}`);
-        label.width = '110px'; label.height = '25px'; label.cornerRadius = 6; label.thickness = 0;
+        label.width = '100px'; label.height = '22px'; label.cornerRadius = 6; label.thickness = 0;
         label.background = isMe ? '#1c7d52' : '#9a4d2b';
         const text = new BABYLON.GUI.TextBlock(); text.text = players[id]?.playerNickname || (isMe ? 'Bạn' : `Khách (${id.slice(0, 4)})`); text.color = 'white'; text.fontSize = 12;
-        label.addControl(text); babylonFountain.gui.addControl(label); label.linkWithMesh(head); label.linkOffsetY = -45; root._nameLabel = label; root._nameText = text;
+        label.addControl(text); babylonFountain.gui.addControl(label); label.linkWithMesh(head); label.linkOffsetY = -24; root._nameLabel = label; root._nameText = text;
     }
     return root;
 }
@@ -376,6 +389,8 @@ function updateBabylonFountainPlayers() {
     Object.entries(players || {}).forEach(([id, player]) => {
         if (!babylonFountain.players.has(id)) babylonFountain.players.set(id, createBabylonHuman(babylonFountain.scene, id));
         const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y);
+        const appearance=CharacterAssets.resolve(player.characterAssetId);
+        if(mesh._characterKey!==appearance.id)void mesh._setCharacterAsset(appearance);
         if(!mesh._placed) {
             const camera=babylonFountain.camera||babylonFountain.scene.activeCamera;
             mesh._desiredYaw=Math.atan2(camera.position.x-pos.x,camera.position.z-pos.z);
@@ -399,10 +414,11 @@ function updateBabylonFountainPlayers() {
             if (bench) {
                 mesh.position.x=(bench.x-400)/34+(seat[1].indexOf(id)===0?-.35:.35);
                 mesh.position.z=(bench.y-300)/34;
-                mesh.position.y=.36;
+                mesh.position.y=mesh._seatOffset??.20;
                 mesh.rotation.y=bench.rotation+Math.PI-(mesh._modelForwardYaw??Math.PI);
             }
         } else { mesh.position.y=0; }
+        if(mesh._contactShadow)mesh._contactShadow.isVisible=!seat;
         mesh._animateStudent?.(dt,Math.hypot(mesh.position.x-previousVisualX,mesh.position.z-previousVisualZ),walk,Boolean(seat));
         if (mesh._nameText) mesh._nameText.text = player.playerNickname || (id === socket.id ? 'Bạn' : `Khách (${id.slice(0, 4)})`);
     });

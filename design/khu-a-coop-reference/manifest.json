@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "generator": "built-in imagegen",
+  "status": "visual references; not finished GLB assets",
+  "approvedConcept": "00-approved-concept.png",
+  "viewOrder": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+  ],
+  "typographySource": "labels.vi.json",
+  "signArtwork": "signs/",
+  "layout": "layout-spec.json",
+  "materials": "materials.json",
+  "sheets": [
+    {
+      "id": "01-map-six-views",
+      "title": "Toàn khu A",
+      "image": "01-map-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "environment"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "02-shell-six-views",
+      "title": "Vỏ phòng và nền",
+      "image": "02-shell-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "room-shell"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "03-seed-stall-six-views",
+      "title": "Quầy hạt giống",
+      "image": "03-seed-stall-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "seed-stall"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "04-produce-stall-six-views",
+      "title": "Quầy thu mua",
+      "image": "04-produce-stall-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "produce-stall"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "05-professor-desk-six-views",
+      "title": "Bàn giáo sư",
+      "image": "05-professor-desk-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "professor-desk"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "06-main-exit-six-views",
+      "title": "Cổng về bản đồ chính",
+      "image": "06-main-exit-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "main-exit"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "07-locked-farm-gate-six-views",
+      "title": "Cổng nông trại tạm khóa",
+      "image": "07-locked-farm-gate-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "locked-farm-gate"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "08-recovery-nook-six-views",
+      "title": "Khu hồi phục",
+      "image": "08-recovery-nook-six-views.png",
+      "columns": 3,
+      "rows": 2,
+      "subjects": [
+        "recovery-nook"
+      ],
+      "arrangement": "single subject, six views row-major"
+    },
+    {
+      "id": "09-noticeboards-six-views",
+      "title": "Bảng giá và đơn hàng",
+      "image": "09-noticeboards-six-views.png",
+      "columns": 6,
+      "rows": 2,
+      "subjects": [
+        "service-price-board",
+        "order-board"
+      ],
+      "arrangement": "one subject per row; six columns in viewOrder"
+    },
+    {
+      "id": "10-furniture-props-six-views",
+      "title": "Xe đẩy, đèn và cửa sổ",
+      "image": "10-furniture-props-six-views.png",
+      "columns": 6,
+      "rows": 3,
+      "subjects": [
+        "handcart",
+        "wall-lantern",
+        "window-shutters"
+      ],
+      "arrangement": "one subject per row; six columns in viewOrder"
+    },
+    {
+      "id": "11-farming-props-six-views",
+      "title": "Bao hạt, cây giống, sọt và cân",
+      "image": "11-farming-props-six-views.png",
+      "columns": 6,
+      "rows": 4,
+      "subjects": [
+        "seed-sack",
+        "seedling-tray",
+        "carrot-crate",
+        "countertop-scale"
+      ],
+      "arrangement": "one subject per row; six columns in viewOrder"
+    },
+    {
+      "id": "12-plants-six-views",
+      "title": "Chậu cây, bồn hoa và dây leo",
+      "image": "12-plants-six-views.png",
+      "columns": 6,
+      "rows": 3,
+      "subjects": [
+        "potted-plant",
+        "flower-planter",
+        "hanging-vine"
+      ],
+      "arrangement": "one subject per row; six columns in viewOrder"
+    },
+    {
+      "id": "13-characters-six-views",
+      "title": "Sinh viên, giáo sư và người bán",
+      "image": "13-characters-six-views.png",
+      "columns": 6,
+      "rows": 3,
+      "subjects": [
+        "student",
+        "professor",
+        "seed-merchant"
+      ],
+      "arrangement": "one subject per row; six columns in viewOrder"
+    }
+  ],
+  "qualityNotes": [
+    "Orthographic intent; AI sheets may retain mild perspective and inconsistent hidden geometry. Reconcile in DCC against approved concept and layout-spec.",
+    "Vector text is authoritative. Generated sign lettering is visual guidance only.",
+    "Keep label plates off farming props and plants; keep only relevant destination text on each gate.",
+    "Price and order boards are decorative references; professor quests remain unopened."
+  ]
+}

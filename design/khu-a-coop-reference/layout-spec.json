@@ -1,0 +1,159 @@
+{
+  "status": "reference-only; dimensions proposed for reconstruction, not measured from image",
+  "units": "metres",
+  "runtimeCoordinateMapping": {
+    "source": "client/map-3d-layouts.js uses 34 pixels per metre",
+    "mapX": "400 + 34 * x",
+    "mapY": "300 + 34 * z",
+    "mainMapId": "campus",
+    "communityGardenMapId": "farm",
+    "personalFarmMapId": "personal-farm",
+    "note": "Proposed reconstruction mapping only. Do not replace the existing service coordinates without updating interaction zones and server validation together. Professor orders are not enabled by this reference."
+  },
+  "axes": {
+    "x": "right",
+    "y": "up",
+    "z": "back; main entrance at -Z"
+  },
+  "views": [
+    "front (-Z)",
+    "back (+Z)",
+    "left (-X)",
+    "right (+X)",
+    "top (+Y)",
+    "bottom (-Y)"
+  ],
+  "map": {
+    "width": 16,
+    "depth": 12,
+    "wallHeight": 3.6,
+    "frontOpening": 3.4
+  },
+  "player": {
+    "height": 1.7,
+    "spawn": {
+      "x": 0,
+      "z": -3.5
+    }
+  },
+  "walkways": {
+    "mainClearWidth": 2,
+    "stationApproachDepth": 1.2
+  },
+  "objects": [
+    {
+      "id": "seed-stall",
+      "position": [
+        -4.8,
+        0,
+        4
+      ],
+      "size": [
+        3.8,
+        3.1,
+        1.8
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "professor-desk",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "size": [
+        2.8,
+        1.1,
+        1.2
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "produce-stall",
+      "position": [
+        4.8,
+        0,
+        4
+      ],
+      "size": [
+        3.8,
+        3.1,
+        1.8
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "recovery-nook",
+      "position": [
+        -5.4,
+        0,
+        -2.2
+      ],
+      "size": [
+        3.2,
+        2.7,
+        2.2
+      ],
+      "rotationY": 0
+    },
+    {
+      "id": "locked-farm-gate",
+      "position": [
+        5.1,
+        0,
+        -2.2
+      ],
+      "size": [
+        2.8,
+        3.5,
+        1.6
+      ],
+      "rotationY": 0,
+      "enabled": false,
+      "destination": "personal-farm",
+      "reason": "Nông trại hiện chưa mở."
+    },
+    {
+      "id": "main-exit",
+      "position": [
+        0,
+        0,
+        -6
+      ],
+      "size": [
+        3.4,
+        3.4,
+        1.5
+      ],
+      "rotationY": 0,
+      "enabled": true,
+      "destination": "campus"
+    }
+  ],
+  "communityGarden": "Keep existing main-map community garden access unchanged; no active garden portal inside this reference.",
+  "typography": {
+    "encoding": "UTF-8 NFC",
+    "font": "Noto Sans Bold or equivalent with full Vietnamese support",
+    "textSource": "labels.vi.json",
+    "implementation": "separate text mesh or SVG/texture decal; do not bake AI letters into base-color texture",
+    "priceBoard": "Use live economy data only; no copied concept prices"
+  },
+  "assetRules": {
+    "origin": "ground-center for furniture; mount-center for wall props",
+    "transforms": "apply scale/rotation before export; metres; Y-up glTF",
+    "format": "GLB, separate objects for signs/doors/lock/VFX",
+    "materials": "shared wood, blue paint, cream plaster, brick, metal; matte stylized PBR",
+    "collision": "simple box colliders; no collision on text, leaves or VFX; locked gate solid",
+    "navigation": "exit trigger separated from blocking walls; central corridor clear",
+    "portals": "gold VFX active main exit only; locked farm no active travel VFX",
+    "characters": "neutral A-pose, separate from counters",
+    "visibility": "roofless game view; allow front walls/sign to fade if obscuring player"
+  },
+  "limitations": [
+    "AI turnarounds are visual references, not metrically exact six-view scans.",
+    "Backs and undersides extrapolated from approved front perspective.",
+    "Use approved concept for appearance; layout spec for coordinates; labels.vi.json for exact text.",
+    "Contact sheets with multiple rows require manual asset/view cropping before image-to-3D ingestion."
+  ]
+}

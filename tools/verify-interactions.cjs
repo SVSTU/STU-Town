@@ -1,5 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const layouts=require('../client/map-3d-layouts'),fountain=require('../client/fountain-physics');
+const firstPlot=layouts.get('farm').plots[0],nearPlot={x:firstPlot.x,y:firstPlot.y-firstPlot.d-18};
 const services=[['khu-a','merchant'],['khu-a','recovery'],['canteen','canteen-counter'],['canteen','elevator-vending'],['canteen','ranking-reputation'],['canteen','ranking-coins']];
 for(const [map,action] of services){
     const config=layouts.get(map),p=config.props.concat(config.boards||[]).find(p=>(p.action||p.id)===action);
@@ -30,7 +31,7 @@ function execute(event,map,position,payload){
     return {player,inventory,plot};
 }
 const cases=[
-    ['interactFarmPlot','farm',{x:239,y:270},{plotId:'plot-1',action:'plant',cropKey:'carrot'},s=>s.inventory.seeds.carrot===2],
+    ['interactFarmPlot','farm',nearPlot,{plotId:'plot-1',action:'plant',cropKey:'carrot'},s=>s.inventory.seeds.carrot===2],
     ['farmShopAction','khu-a',{x:270,y:205},{action:'buy-seed',cropKey:'carrot',quantity:1},s=>s.player.coins===1400],
     ['useRecoveryStation','khu-a',{x:400,y:350},undefined,s=>s.player.coins===1000],
     ['canteenPurchase','canteen',{x:400,y:415},{itemId:'bread',currency:'coins',quantity:1},s=>s.inventory.items.bread===1],
@@ -46,10 +47,10 @@ console.log('PASS real server handlers: nearby actions accepted, remote writes d
 // Regression: opened box -> new stage, then leaving for a farm or service.
 const nodes=new Map(),element=()=>({hidden:false,disabled:false,textContent:''});
 const doc={getElementById:id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);}};
-const ctx={console,Math,Number,Object,Set,Map,document:doc,Map3DLayouts:layouts,Phaser:{Math:{Distance:{Between:(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by)}}},currentMapId:'halloween:review',HALLOWEEN_BOX_POSITIONS:[{x:112,y:242}],halloweenOpenedBoxes:new Set([0]),activeHalloweenBox:-1,activeInteractionZoneId:'',activeFarmPlotId:'',interactedFarmPlotId:'',FARM_PLOT_LAYOUT:[{id:'plot-1',x:200,y:290,width:78,height:42}],farmPlots:{},updateFarmPlotControls(){},activeInteriorObjectId:'',INTERIOR_OBJECTS:{},zoneServiceView:{screen:'closed',target:''},renderZoneServices(){}};
+const ctx={console,Math,Number,Object,Set,Map,document:doc,Map3DLayouts:layouts,Phaser:{Math:{Distance:{Between:(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by)}}},currentMapId:'halloween:review',HALLOWEEN_BOX_POSITIONS:[{x:112,y:242}],halloweenOpenedBoxes:new Set([0]),activeHalloweenBox:-1,activeInteractionZoneId:'',activeFarmPlotId:'',interactedFarmPlotId:'',FARM_PLOT_LAYOUT:layouts.get('farm').plots.map(p=>({id:p.id,x:p.x-p.w,y:p.y-p.d,width:p.w*2,height:p.d*2})),farmPlots:{},updateFarmPlotControls(){},activeInteriorObjectId:'',INTERIOR_OBJECTS:{},zoneServiceView:{screen:'closed',target:''},renderZoneServices(){}};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync('client/world-interactions.js','utf8'),ctx);
 ctx.updateHalloweenBoxInteraction({x:112,y:212});assert(doc.getElementById('interaction-button').disabled);
 ctx.halloweenOpenedBoxes.clear();ctx.updateHalloweenBoxInteraction({x:112,y:212});assert(!doc.getElementById('interaction-button').disabled&&!doc.getElementById('interaction-button').hidden);
-ctx.currentMapId='farm';doc.getElementById('interaction-button').disabled=true;ctx.updateFarmPlotInteraction({x:239,y:270});assert(!doc.getElementById('interaction-button').disabled);
+ctx.currentMapId='farm';doc.getElementById('interaction-button').disabled=true;ctx.updateFarmPlotInteraction(nearPlot);assert(!doc.getElementById('interaction-button').disabled);
 ctx.currentMapId='canteen';doc.getElementById('interaction-button').disabled=true;ctx.updateInteriorInteraction({x:400,y:415});assert(!doc.getElementById('interaction-button').disabled);
 console.log('PASS UI: same Halloween box becomes usable after reset; farm/canteen buttons recover');

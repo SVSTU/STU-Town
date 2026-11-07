@@ -1,0 +1,45 @@
+{
+  "units": "metres",
+  "assets": [
+    {
+      "file": "student-male-01.glb",
+      "bytes": 839928,
+      "boundsBlender": {
+        "min": [
+          -0.36298102140426636,
+          -0.21149998903274536,
+          0.011499984189867973
+        ],
+        "max": [
+          0.36298102140426636,
+          0.15599998831748962,
+          1.7977858781814575
+        ]
+      },
+      "id": "student-male-01",
+      "name": "Sinh viên áo polo",
+      "heightMetres": 1.78,
+      "front": "Blender -Y",
+      "jointContract": "student-animation-v1",
+      "joints": [
+        "student_hip_left",
+        "student_hip_right",
+        "student_knee_left",
+        "student_knee_right",
+        "student_shoulder_left",
+        "student_shoulder_right",
+        "student_elbow_left",
+        "student_elbow_right"
+      ],
+      "materialSlots": [
+        "char.skin",
+        "char.hair",
+        "char.shirt",
+        "char.trim",
+        "char.trousers",
+        "char.shoes"
+      ],
+      "reference": "design/farm-v2-reference/14-student-character.png"
+    }
+  ]
+}

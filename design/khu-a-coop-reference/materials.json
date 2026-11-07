@@ -1,0 +1,20 @@
+{
+  "status": "proposed visual swatches; match approved concept during modeling",
+  "colorSpace": "sRGB",
+  "palette": {
+    "honeyWood": "#B77C3C",
+    "bluePaint": "#345B87",
+    "creamPlaster": "#E8D5B4",
+    "redBrick": "#AF5D42",
+    "floorStone": "#C7B8A5",
+    "brass": "#D5A451",
+    "leafGreen": "#638440",
+    "signText": "#FFF5DF",
+    "activeExitGlow": "#FFD36A"
+  },
+  "roughness": "0.65–0.9 for paint, wood, plaster; 0.35–0.55 for metal",
+  "metallic": "0 for wood/paint/plaster; 0.7–1 for exposed brass and steel",
+  "vfx": "Separate unlit additive gold material, active main exit only",
+  "text": "Separate editable layer; use signs/*.svg and labels.vi.json",
+  "performance": "Share materials and reuse props; bake restrained AO; avoid one material per seed packet; profile final meshes on target mobile device. No arbitrary triangle budget assumed."
+}

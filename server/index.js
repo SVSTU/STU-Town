@@ -866,7 +866,7 @@ function catchFarmMouse(playerId, mouseId) {
   if (!player || player.mapId !== 'farm' || !activeFarmMouse || mouseId !== activeFarmMouse.id) return false;
   const dx = player.x - activeFarmMouse.x;
   const dy = player.y - activeFarmMouse.y;
-  if (dx * dx + dy * dy > 34 * 34) return false;
+  if (dx * dx + dy * dy > 34 * 34 || Map3DLayouts.blockedPath('farm',player.x,player.y,activeFarmMouse.x,activeFarmMouse.y)) return false;
   activeFarmMouse = null;
   if (farmMouseBiteTimer) clearTimeout(farmMouseBiteTimer);
   if (farmMouseMoveTimer) clearInterval(farmMouseMoveTimer);
@@ -895,8 +895,7 @@ function scheduleFarmMouse() {
     if (members.length === 0) return;
     activeFarmMouse = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      x: 95 + Math.random() * 610,
-      y: 105 + Math.random() * 390,
+      ...Map3DLayouts.sampleWalkPoint('farm'),
       vx: (Math.random() < 0.5 ? -1 : 1) * (75 + Math.random() * 55),
       vy: (Math.random() < 0.5 ? -1 : 1) * (55 + Math.random() * 55),
       updatedAt: Date.now()
@@ -908,12 +907,15 @@ function scheduleFarmMouse() {
       const now = Date.now();
       const elapsed = Math.min(0.25, (now - activeFarmMouse.updatedAt) / 1000);
       activeFarmMouse.updatedAt = now;
-      activeFarmMouse.x += activeFarmMouse.vx * elapsed;
-      activeFarmMouse.y += activeFarmMouse.vy * elapsed;
-      if (activeFarmMouse.x < 75 || activeFarmMouse.x > 725) activeFarmMouse.vx *= -1;
-      if (activeFarmMouse.y < 85 || activeFarmMouse.y > 515) activeFarmMouse.vy *= -1;
-      activeFarmMouse.x = Math.max(75, Math.min(725, activeFarmMouse.x));
-      activeFarmMouse.y = Math.max(85, Math.min(515, activeFarmMouse.y));
+      const nextX=activeFarmMouse.x+activeFarmMouse.vx*elapsed,nextY=activeFarmMouse.y+activeFarmMouse.vy*elapsed;
+      if(!Map3DLayouts.blockedPath('farm',activeFarmMouse.x,activeFarmMouse.y,nextX,nextY)){
+        activeFarmMouse.x=nextX;activeFarmMouse.y=nextY;
+      }else{
+        const xBlocked=Map3DLayouts.blockedPath('farm',activeFarmMouse.x,activeFarmMouse.y,nextX,activeFarmMouse.y);
+        const yBlocked=Map3DLayouts.blockedPath('farm',activeFarmMouse.x,activeFarmMouse.y,activeFarmMouse.x,nextY);
+        if(xBlocked)activeFarmMouse.vx*=-1;else activeFarmMouse.x=nextX;
+        if(yBlocked)activeFarmMouse.vy*=-1;else if(!Map3DLayouts.blockedPath('farm',activeFarmMouse.x,activeFarmMouse.y,activeFarmMouse.x,nextY))activeFarmMouse.y=nextY;
+      }
       io.to('map:farm').emit('farmMouseState', { active: true, id: activeFarmMouse.id, x: activeFarmMouse.x, y: activeFarmMouse.y });
     }, 150);
     scheduleFarmMouseBite(activeFarmMouse.id);

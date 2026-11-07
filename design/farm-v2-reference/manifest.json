@@ -1,0 +1,233 @@
+{
+  "status": "reference-images-not-glb",
+  "generator": "imagegen built-in",
+  "master": "00-approved-concept.png",
+  "gallery": "index.html",
+  "promptFile": "prompts.json",
+  "layoutFile": "layout-spec.json",
+  "sheetCount": 17,
+  "assetCount": 16,
+  "sheets": [
+    {
+      "id": "01-map-six-views",
+      "name": "Toàn cảnh nông trại",
+      "file": "01-map-six-views.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Phối cảnh"
+      ]
+    },
+    {
+      "id": "02-raised-bed",
+      "name": "Luống đất",
+      "file": "02-raised-bed.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "03-crop-carrot",
+      "name": "Cây cà rốt",
+      "file": "03-crop-carrot.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "04-crop-tomato",
+      "name": "Cây cà chua",
+      "file": "04-crop-tomato.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "05-crop-corn",
+      "name": "Cây bắp",
+      "file": "05-crop-corn.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "06-crop-strawberry",
+      "name": "Cây dâu tây",
+      "file": "06-crop-strawberry.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "07-tool-shed",
+      "name": "Nhà kho dụng cụ",
+      "file": "07-tool-shed.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "08-water-barrel",
+      "name": "Thùng chứa nước",
+      "file": "08-water-barrel.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "09-watering-can",
+      "name": "Bình tưới cây",
+      "file": "09-watering-can.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "10-fence-module",
+      "name": "Hàng rào gỗ",
+      "file": "10-fence-module.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "11-garden-tree",
+      "name": "Cây bóng mát",
+      "file": "11-garden-tree.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "12-flower-border",
+      "name": "Cụm hoa ven lối đi",
+      "file": "12-flower-border.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "13-exit-portal",
+      "name": "Cổng xoáy thoát map",
+      "file": "13-exit-portal.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "14-student-character",
+      "name": "Nhân vật sinh viên",
+      "file": "14-student-character.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "15-pest-mouse",
+      "name": "Chuột phá hoại",
+      "file": "15-pest-mouse.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "16-paving-module",
+      "name": "Tấm lát lối đi",
+      "file": "16-paving-module.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    },
+    {
+      "id": "17-plot-sign",
+      "name": "Biển tên luống",
+      "file": "17-plot-sign.png",
+      "views": [
+        "Trước",
+        "Sau",
+        "Trái",
+        "Phải",
+        "Trên",
+        "Dưới"
+      ]
+    }
+  ]
+}

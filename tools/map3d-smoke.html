@@ -3,11 +3,12 @@
 <div id="mobile-movement-pad"><button data-move-direction="up">↑</button><button data-move-direction="left">←</button><button data-move-direction="down">↓</button><button data-move-direction="right">→</button><span>DI CHUYỂN</span></div>
 <script>
 const smokeErrors=[];window.addEventListener('error',e=>smokeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>smokeErrors.push(String(e.reason)));
+const originalConsoleError=console.error;console.error=(...args)=>{smokeErrors.push(args.map(String).join(' '));originalConsoleError(...args);};
 const smokeEmits=[],smokeInteractions=[];
 const io=()=>({id:'demo',connected:true,emit:(...args)=>smokeEmits.push(args),auth:{}});
 let players={demo:{x:400,y:430,playerNickname:'Kiểm tra 3D'}};
 let currentMapId=new URLSearchParams(location.search).get('map')||'farm';
-let farmPlots={'plot-1':{plantedAt:Date.now()-40000,crop:'🥕'},'plot-2':{plantedAt:Date.now()-5000,crop:'🌽'},'plot-3':{plantedAt:Date.now()-400000,crop:'🍅'}};
+let farmPlots={'plot-1':{crop:'',plantedAt:0},'plot-2':{plantedAt:Date.now()-40000,crop:'🍅'},'plot-3':{plantedAt:Date.now()-40000,crop:'🌽'},'plot-4':{plantedAt:Date.now()-40000,crop:'🍓'}};
 let halloweenOpenedBoxes=new Set([0,2,8]),campusBenchOccupants={},activeHalloweenBox=-1,activeFarmPlotId='',activeInteriorObjectId='',targetPosition=null,mapExitTarget=null;
 let environmentConditions={isDay:true,cloudCover:20,weatherCode:1};
 const sceneRef={input:{keyboard:{enabled:true,resetKeys(){}}}},cursors={};
@@ -15,17 +16,19 @@ const playerStatsState={stats:{hunger:100,fatigue:0}};
 const Phaser={Math:{Clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),Distance:{Between:(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by)}}};
 function renderEnvironmentOverlay(){}function isBlockedPosition(x,y){return Map3DLayouts.blocked(currentMapId,x,y);}
 function showToast(text){console.log(text);}
-function updateInteractionZone(player){activeInteriorObjectId=Map3DLayouts.interactionTargets(currentMapId,player)[0]?.action||'';}
+function updateInteractionZone(player){const action=Map3DLayouts.interactionTargets(currentMapId,player)[0]?.action||'';activeInteriorObjectId=action;activeFarmPlotId=action.startsWith('plot:')?action.slice(5):'';}
 function interactWithCurrentZone(){smokeInteractions.push(activeInteriorObjectId);}
 function getServerRankingRows(category){return [{nickname:category==='reputation'?'Sinh viên STU':'Khách STU',score:category==='reputation'?1250:25000},{nickname:'Minh Anh',score:900},{nickname:'Tuấn',score:800}];}
 </script>
-<script src="../client/game-config.js"></script>
+<script src="../client/map-3d-layouts.js"></script><script src="../client/game-config.js"></script>
 <script src="https://cdn.babylonjs.com/babylon.js"></script><script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script><script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-<script src="../client/fountain-physics.js"></script><script src="../client/map-3d-layouts.js"></script><script src="../client/fountain-weather.js"></script><script src="../client/fountain-camera.js"></script><script src="../client/fountain-water.js"></script><script src="../client/student-animation.js"></script><script src="../client/babylon-fountain.js"></script><script src="../client/canteen-v2-scene.js"></script><script src="../client/babylon-map-packs.js"></script>
+<script>const SunCalc={getPosition:()=>({altitude:.8,azimuth:-.6}),getMoonPosition:()=>({altitude:-.6,azimuth:1}),getMoonIllumination:()=>({fraction:.5})};</script>
+<script src="../client/fountain-physics.js"></script><script src="../client/fountain-weather.js"></script><script src="../client/fountain-camera.js"></script><script src="../client/fountain-water.js"></script><script src="../client/student-animation.js"></script><script src="../client/character-assets.js"></script><script src="../client/babylon-fountain.js"></script><script src="../client/canteen-v2-scene.js"></script><script src="../client/community-garden-scene.js"></script><script src="../client/babylon-map-packs.js"></script>
 <script src="../client/player-controller.js"></script>
 <script>
 players.demo={...players.demo,...Map3DLayouts.get(currentMapId).spawn};
 activateBabylonMapPack(currentMapId);
+if(currentMapId==='farm')farmMouse3DState={active:true,x:400,y:300};
 bindMobileMovementControls();
 babylonFountain.scene.onBeforeRenderObservable.add(()=>update(performance.now(),babylonFountain.engine.getDeltaTime()));
 if(new URLSearchParams(location.search).has('walk')) {
@@ -39,7 +42,7 @@ if(new URLSearchParams(location.search).has('walk')) {
 setTimeout(()=>{
  const world=babylonFountain;
  const loaded=world.scene.meshes.filter(m=>m.name.includes(':'));
- const rig=world.players.get('demo')?.getDescendants().filter(n=>n.name.startsWith('student_hip_')).map(n=>({name:n.name,angle:n.rotation.x}));
+ const rig=world.players.get('demo')?.getDescendants().filter(n=>/^student_hip_(left|right)$/.test(n.name)).map(n=>({name:n.name,angle:n.rotation.x}));
  const blocker=BABYLON.MeshBuilder.CreateBox('test-occluder',{size:1},world.scene),target=BABYLON.MeshBuilder.CreateBox('test-target',{size:1},world.scene);
  blocker.position.set(100,2,100);target.position.set(100,2,103);blocker.computeWorldMatrix(true);target.computeWorldMatrix(true);
  const ray=new BABYLON.Ray(new BABYLON.Vector3(100,2,97),new BABYLON.Vector3(0,0,1),10);

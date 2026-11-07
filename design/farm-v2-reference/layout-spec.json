@@ -1,0 +1,153 @@
+{
+  "status": "proposed-reference-only",
+  "units": "metres",
+  "axes": {
+    "x": "Phải",
+    "y": "Lên",
+    "z": "Phía sau; cổng vào ở phía -Z"
+  },
+  "mapSize": {
+    "width": 16,
+    "depth": 12
+  },
+  "player": {
+    "height": 1.7,
+    "collisionRadius": 0.22,
+    "spawn": {
+      "x": 0,
+      "z": -4.5
+    }
+  },
+  "plots": [
+    {
+      "id": "plot-1",
+      "name": "Luống 1",
+      "x": -2.5,
+      "z": -1.8,
+      "width": 3.6,
+      "depth": 2.4,
+      "height": 0.45,
+      "preview": "empty"
+    },
+    {
+      "id": "plot-2",
+      "name": "Luống 2",
+      "x": -2.5,
+      "z": 1.6,
+      "width": 3.6,
+      "depth": 2.4,
+      "height": 0.45,
+      "preview": "tomato"
+    },
+    {
+      "id": "plot-3",
+      "name": "Luống 3",
+      "x": 2.5,
+      "z": 1.6,
+      "width": 3.6,
+      "depth": 2.4,
+      "height": 0.45,
+      "preview": "corn"
+    },
+    {
+      "id": "plot-4",
+      "name": "Luống 4",
+      "x": 2.5,
+      "z": -1.8,
+      "width": 3.6,
+      "depth": 2.4,
+      "height": 0.45,
+      "preview": "strawberry"
+    }
+  ],
+  "objects": [
+    {
+      "type": "tool-shed",
+      "x": -6,
+      "z": 4.4,
+      "width": 2.8,
+      "depth": 2,
+      "height": 2.8,
+      "interactive": false
+    },
+    {
+      "type": "water-barrel",
+      "x": 6,
+      "z": 4.5,
+      "width": 0.85,
+      "depth": 0.85,
+      "height": 1.2,
+      "interactive": false
+    },
+    {
+      "type": "watering-can",
+      "x": 6.7,
+      "z": 3.7,
+      "width": 0.6,
+      "depth": 0.3,
+      "height": 0.4,
+      "interactive": false
+    },
+    {
+      "type": "exit-portal",
+      "x": -6,
+      "z": -4,
+      "width": 1.8,
+      "depth": 1.8,
+      "height": 2.25,
+      "interactive": true,
+      "activation": "approach"
+    },
+    {
+      "type": "garden-tree",
+      "x": -7.2,
+      "z": 1.1,
+      "height": 4,
+      "trunkRadius": 0.28
+    },
+    {
+      "type": "garden-tree",
+      "x": 7.2,
+      "z": 1.1,
+      "height": 4,
+      "trunkRadius": 0.28
+    }
+  ],
+  "walkingClearance": {
+    "centralWidth": 1.4,
+    "crossDepth": 1,
+    "minimumRecommended": 1
+  },
+  "uiLabels": {
+    "farm": "Nông trại cộng đồng",
+    "inventory": "Túi đồ",
+    "seedTab": "Hạt giống",
+    "produceTab": "Nông sản",
+    "itemTab": "Vật phẩm",
+    "plant": "Gieo hạt",
+    "harvest": "Thu hoạch",
+    "hunger": "Độ đói",
+    "strength": "Sức mạnh",
+    "fatigue": "Độ mệt",
+    "reputation": "Danh tiếng",
+    "coins": "Tiền đồng",
+    "eventGold": "Đồng vàng sự kiện",
+    "exit": "Thoát map",
+    "growing": "Trưởng thành sau",
+    "ripe": "Héo sau",
+    "mouseEvent": "Bắt được chuột: +50 điểm danh tiếng, +1 đồng vàng sự kiện, +1 điểm độ mệt, −1 điểm độ đói."
+  },
+  "runtimeRules": [
+    "Giữ ID farm và plot-1 đến plot-4; khi đổi tọa độ phải đồng bộ trình duyệt và máy chủ.",
+    "Máy chủ kiểm tra khoảng cách, va chạm, đường nhìn, hạt giống và số lượng trước khi thực hiện hành động.",
+    "Phím và D-pad dùng một bộ điều khiển; thả, mất tiêu điểm hoặc hủy chạm phải dừng; kéo chuột/vuốt chỉ xoay góc nhìn.",
+    "Từng luống chỉ mở bảng của luống đó khi tương tác; không hiện đồng thời hành động cả bốn luống.",
+    "Luống, nhà kho, thùng nước, hàng rào và thân cây có vùng va chạm theo hình khối; bảo vệ toàn bộ ranh giới đi lại.",
+    "Chữ dùng lớp giao diện hoặc vật liệu chữ động, không ghi chết vào mesh; font có đầy đủ dấu tiếng Việt.",
+    "Cổng thoát chỉ kích hoạt khi nhân vật đi đến; chạm cổng từ xa chỉ gợi ý, không tự di chuyển hay dịch chuyển.",
+    "Nông trại cộng đồng dùng trạng thái chung; dữ liệu túi đồ là của từng người; cây cộng đồng không chết.",
+    "Sự kiện chuột giữ +50 danh tiếng, +1 vật phẩm đồng vàng sự kiện, +1 độ mệt, -1 độ đói; bị cắn mất 5 tiền đồng.",
+    "Không thêm thao tác tưới nước hoặc dịch vụ nhà kho chỉ vì có vật thể trang trí.",
+    "Khi triển khai cần kiểm tra đường đi từ điểm xuất hiện đến cả bốn luống và cổng thoát, các trạng thái cây, chữ và nút trên điện thoại."
+  ]
+}

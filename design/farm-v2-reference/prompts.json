@@ -1,0 +1,109 @@
+{
+  "generator": "imagegen built-in",
+  "approvedReference": "00-approved-concept.png",
+  "assetSheetViews": [
+    "Trước",
+    "Sau",
+    "Trái",
+    "Phải",
+    "Trên",
+    "Dưới"
+  ],
+  "mapSheetViews": [
+    "Trước",
+    "Sau",
+    "Trái",
+    "Phải",
+    "Trên",
+    "Phối cảnh"
+  ],
+  "commonPrompt": "Use case: stylized-concept. Asset type: accurate 3D modelling reference for STU-Town community farm. Input image 1 is the APPROVED MASTER STYLE AND SHAPE reference, not an edit target. Match that reference object's silhouette, proportions, details, warm honey oak wood grain, bevels, brass/teal accents where present, believable materials and charming polished cozy stylized 3D rendering as closely as possible. Not a redesign. Do not add unrelated game systems. Output ONE high-resolution landscape 3:2 technical turntable reference sheet, clean 3 columns x 2 rows equally sized panels with subtle gutters on a plain warm pale gray studio background. Top row: FRONT, BACK, LEFT. Bottom row: RIGHT, TOP, BOTTOM. These are SIX VIEWS OF THE SAME EXACT OBJECT, consistent geometry/materials, consistent physical scale, orthographic cameras, diffuse neutral studio lighting, no depth of field. Frame the whole object in every cell with adequate margins, no cropping. Front is object facing toward viewer; all details stay attached to the same physical locations as the camera changes. TOP and BOTTOM must be genuine overhead and underside views, not six repeated 3/4 views. No writing, no letters, no numbers, no captions, no watermark, no UI in the generated sheet: Vietnamese view captions will be added as editable text outside the image. Any sign or nameplate on the model must be blank. Keep every cell uncluttered and the object large and clear. ",
+  "sheets": [
+    {
+      "id": "01-map-six-views",
+      "name": "Toàn cảnh nông trại",
+      "kind": "map",
+      "prompt": "Use case: stylized-concept. Create a high-resolution 3:2 landscape environment reconstruction reference sheet of the EXACT community farm shown in input image 1. Input is the approved master layout and style reference. SIX PANELS, a clean 3 by 2 grid. Top row: FRONT elevated south view like source, BACK elevated north view, LEFT elevated west view. Bottom row: RIGHT elevated east view, TOP pure orthographic plan, FRONT-RIGHT elevated 3/4 overall. No text, captions, labels, numbers, HUD, controls, people, mouse or game interface. Blank wooden signs only. These six views depict ONE SINGLE FIXED MAP GEOMETRY with identical placements and landscaping, not six alternative designs. Warm honey oak raised beds, cream stone paths, cozy stylized 3D quality, natural detailed foliage and soft warm daylight like source. Whole 16m wide by 12m deep rectangular farm diorama visible in every panel; neutral pale gray outside the diorama. North is the rear tool shed side, south is the entrance side. Fixed world plan: EXACTLY FOUR raised beds in 2 by 2 grid, broad open cross-shaped cream stone walking paths. Southwest bed EMPTY tilled dark soil; northwest bed tomato plants with red fruit; northeast bed golden ripe corn; southeast bed leafy strawberry plants with red berries and white flowers. Shed with warm horizontal timber siding, teal roof, ivy, open side shelves and hanging tools stands in NORTHWEST boundary corner behind tomato bed; round oak water barrel on stone stand with metal hoops, brass spigot and silver watering can stands at NORTHEAST boundary corner behind corn. Cyan upright spiral exit portal with teal/gold plinth stands in SOUTHWEST entrance corner, outside empty bed with clear walking access. Warm oak low fencing encloses edges with clear opening at SOUTH center entrance, planted flowers and low hedges at boundary, two mature round green trees on west/east perimeter outside paths. Keep trees from obscuring beds in elevation. Six cameras change only viewpoint: never swap beds, mirror shed/barrel, add/delete portals or change fence style. All details match the original approved reference as closely as possible. No floating UI panels or words anywhere."
+    },
+    {
+      "id": "02-raised-bed",
+      "name": "Luống đất",
+      "prompt": "Subject: the rectangular EMPTY RAISED PLANTING BED from the FRONT LEFT of the reference. Honey oak rough sawn thick horizontal timber retaining boards, square corner posts, subtle rounded/beveled edges, little brass fasteners, dark loose freshly tilled soil sitting a few centimetres below the top lip. A small BLANK rectangular wooden crop sign on a short post is centred on the front board. Approximate overall size 3.6m wide x 2.4m deep x .45m high. No gold selection glow (selection will be a runtime effect), no plants, no grass, no foundation paving. Underside reveals logical timber construction beneath soil. All six views must have exactly the same soil volume, corner posts, grain and sign placement."
+    },
+    {
+      "id": "03-crop-carrot",
+      "name": "Cây cà rốt",
+      "prompt": "Subject: one complete harvestable CARROT PLANT as a reusable plant asset, in the same detailed cozy garden art style as the reference. A tapered rich orange carrot root with subtle earth marks and a natural multi-stem crown of bright and dark green finely divided carrot leaves, matching the carrot seed packet illustration but as a realistic stylized 3D plant. The carrot root and leafy crown are both fully visible; floating isolated whole plant, no bed, no soil block, no pot, no packet, no text. Root tip slightly curved, not spherical, no cartoon face. Consistent exact root curvature and leaf arrangement in all six views. Overall plant about .65m tall. Small soft studio contact shadows only."
+    },
+    {
+      "id": "04-crop-tomato",
+      "name": "Cây cà chua",
+      "prompt": "Subject: ONE complete ripe TOMATO PLANT extracted from the BACK LEFT raised bed of the reference. A lush but compact branching tomato plant with green serrated compound leaves, subtle stem texture, about eight round red/orange ripe tomatoes attached at different heights, green sepals, some small yellow flowers. Exact reference warm appealing stylized 3D materials, no oversized fantasy fruits. Approximate .9m tall, stable branching silhouette. A short slim wooden support stake and two natural twine ties integrated with plant, same locations all views. Roots a small visible cluster below a ground-level stem only; no soil block, no pot, no bed, no signs. Keep all six views the same exact plant and fruit count."
+    },
+    {
+      "id": "05-crop-corn",
+      "name": "Cây bắp",
+      "prompt": "Subject: ONE complete mature CORN PLANT from the BACK RIGHT raised bed in the reference. Upright slender green jointed stalk, long gracefully arched lanceolate leaves, TWO golden yellow cobs visible in partly opened green husks attached at fixed nodes, delicate tan tassel. Warm natural detailed stylized 3D quality exactly like the reference. About 1.65m tall, .7m leaf spread; natural taper, no gigantic corn. Small fibrous root tuft at bottom, no soil block, no pot, no raised bed, no text. All six views show the same two cobs, same branching, same leaves and tassel."
+    },
+    {
+      "id": "06-crop-strawberry",
+      "name": "Cây dâu tây",
+      "prompt": "Subject: ONE compact mature STRAWBERRY PLANT from FRONT RIGHT bed of the reference. Low spreading crown with many textured trifoliate serrated green leaves, five ripe red strawberries with visible golden seeds and green calyxes, two small unripe green berries, delicate five-petal white flowers with yellow centres. About .35m tall and .55m diameter. Soft curved stems, cozy polished stylized 3D materials exactly like reference; no cartoon face, no root carrot. A tiny root tuft below crown, no soil block, no planter, no garden bed, no written labels. Same leaves, flowers and fixed berry count across all six cameras."
+    },
+    {
+      "id": "07-tool-shed",
+      "name": "Nhà kho dụng cụ",
+      "prompt": "Subject: the TOOL SHED in the BACK LEFT corner of the reference, reconstructed closely. Compact warm honey oak plank garden shed, asymmetrical front with closed wooden door on left/main front, small dark iron hinges and latch, exposed rafters, sloping double-pitch weathered teal-green roof shingles with subtle warm edges, cream stone short foundation. Ivy drapes naturally on one roof edge and front corner. One warm brass/iron lantern hangs below front eave. Front tool rack holds a shovel, spade and small garden fork with wood handles and silver metal heads. Right front side contains built-in open shelves with terracotta pots and a little folded burlap sack. One small wooden crate on ground beside front. Keep shed as a coherent modelling kit, not the entire environment. About 2.8m wide x 2m deep x 2.8m tall. No surrounding flower garden/trees/fences, no text, no logos. Back and sides should plausibly continue the same exact timber construction; do not invent windows or change roof shape between views."
+    },
+    {
+      "id": "08-water-barrel",
+      "name": "Thùng chứa nước",
+      "prompt": "Subject: the WATER BARREL in BACK RIGHT corner of the reference, very close match. Round plump upright honey oak barrel with visible curved vertical staves, THREE dark aged gray iron hoops with rivets, open top filled with calm blue-green water; small brass spigot projecting from lower front, short horizontal lever. Barrel rests on a low roughly squared warm cream stone block plinth, with a small drainage stone under the tap. About .85m barrel diameter and 1.2m total height. No watering can (separate asset), no plants, no garden surroundings, no text. Keep spigot, hoop count and stave pattern consistent as object rotates. In top view show water surface and rim; underside show base of stone plinth, not a second top view."
+    },
+    {
+      "id": "09-watering-can",
+      "name": "Bình tưới cây",
+      "prompt": "Subject: the SILVER METAL WATERING CAN beside the barrel in the reference. Rounded slightly tapered galvanized silver body, gently arched top carrying handle, rear curved side handle, long tapered slanted spout with round perforated sprinkler rose, subtle folded rim and seams, top filling opening. Soft slightly worn metal, warm reflective daylight style, not mirror chrome. Approximately .6m long including spout and .4m high. Precisely same handle positions, spout angle and perforated rose across all six views. No water flowing, no barrel, no soil, no plants, no text."
+    },
+    {
+      "id": "10-fence-module",
+      "name": "Hàng rào gỗ",
+      "prompt": "Subject: ONE reusable straight OAK FENCE MODULE matching the reference perimeter. Two thick square timber posts with bevelled pyramid caps, two horizontal chunky rails between posts, four narrow vertical square pickets, subtle oak grain, tiny dark bolts. Golden honey-brown wood, no paint. Module about 2m long, 1.1m high, post thickness .16m. No gate, no flowers, no lawn, no whole map. Same exact component count, joints and post-cap shape across all six views. Underside shows flat post ends and rail joinery logically. Neutral studio background."
+    },
+    {
+      "id": "11-garden-tree",
+      "name": "Cây bóng mát",
+      "prompt": "Subject: ONE mature rounded garden TREE matching the trees at left/right edges of reference. Warm natural medium-brown branching trunk with subtle sculpted bark, several bifurcating limbs visible below canopy, dense rounded layered crown of individual stylized green and yellow-green leaves in clusters, inviting cozy high-quality 3D game rendering. Approximate 4m tall and 3.3m wide. Natural root flare, no soil terrain slab, no planter, no fence, no hanging sign or lantern. Keep same trunk branching and overall asymmetric leaf-cluster silhouette in all six views. TOP reveals canopy structure; BOTTOM is an actual underside canopy looking upward with visible trunk and branch skeleton, not a second overhead."
+    },
+    {
+      "id": "12-flower-border",
+      "name": "Cụm hoa ven lối đi",
+      "prompt": "Subject: ONE reusable LOW FLOWERING BORDER CLUSTER from the map's perimeter corners. A single cohesive .9m wide x .55m deep cluster of lush rounded green leaves, pink and lavender small five-petal flowers with golden centres, a few white tiny flowers. Match charming dense hydrangea-like garden flowers beside the reference wooden shed and fence; three larger flowering stems with low leaves, soft organic variation. Plant roots/base discreet, no pot or raised wooden planter, no fence or tree, no text. Exactly the same cluster arrangement and colour placement viewed from six orthographic directions, not six different flower species."
+    },
+    {
+      "id": "13-exit-portal",
+      "name": "Cổng xoáy thoát map",
+      "prompt": "Subject: the UPRIGHT CYAN EXIT VORTEX PORTAL at FRONT LEFT of reference, keep its exact elegant teal/brass design. Vertical oval stone/metal ring on a low broad round stepped teal plinth with gold trim; warm cream outer ring segments, teal inlays, gold corner bands/rivets, small faceted amber diamond crown at top. Inside ring a transparent turquoise luminous spiral disc with flowing pale cyan curved energy strands and tiny motes, bright readable but not overexposed. A small BLANK oak arrow sign on a separate short wooden post stands at the portal's right foot, same footprint within object kit. About 2.25m tall, 1.55m wide ring, 1.8m diameter base. Preserve ring upright on every view; back shows corresponding rear ring, left/right show ring thickness and mounting; top and underside are proper projections. No landscape, no people, no lettering anywhere. Spiral should be shown as visual VFX reference; underlying ring geometry clearly visible."
+    },
+    {
+      "id": "14-student-character",
+      "name": "Nhân vật sinh viên",
+      "prompt": "Subject: the MALE STUDENT PLAYER standing at centre of reference. Reproduce the SAME friendly young adult Vietnamese male character's facial proportions and clothing, stylized human anatomy with natural articulated limbs, not chibi. Short tousled wavy brown hair, warm medium-light skin, expressive dark brown eyes, subtle pleasant smile. Dark forest-green short-sleeved polo shirt with ivory collar/placket trim, slim navy cargo trousers with side pockets and brown belt, cream-white lace-up sneakers with dark soles. No text or logo on shirt. Relaxed symmetrical A-pose with hands slightly away from body and straight separated legs, palms inward, shoes flat. Overall about 1.7m tall. No backpack unless clearly present on the central male character (do NOT copy background female character). No nameplate, no selection circle, no UI, no pedestal. Six accurate same-character orthographic turnarounds; top includes hair and shoulders, bottom includes soles and body perspective. Preserve face and body/clothing details identically."
+    },
+    {
+      "id": "15-pest-mouse",
+      "name": "Chuột phá hoại",
+      "prompt": "Subject: the SMALL GRAY PEST MOUSE in the lower right path of reference. One cute but anatomically recognizable quadruped mouse, soft warm gray fur texture, rounded plump body, large rounded ears with dusty pink interiors, shiny black eyes, little pink nose and whiskers, tiny four paws, long thin gently curved pink tail. No clothes, no props, no cartoon hands or shoes. About .23m long body excluding tail. Neutral standing pose on all four paws, nose facing front in front view. Same fur markings, tail curvature, ears and anatomy across six views, include true underside with all paws and belly, not duplicate side view. No landscape or shadows obscuring feet."
+    },
+    {
+      "id": "16-paving-module",
+      "name": "Tấm lát lối đi",
+      "prompt": "Subject: ONE reusable square 2m by 2m GARDEN PAVING MODULE matching the cream stone walkways in reference. Flat but gently irregular bevelled rectangular limestone pavers in offset brick bond, cream, sandy tan and warm ivory variation, subtle worn grain and soft rounded edges, narrow recessed natural joints, slim compacted sand bedding visible on sides. Total thickness about .10m. No grass growing across walking surface, no curb, no stairs, no plants, no wooden border or whole map. Same specific tile layout and colour assignments across all six orthographic views. TOP should reveal tile pattern, sides reveal very low thickness, BOTTOM should show plain coherent sand/stone backing rather than decorative tile faces."
+    },
+    {
+      "id": "17-plot-sign",
+      "name": "Biển tên luống",
+      "prompt": "Subject: ONE SMALL BLANK WOODEN CROP SIGN matching the signs on raised beds in reference. Honey oak horizontally rectangular plaque with softly rounded corners and visible subtle wood grain, two tiny dark screw heads near upper corners, attached to a short square wood post behind its centre. About .48m wide x .20m plaque height, .04m plaque thickness, .40m total height. Plaque fully BLANK: no letters, no glyphs, no numbers, no crop illustrations. Runtime will apply proper Vietnamese text. Six consistent orthographic views including back post mounting, side thickness, top cap and underside. No soil, no plant, no raised bed, no other items."
+    }
+  ]
+}

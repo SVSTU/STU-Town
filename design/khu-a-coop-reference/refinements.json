@@ -1,0 +1,22 @@
+[
+  {
+    "id": "02-shell-six-views",
+    "prompt": "Edit this six-view architectural shell sheet. Remove the blue KHU A sign above the front doorway, leaving its timber lintel clean and blank. It belongs to a separate gate asset. No signs anywhere on this shell. Keep all six existing views, all walls, floor, windows, steps, framing, geometry, proportions, palette, background and labels otherwise identical. Do not add anything."
+  },
+  {
+    "id": "06-main-exit-six-views",
+    "prompt": "Edit this six-view MAIN EXIT GATE modeling sheet. Remove EVERY small plaque attached to the left and right columns. Keep ONLY the main 'KHU A' sign and the hanging 'VỀ BẢN ĐỒ CHÍNH' sign; exact correct Vietnamese. Remove the entire blue gabled roof from all six views, leaving a simple horizontal honey timber lintel and curved blue KHU A sign between two square timber posts, matching an open arch, not a house. Keep two lanterns, stone entrance steps, gold travel threshold and ground arrow. Keep six-view layout FRONT BACK LEFT RIGHT TOP BOTTOM, consistent same modified asset all views. No other lettering or signage, no building room. Preserve stylized 3D palette and proportions."
+  },
+  {
+    "id": "11-farming-props-six-views",
+    "prompt": "Edit this 4-row six-view props sheet. Remove ALL attached text labels and ALL lettering from every object, replacing those surfaces with seamless original material, no blank plaque rectangles. Seed sack is plain beige with ONLY small green leaf symbol; seedling tray plain wood and six black cells with sprouts; carrot crate plain slatted wood; scale plain metal with dial ticks and needle but no text plaque. Keep all four rows, all six column labels FRONT BACK LEFT RIGHT TOP BOTTOM, same shapes colors arrangement background and views. Do not change objects or add any words to them."
+  },
+  {
+    "id": "12-plants-six-views",
+    "prompt": "Edit this 3-row six-view plant props sheet. Remove ALL plaques, labels and text from all pots and planters. Replace with seamless plain terracotta pot material, not blank rectangles. Keep each plant, flower and vine shape, all six views and three rows, column headings FRONT BACK LEFT RIGHT TOP BOTTOM, gray background and all geometry otherwise unchanged. No words on pots, no added objects."
+  },
+  {
+    "id": "13-characters-six-views",
+    "prompt": "Edit this character modeling reference sheet. REMOVE the entire TOP ROW showing a house/building and all its signs. Deliver ONLY the THREE CHARACTER ROWS: student, professor, female merchant, each with SIX consistent views FRONT BACK LEFT RIGHT TOP BOTTOM. Reflow the three rows to fill image generously with more detail and equal spacing. Keep the same character designs, colors, costumes, faces, six views, neutral A-pose and light gray background. No architecture, no props, no signboards, no text on character bodies except tiny STU emblem on student's shirt. Keep six English column headings outside silhouettes. Three rows by six columns only."
+  }
+]

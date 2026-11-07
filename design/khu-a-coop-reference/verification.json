@@ -1,0 +1,81 @@
+{
+  "sixViewSheetCount": 13,
+  "checks": "passed",
+  "jsonAndGalleryLinks": "valid",
+  "images": [
+    {
+      "width": 1672,
+      "height": 941,
+      "file": "00-approved-concept.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "01-map-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "02-shell-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "03-seed-stall-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "04-produce-stall-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "05-professor-desk-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "06-main-exit-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "07-locked-farm-gate-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "08-recovery-nook-six-views.png"
+    },
+    {
+      "width": 2172,
+      "height": 724,
+      "file": "09-noticeboards-six-views.png"
+    },
+    {
+      "width": 1774,
+      "height": 887,
+      "file": "10-furniture-props-six-views.png"
+    },
+    {
+      "width": 1774,
+      "height": 887,
+      "file": "11-farming-props-six-views.png"
+    },
+    {
+      "width": 1774,
+      "height": 887,
+      "file": "12-plants-six-views.png"
+    },
+    {
+      "width": 1536,
+      "height": 1024,
+      "file": "13-characters-six-views.png"
+    }
+  ],
+  "visualReview": "Generation outputs inspected; scope and signage corrected. Hidden geometry remains approximate.",
+  "assetSubjects": 22,
+  "pngCount": 14,
+  "exactVietnameseVectorSigns": 9
+}

@@ -13,12 +13,14 @@ function activateBabylonMapPack(mapId) {
     bind3DOcclusion(scene);
     const halloween=Map3DLayouts.key(mapId)==='halloween';
     const canteen=layout.theme==='canteen-v2';
+    const garden=layout.theme==='garden-v2',detailed=canteen||garden;
     scene.clearColor=halloween?new B.Color4(.055,.035,.09,1):new B.Color4(.44,.60,.53,1);
     if(canteen)scene.clearColor=new B.Color4(.10,.19,.17,1);
     const camera=new B.ArcRotateCamera('map-camera',-Math.PI/2,.72,27,new B.Vector3(0,0,0),scene);
-    camera.lowerRadiusLimit=16;camera.upperRadiusLimit=32;
+    camera.lowerRadiusLimit=garden?8:16;camera.upperRadiusLimit=32;
     camera.lowerBetaLimit=.15;camera.upperBetaLimit=1.45;
     if(canteen){camera.setTarget(new B.Vector3(0,.7,0));camera.beta=1.06;camera.radius=18.5;}
+    if(garden){camera.setTarget(new B.Vector3(0,.7,0));camera.beta=.98;camera.radius=20;}
     camera.panningSensibility=0;camera.wheelPrecision=70;
     camera.attachControl(canvas,true);camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
     const ambient=new B.HemisphericLight('map-ambient',new B.Vector3(0,1,0),scene);
@@ -28,15 +30,15 @@ function activateBabylonMapPack(mapId) {
     sun.position.set(8,16,-8);sun.intensity=halloween?.35:1;
     if(canteen){sun.intensity=.65;sun.diffuse=new B.Color3(1,.92,.80);}
     const shadows=new B.ShadowGenerator(1024,sun);shadows.usePercentageCloserFiltering=true;
-    const ground=B.MeshBuilder.CreateGround('pack-ground',{width:canteen?16:23.5,height:canteen?12:17.5},scene);
-    if(canteen)ground.position.y=-.15;
+    const ground=B.MeshBuilder.CreateGround('pack-ground',{width:detailed?16:23.5,height:detailed?12:17.5},scene);
+    if(detailed)ground.position.y=-.15;
     ground.material=createFountainMaterial(scene,'pack-floor',layout.floor);ground.receiveShadows=true;
     const floorTrim=createFountainMaterial(scene,'pack-trim',halloween?'#795198':'#b9c39c');
-    for(const x of canteen?[]:[-11.5,11.5]) {
+    for(const x of detailed?[]:[-11.5,11.5]) {
         const kerb=B.MeshBuilder.CreateBox('boundary',{width:.12,height:.16,depth:17.4},scene);
         kerb.position.set(x,.08,0);kerb.material=floorTrim;
     }
-    for(const z of canteen?[]:[-8.6,8.6]) {
+    for(const z of detailed?[]:[-8.6,8.6]) {
         const kerb=B.MeshBuilder.CreateBox('boundary',{width:23,height:.16,depth:.12},scene);
         kerb.position.set(0,.08,z);kerb.material=floorTrim;
     }
@@ -44,7 +46,7 @@ function activateBabylonMapPack(mapId) {
     const world={canvas,engine,scene,gui,mapId,camera,players:new Map(),exit:layout.exit||Map3DLayouts.exit};
     babylonFountain=world;
     document.body.classList.add('is-map-3d');
-    if(!canteen)addFountainExitVortex(scene,world.exit);
+    if(!detailed)addFountainExitVortex(scene,world.exit);
     bindFountainCamera(scene,canvas,camera);
     if(mapId==='farm')createFountainWeather(scene,sun,ambient);
     const title=document.createElement('div');title.className='map-3d-title';
@@ -53,7 +55,7 @@ function activateBabylonMapPack(mapId) {
     let framingFactor=1;
     const resize=()=>{
         engine.resize();const b=canvas.getBoundingClientRect();
-        if(canteen&&b.width&&b.height){
+        if(detailed&&b.width&&b.height){
             const factor=Math.max(1,(4/3)/(b.width/b.height));
             camera.upperRadiusLimit=32*factor;camera.radius*=factor/framingFactor;framingFactor=factor;
         }
@@ -64,7 +66,7 @@ function activateBabylonMapPack(mapId) {
     const templates=new Map(),slots=new Map();
     let failureReported=false;
     function template(file) {
-        if(!templates.has(file))templates.set(file,B.SceneLoader.LoadAssetContainerAsync('assets/3d/',file+'?v=packs-3',scene).then(container=>{
+        if(!templates.has(file))templates.set(file,B.SceneLoader.LoadAssetContainerAsync('assets/3d/',file+'?v=packs-4',scene).then(container=>{
             if(scene.isDisposed){container.dispose();return null;}
             return container;
         }).catch(error=>{
@@ -95,10 +97,11 @@ function activateBabylonMapPack(mapId) {
         const root=new B.TransformNode('prop-'+id,scene);
         const pos=fountainWorldPosition(x,y);root.position.set(pos.x,options.height||0,pos.z);root.scaling.setAll(scale);
         root.rotation.y=options.rotation||0;
+        if(options.scaleX)root.scaling.x*=options.scaleX;
         // Babylon's left-handed glTF conversion faces this new pack toward +Z.
         // Normalize the imported geometry only; labels and reach normals use -Z.
-        const assetRoot=canteen?new B.TransformNode('asset-orientation-'+id,scene):root;
-        if(canteen){assetRoot.parent=root;assetRoot.rotation.y=Math.PI;}
+        const assetRoot=detailed?new B.TransformNode('asset-orientation-'+id,scene):root;
+        if(detailed){assetRoot.parent=root;assetRoot.rotation.y=Math.PI;}
         instance.rootNodes.forEach(node=>node.parent=assetRoot);
         for(const mesh of root.getChildMeshes()) {
             mesh.receiveShadows=true;mesh.isPickable=id!=='event';if(options.castShadow!==false)shadows.addShadowCaster(mesh);
@@ -112,7 +115,9 @@ function activateBabylonMapPack(mapId) {
         token.instance=instance;token.root=root;
         options.onReady?.(root);
     }
+    function remove(id){const slot=slots.get(id);slot?.instance?.dispose();slot?.root?.dispose();slots.delete(id);}
     layout.props.forEach((p,i)=>void place('static-'+i,`${layout.pack}/${p.file}.glb`,p.x,p.y,p.scale,p.action,'',{rotation:p.rotation||0}));
+    const updateGarden=garden?createCommunityGardenScene(scene,world,{place,remove,interact,shadows}):null;
     const rankingBoards=canteen?createCanteenConceptScene(scene,world,{place,interact,shadows}):(layout.boards||[]).map(board=>{
         const root=new B.TransformNode(board.id,scene),p=fountainWorldPosition(board.x,board.y);
         root.position.set(p.x,0,p.z);
@@ -165,7 +170,8 @@ function activateBabylonMapPack(mapId) {
         if(now>=stateTick){
             stateTick=now+250;
             rankingBoards.forEach(update=>update());
-            if(mapId==='farm') {
+            if(updateGarden)updateGarden();
+            if(mapId==='farm'&&!garden) {
                 for(const plot of FARM_PLOT_LAYOUT) {
                     const state=farmPlots[plot.id],age=state?.plantedAt?Date.now()-state.plantedAt:0;
                     const crop=state?.plantedAt ? Object.keys(CROP_INFO).find(key=>key===state.crop||CROP_INFO[key].icon===state.crop)||'empty' : 'empty';
@@ -178,9 +184,9 @@ function activateBabylonMapPack(mapId) {
         if(mapId==='farm') {
             const mouse=farmMouse3DState;
             if(mouse?.active&&Number.isFinite(mouse.x)&&Number.isFinite(mouse.y)) {
-                if(!slots.has('mouse'))void place('mouse','community-farm/mouse.glb',mouse.x,mouse.y,1.7);
+                if(!slots.has('mouse'))void place('mouse',`${layout.pack}/mouse.glb`,mouse.x,mouse.y,garden?1.5:1.7);
                 const root=slots.get('mouse')?.root;
-                if(root){const p=fountainWorldPosition(mouse.x,mouse.y);const dt=Math.min(engine.getDeltaTime()/1000,.05);root.position.x+=(p.x-root.position.x)*(1-Math.exp(-12*dt));root.position.z+=(p.z-root.position.z)*(1-Math.exp(-12*dt));}
+                if(root){const p=fountainWorldPosition(mouse.x,mouse.y);const dt=Math.min(engine.getDeltaTime()/1000,.05),dx=p.x-root.position.x,dz=p.z-root.position.z;root.position.x+=dx*(1-Math.exp(-12*dt));root.position.z+=dz*(1-Math.exp(-12*dt));if(Math.hypot(dx,dz)>.002){root.rotation.y=Math.atan2(dx,dz)+Math.PI;root.position.y=Math.abs(Math.sin(now*.018))*.025;}}
             } else if(slots.has('mouse')){slots.get('mouse').instance?.dispose();slots.get('mouse').root?.dispose();slots.delete('mouse');}
         }
         if(eventUntil&&now>eventUntil){slots.get('event')?.instance?.dispose();slots.get('event')?.root?.dispose();slots.delete('event');eventUntil=0;}

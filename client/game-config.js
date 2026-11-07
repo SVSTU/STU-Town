@@ -18,12 +18,7 @@ const CAMPUS_BENCHES = [
     { id: 'bench-5', x: 670, y: 365 },
     { id: 'bench-6', x: 540, y: 435 }, { id: 'bench-7', x: 630, y: 435 }
 ];
-const FARM_PLOT_LAYOUT = [
-    { id: 'plot-1', x: 200, y: 290, width: 78, height: 42 },
-    { id: 'plot-2', x: 310, y: 290, width: 78, height: 42 },
-    { id: 'plot-3', x: 420, y: 290, width: 78, height: 42 },
-    { id: 'plot-4', x: 530, y: 290, width: 78, height: 42 }
-];
+const FARM_PLOT_LAYOUT = Map3DLayouts.get('farm').plots.map(p=>({id:p.id,x:p.x-p.w,y:p.y-p.d,width:p.w*2,height:p.d*2}));
 const HALLOWEEN_BOX_POSITIONS = Array.from({ length: 50 }, (_, index) => ({
     x: 112 + (index % 10) * 64,
     y: 242 + Math.floor(index / 10) * 54
