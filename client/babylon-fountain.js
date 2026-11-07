@@ -286,11 +286,19 @@ function createBabylonHuman(scene, id) {
     const shadow = BABYLON.MeshBuilder.CreateDisc('human-shadow', { radius: .48, tessellation: 24 }, scene);
     shadow.parent = root; shadow.rotation.x = Math.PI / 2; shadow.position.y = .015; shadow.material = createFountainMaterial(scene, `shadow-${id}`, '#14251b');
     const fallbackMeshes = root.getChildMeshes().filter((mesh) => mesh !== shadow);
-    BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'student.glb?v=2', scene).then((asset) => {
+    BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'student.glb?v=3-joints', scene).then((asset) => {
         if (scene.isDisposed || root.isDisposed()) { asset.meshes.forEach((mesh) => mesh.dispose()); return; }
         const modelRoot = asset.meshes.find((mesh) => !mesh.parent);
         if (modelRoot) modelRoot.parent = root;
-        root._studentParts = asset.meshes.map(mesh=>({mesh,position:mesh.position.clone(),rotation:mesh.rotation.clone()}));
+        const face=asset.meshes.find(mesh=>mesh.name==='student_nose');
+        const skull=asset.meshes.find(mesh=>mesh.name==='student_head');
+        if(face&&skull) {
+            root.computeWorldMatrix(true);skull.computeWorldMatrix(true);face.computeWorldMatrix(true);
+            const direction=BABYLON.Vector3.TransformNormal(face.getAbsolutePosition().subtract(skull.getAbsolutePosition()),root.getWorldMatrix().clone().invert());
+            root._modelForwardYaw=Math.atan2(direction.x,direction.z);
+            if(root._desiredYaw!==undefined)root.rotation.y=root._desiredYaw-root._modelForwardYaw;
+        }
+        if(modelRoot)root._animateStudent=bindStudentAnimation(root,modelRoot);
         fallbackMeshes.forEach((mesh) => { mesh.visibility = 0; mesh._cameraBaseVisibility = 0; });
     }).catch((error) => console.warn('Student model fallback:', error.message));
     if (BABYLON.GUI) {
@@ -359,6 +367,12 @@ function updateBabylonFountainPlayers() {
     Object.entries(players || {}).forEach(([id, player]) => {
         if (!babylonFountain.players.has(id)) babylonFountain.players.set(id, createBabylonHuman(babylonFountain.scene, id));
         const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y);
+        if(!mesh._placed) {
+            const camera=babylonFountain.camera||babylonFountain.scene.activeCamera;
+            mesh._desiredYaw=Math.atan2(camera.position.x-pos.x,camera.position.z-pos.z);
+            mesh.rotation.y=mesh._desiredYaw-(mesh._modelForwardYaw??Math.PI);
+        }
+        const previousVisualX=mesh.position.x,previousVisualZ=mesh.position.z;
         const dt = Math.min(babylonFountain.engine.getDeltaTime()/1000,.05);
         const dx = pos.x-(mesh._lastTargetX??pos.x), dz=pos.z-(mesh._lastTargetZ??pos.z);
         mesh._lastTargetX=pos.x;mesh._lastTargetZ=pos.z;
@@ -367,7 +381,8 @@ function updateBabylonFountainPlayers() {
         const walk = id===socket.id ? Boolean(babylonFountain.localMoving) : performance.now()<(mesh._walkUntil||0);
         const lerp = mesh._placed && (id!==socket.id||walk) ? 1-Math.exp(-(id===socket.id?32:14)*dt) : 1;
         mesh.position.x+=(pos.x-mesh.position.x)*lerp;mesh.position.z+=(pos.z-mesh.position.z)*lerp;mesh._placed=true;
-        if(moving)mesh._heading=Math.atan2(-dx,-dz);
+        if(moving)mesh._desiredYaw=Math.atan2(dx,dz);
+        mesh._heading=mesh._desiredYaw-(mesh._modelForwardYaw??Math.PI);
         if(mesh._heading!==undefined) {const angle=Math.atan2(Math.sin(mesh._heading-mesh.rotation.y),Math.cos(mesh._heading-mesh.rotation.y));mesh.rotation.y+=angle*(1-Math.exp(-18*dt));}
         const seat = babylonFountain.mapId==='fountain' && Object.entries(campusBenchOccupants || {}).find(([benchId,ids])=>benchId.startsWith('fountain-') && Array.isArray(ids) && ids.includes(id));
         if (seat) {
@@ -379,18 +394,7 @@ function updateBabylonFountainPlayers() {
                 mesh.rotation.y=bench.rotation;
             }
         } else { mesh.position.y=0; }
-        for (const part of mesh._studentParts || []) {
-            part.mesh.position.copyFrom(part.position); part.mesh.rotation.copyFrom(part.rotation);
-            if (seat && /trouser_leg|trouser_cuff|shoe/.test(part.mesh.name)) {
-                part.mesh.position.y=part.position.y*.45+.40;
-                part.mesh.position.z=part.position.z-.30;
-                if (/trouser_leg/.test(part.mesh.name)) part.mesh.rotation.x=-Math.PI/2;
-            }
-            if(!seat&&walk&&/student_forearm|student_sleeve|student_hand|student_trouser_leg/.test(part.mesh.name)) {
-                const phase=performance.now()*.010;
-                part.mesh.rotation.x+=Math.sin(phase+(part.position.x<0?0:Math.PI))*.22;
-            }
-        }
+        mesh._animateStudent?.(dt,Math.hypot(mesh.position.x-previousVisualX,mesh.position.z-previousVisualZ),walk,Boolean(seat));
         if (mesh._nameText) mesh._nameText.text = player.playerNickname || (id === socket.id ? 'Bạn' : `Khách (${id.slice(0, 4)})`);
     });
     babylonFountain.players.forEach((mesh, id) => { if (!players[id]) { mesh._nameLabel?.dispose(); mesh.dispose(); babylonFountain.players.delete(id); } });

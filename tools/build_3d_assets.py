@@ -293,18 +293,37 @@ def build_student():
     sphere('student_nose',(0,-.21,1.66),(.035,.04,.04),skin)
     tube('student_smile',[(x,-.194,1.595+.7*x*x) for x in [-.065,-.04,0,.04,.065]],.009,mouth)
     collar=torus('student_collar',.09,.018,1.42,shirt)
+    def attach(obj,parent):
+        bpy.context.view_layer.update()
+        matrix=obj.matrix_world.copy();obj.parent=parent;obj.matrix_world=matrix
+        return obj
+    def joint(name,pos,parent=None):
+        obj=bpy.data.objects.new(name,None);bpy.context.collection.objects.link(obj);obj.location=pos
+        if parent:attach(obj,parent)
+        return obj
     for x in (-.15,.15):
-        cube('student_trouser_leg',(.21,.24,.66),(x,0,.49),pants,.055)
-        cube('student_shoe',(.23,.38,.15),(x,-.07,.105),METAL,.045)
-        cube('student_shoe_sole',(.245,.39,.055),(x,-.07,.042),soles,.022)
-        cube('student_trouser_cuff',(.23,.26,.065),(x,0,.20),pants,.015)
+        side='left' if x<0 else 'right'
+        hip=joint('student_hip_'+side,(x,0,.82))
+        knee=joint('student_knee_'+side,(x,0,.48),hip)
+        attach(cube('student_thigh_'+side,(.21,.24,.36),(x,0,.65),pants,.045),hip)
+        attach(cube('student_shin_'+side,(.20,.23,.32),(x,0,.34),pants,.04),knee)
+        attach(cube('student_shoe',(.23,.38,.15),(x,-.07,.105),METAL,.045),knee)
+        attach(cube('student_shoe_sole',(.245,.39,.055),(x,-.07,.042),soles,.022),knee)
+        attach(cube('student_trouser_cuff',(.23,.26,.065),(x,0,.20),pants,.015),knee)
     for x in (-.32,.32):
+        side='left' if x<0 else 'right'
+        shoulder=joint('student_shoulder_'+side,(x,0,1.40))
+        elbow=joint('student_elbow_'+side,(x,0,1.08),shoulder)
+        before=set(bpy.context.scene.objects)
         sphere('student_sleeve',(x,0,1.27),(.13,.15,.18),shirt)
+        for obj in set(bpy.context.scene.objects)-before:attach(obj,shoulder)
+        before=set(bpy.context.scene.objects)
         sphere('student_forearm',(x,0,.99),(.075,.08,.22),skin)
         sphere('student_hand',(x,-.01,.77),(.08,.08,.10),skin)
         for finger in range(4):
             sphere('student_finger',(x-.045+finger*.029,-.035,.706),(.019,.036,.055),skin)
         sphere('student_thumb',(x+(.065 if x<0 else -.065),-.05,.77),(.025,.035,.055),skin)
+        for obj in set(bpy.context.scene.objects)-before:attach(obj,elbow)
     export_selected(os.path.join(OUT,'student.glb'))
 
 if __name__ == '__main__':

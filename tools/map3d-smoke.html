@@ -13,14 +13,23 @@ function showToast(text){console.log(text);}function updateInteractionZone(){}fu
 </script>
 <script src="../client/game-config.js"></script>
 <script src="https://cdn.babylonjs.com/babylon.js"></script><script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script><script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-<script src="../client/fountain-physics.js"></script><script src="../client/map-3d-layouts.js"></script><script src="../client/fountain-weather.js"></script><script src="../client/fountain-camera.js"></script><script src="../client/fountain-water.js"></script><script src="../client/babylon-fountain.js"></script><script src="../client/babylon-map-packs.js"></script>
+<script src="../client/fountain-physics.js"></script><script src="../client/map-3d-layouts.js"></script><script src="../client/fountain-weather.js"></script><script src="../client/fountain-camera.js"></script><script src="../client/fountain-water.js"></script><script src="../client/student-animation.js"></script><script src="../client/babylon-fountain.js"></script><script src="../client/babylon-map-packs.js"></script>
 <script>
 players.demo={...players.demo,...Map3DLayouts.get(currentMapId).spawn};
 activateBabylonMapPack(currentMapId);
+if(new URLSearchParams(location.search).has('walk')) {
+ const started=performance.now();babylonFountain.localMoving=true;
+ babylonFountain.scene.onBeforeRenderObservable.add(()=>{
+    const t=(performance.now()-started)/1000;
+    players.demo.x=400+Math.sin(t*1.5)*35;
+    players.demo.y=430+Math.cos(t*1.5)*35;
+ });
+}
 setTimeout(()=>{
  const world=babylonFountain;
  const loaded=world.scene.meshes.filter(m=>m.name.includes(':'));
- const result={map:currentMapId,meshes:loaded.length,portal:!!world.scene.getTransformNodeByName('fountain-exit-vortex'),errors:smokeErrors};
+ const rig=world.players.get('demo')?.getDescendants().filter(n=>n.name.startsWith('student_hip_')).map(n=>({name:n.name,angle:n.rotation.x}));
+ const result={map:currentMapId,meshes:loaded.length,portal:!!world.scene.getTransformNodeByName('fountain-exit-vortex'),rig,errors:smokeErrors};
  document.getElementById('smoke-result').textContent=JSON.stringify(result);
  if(new URLSearchParams(location.search).has('cycle')) {
     deactivateBabylonFountain();

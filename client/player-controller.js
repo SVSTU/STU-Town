@@ -1,10 +1,15 @@
 /* Local player movement controller and server movement synchronization. */
 
 const mobileMoveState = { up: false, down: false, left: false, right: false };
+const keyboardMoveState = { up: false, down: false, left: false, right: false };
+const movementPointers = new Map();
+const movementButtonKeys = new Set();
 let lastMovementSentAt=0, movementWasActive=false;
 
 function resetMovementInput() {
     Object.keys(mobileMoveState).forEach(direction=>mobileMoveState[direction]=false);
+    Object.keys(keyboardMoveState).forEach(direction=>keyboardMoveState[direction]=false);
+    movementPointers.clear();movementButtonKeys.clear();
     sceneRef?.input?.keyboard?.resetKeys();
     movementWasActive=false;lastMovementSentAt=0;
     readMovementDirections();
@@ -14,7 +19,8 @@ function readMovementDirections() {
     const enabled=sceneRef?.input?.keyboard?.enabled!==false;
     const state={};
     for(const direction of Object.keys(mobileMoveState)) {
-        state[direction]=Boolean((enabled&&cursors?.[direction]?.isDown)||mobileMoveState[direction]);
+        const keyboard=typeof babylonFountain!=='undefined'&&babylonFountain?keyboardMoveState[direction]:cursors?.[direction]?.isDown;
+        state[direction]=Boolean((enabled&&keyboard)||mobileMoveState[direction]);
         const button=document.querySelector(`[data-move-direction="${direction}"]`);
         button?.classList.toggle('is-pressed',state[direction]);
         button?.setAttribute('aria-pressed',String(state[direction]));
@@ -26,6 +32,32 @@ function bindMobileMovementControls() {
     const pad = document.getElementById('mobile-movement-pad');
     if (!pad || pad.dataset.bound === 'true') return;
     pad.dataset.bound = 'true';
+    const refreshPointers=()=>{
+        for(const direction of Object.keys(mobileMoveState))mobileMoveState[direction]=[...movementPointers.values()].includes(direction)||movementButtonKeys.has(direction);
+        readMovementDirections();
+    };
+    const releasePointer=event=>{movementPointers.delete(event.pointerId);refreshPointers();};
+    window.addEventListener('pointerup',releasePointer,true);
+    window.addEventListener('pointercancel',releasePointer,true);
+    window.addEventListener('pointermove',event=>{
+        if(event.pointerType==='mouse'&&event.buttons===0)releasePointer(event);
+    },true);
+    const keyDirections={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+    window.addEventListener('keydown',event=>{
+        const direction=keyDirections[event.code];if(!direction)return;
+        if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]')||event.altKey||event.ctrlKey||event.metaKey)return;
+        keyboardMoveState[direction]=true;
+        if(babylonFountain)event.preventDefault();
+        readMovementDirections();
+    },true);
+    window.addEventListener('keyup',event=>{
+        const direction=keyDirections[event.code];if(direction)keyboardMoveState[direction]=false;
+        if(event.code==='Space'||event.code==='Enter'){movementButtonKeys.clear();refreshPointers();}
+        readMovementDirections();
+    },true);
+    document.addEventListener('focusin',event=>{
+        if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))resetMovementInput();
+    });
     const stopAll = () => {
         resetMovementInput();
     };
@@ -33,15 +65,16 @@ function bindMobileMovementControls() {
         const direction = button.dataset.moveDirection;
         const start = (event) => {
             event.preventDefault();
-            mobileMoveState[direction] = true;
+            if(event.pointerType==='mouse'&&event.button!==0)return;
+            movementPointers.set(event.pointerId,direction);refreshPointers();
             targetPosition = null;
             button.classList.add('is-pressed');
             try { button.setPointerCapture(event.pointerId); } catch {}
         };
         const stop = (event) => {
             if (event) event.preventDefault();
-            mobileMoveState[direction] = false;
-            button.classList.remove('is-pressed');
+            if(event&&movementPointers.get(event.pointerId)===direction)movementPointers.delete(event.pointerId);
+            refreshPointers();
         };
         button.addEventListener('pointerdown', start);
         button.addEventListener('pointerup', stop);
@@ -49,12 +82,12 @@ function bindMobileMovementControls() {
         button.addEventListener('lostpointercapture', stop);
         button.addEventListener('contextmenu', (event) => event.preventDefault());
         button.addEventListener('keydown',event=>{
-            if((event.code==='Space'||event.code==='Enter')&&!event.repeat){event.preventDefault();mobileMoveState[direction]=true;}
+            if((event.code==='Space'||event.code==='Enter')&&!event.repeat){event.preventDefault();movementButtonKeys.add(direction);refreshPointers();}
         });
         button.addEventListener('keyup',event=>{
-            if(event.code==='Space'||event.code==='Enter'){event.preventDefault();mobileMoveState[direction]=false;}
+            if(event.code==='Space'||event.code==='Enter'){event.preventDefault();movementButtonKeys.delete(direction);refreshPointers();}
         });
-        button.addEventListener('blur',()=>{mobileMoveState[direction]=false;});
+        button.addEventListener('blur',()=>{movementButtonKeys.delete(direction);refreshPointers();});
     });
     window.addEventListener('blur', stopAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopAll(); });
@@ -78,7 +111,7 @@ function update(time, delta) {
     const directions=readMovementDirections();
     const {left:moveLeft,right:moveRight,up:moveUp,down:moveDown}=directions;
     speed *= Math.min(Number(delta) || 16.667, 50) / 16.667;
-    if ((moveLeft || moveRight) && (moveUp || moveDown)) speed /= Math.SQRT2;
+    if ((moveLeft !== moveRight) && (moveUp !== moveDown)) speed /= Math.SQRT2;
     if(is3D) {
         const horizontal=Number(moveRight)-Number(moveLeft), vertical=Number(moveUp)-Number(moveDown);
         keyActive=Boolean(horizontal||vertical);
@@ -133,6 +166,7 @@ function update(time, delta) {
         isMoved = p.x!==previousX||p.y!==previousY;
     }
 
+    isMoved=Math.hypot(p.x-previousX,p.y-previousY)>.0001;
     if ((isMoved && time-lastMovementSentAt>=50) || (!isMoved&&movementWasActive)) {
         socket.emit('playerMovement', { x: p.x, y: p.y });
         lastMovementSentAt=time;

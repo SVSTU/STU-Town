@@ -35,11 +35,11 @@ function controller(fps,direction,source='keyboard',forward={x:0,z:1}) {
         Phaser:{Math:{Clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),Distance:{Between:()=>100}}}
     };
     vm.createContext(context);vm.runInContext(fs.readFileSync(require.resolve('../client/player-controller.js'),'utf8'),context);
-    if(source==='keyboard')context.cursors[direction].isDown=true;
+    if(source==='keyboard')vm.runInContext(`keyboardMoveState.${direction}=true`,context);
     else vm.runInContext(`mobileMoveState.${direction}=true`,context);
     for(let i=1;i<=fps;i++)context.update(i*1000/fps,1000/fps);
     const before={...player};
-    context.cursors[direction].isDown=false;vm.runInContext(`mobileMoveState.${direction}=false`,context);
+    context.cursors[direction].isDown=false;vm.runInContext(`keyboardMoveState.${direction}=false;mobileMoveState.${direction}=false`,context);
     for(let i=1;i<=10;i++)context.update(1000+i*1000/fps,1000/fps);
     assert.deepEqual(player,before,'release must stop immediately');
     assert(emits.filter(e=>e[0]==='playerMovement').length<=22,'movement packets throttled');
