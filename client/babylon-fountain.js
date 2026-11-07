@@ -80,6 +80,28 @@ function addFountainFlowerBed(scene, x, z, scale = 1) {
     });
 }
 
+function addFountainExitVortex(scene) {
+    const portal = new BABYLON.TransformNode('fountain-exit-vortex', scene);
+    portal.position.set(8.15, .08, 5.15);
+    const glow = createFountainMaterial(scene, 'exit-glow', '#54d8ff', '#1b9fcb');
+    const coreMat = createFountainMaterial(scene, 'exit-core', '#b9f7ff', '#54d8ff');
+    const ringOuter = BABYLON.MeshBuilder.CreateTorus('exit-ring-outer', { diameter: 1.45, thickness: .12, tessellation: 36 }, scene);
+    ringOuter.parent = portal; ringOuter.rotation.x = Math.PI / 2; ringOuter.material = glow;
+    const ringInner = BABYLON.MeshBuilder.CreateTorus('exit-ring-inner', { diameter: .9, thickness: .07, tessellation: 32 }, scene);
+    ringInner.parent = portal; ringInner.rotation.x = Math.PI / 2; ringInner.material = coreMat;
+    const core = BABYLON.MeshBuilder.CreateDisc('exit-core', { radius: .32, tessellation: 32 }, scene);
+    core.parent = portal; core.rotation.x = Math.PI / 2; core.material = coreMat;
+    const pedestal = BABYLON.MeshBuilder.CreateCylinder('exit-pedestal', { diameter: 1.75, height: .12, tessellation: 32 }, scene);
+    pedestal.parent = portal; pedestal.position.y = -.04; pedestal.material = createFountainMaterial(scene, 'exit-pedestal', '#294f5c');
+    const label = BABYLON.MeshBuilder.CreatePlane('exit-label', { width: 2.2, height: .42 }, scene);
+    label.parent = portal; label.position.y = 1.05; label.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+    const labelTexture = new BABYLON.DynamicTexture('exit-label-texture', { width: 512, height: 100 }, scene, true);
+    labelTexture.hasAlpha = true; labelTexture.drawText('THOÁT MAP', 256, 65, 'bold 42px Arial', 'white', 'transparent', true);
+    const labelMaterial = new BABYLON.StandardMaterial('exit-label-material', scene); labelMaterial.diffuseTexture = labelTexture; labelMaterial.emissiveColor = BABYLON.Color3.White(); label.material = labelMaterial;
+    [ringOuter, ringInner, core, label].forEach((mesh) => { mesh.isPickable = true; mesh.actionManager = new BABYLON.ActionManager(scene); mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => { mapExitTarget = { x: 690, y: 475 }; targetPosition = { x: 690, y: 475 }; showToast('Đang đi đến vòng xoáy để thoát map…'); })); });
+    scene.onBeforeRenderObservable.add(() => { ringOuter.rotation.z += .012; ringInner.rotation.z -= .018; core.scaling.x = 1 + Math.sin(performance.now() / 260) * .08; core.scaling.y = 1 + Math.sin(performance.now() / 260) * .08; });
+}
+
 function addFountainObject(scene) {
     const stone = createFountainMaterial(scene, 'fountain-stone', '#dce5dc');
     const water = createFountainMaterial(scene, 'fountain-water', '#2d9fbc', '#0e536b');
@@ -133,7 +155,7 @@ function activateBabylonFountain() {
     new BABYLON.HemisphericLight('fountain-sun', new BABYLON.Vector3(0, 1, 0), scene).intensity = .9;
     const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 22, height: 16 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
     addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
-    addFountainObject(scene);
+    addFountainObject(scene); addFountainExitVortex(scene);
     addFountainTree(scene, -8, -5, 1.15); addFountainTree(scene, 8, -5, 1.15); addFountainTree(scene, -8, 4, .85); addFountainTree(scene, 8, 4, .85);
     addFountainBench(scene, -5.2, 3.1); addFountainBench(scene, 5.2, 3.1); addFountainBench(scene, -4.8, -3.3); addFountainBench(scene, 4.8, -3.3);
     addFountainLamp(scene, -3.3, -4.4); addFountainLamp(scene, 3.3, -4.4); addFountainLamp(scene, -3.3, 4.4); addFountainLamp(scene, 3.3, 4.4);
