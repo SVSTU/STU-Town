@@ -113,6 +113,78 @@ function addFountainExitVortex(scene) {
     scene.onBeforeRenderObservable.add(() => { ringOuter.rotation.z += .012; ringInner.rotation.z -= .018; core.scaling.x = 1 + Math.sin(performance.now() / 260) * .08; core.scaling.y = 1 + Math.sin(performance.now() / 260) * .08; });
 }
 
+async function loadReferenceFountainAssets(scene, proceduralMeshes) {
+    if (!BABYLON.SceneLoader) return;
+    const importPlacements = async (file, placements, { disablePrefixes = [], scale = 1 } = {}) => {
+        for (const [x, z, rotation = 0] of placements) {
+            try {
+                const result = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', file, scene);
+                const roots = result.meshes.filter((mesh) => !mesh.parent);
+                const root = roots[0] || result.meshes[0];
+                if (root) {
+                    root.position.set(x, 0, z);
+                    root.rotation.y = rotation;
+                    root.scaling.setAll(scale);
+                }
+                result.meshes.forEach((mesh) => { mesh.isPickable = false; });
+            } catch (error) {
+                console.warn(`Không tải được ${file}, dùng mesh dự phòng:`, error.message);
+                return false;
+            }
+        }
+        disablePrefixes.forEach((prefix) => {
+            proceduralMeshes.filter((mesh) => mesh.name.startsWith(prefix)).forEach((mesh) => mesh.setEnabled(false));
+        });
+        return true;
+    };
+    try {
+        const fountain = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'fountain.glb', scene);
+        proceduralMeshes.filter((mesh) => mesh.name.startsWith('fountain-')).forEach((mesh) => mesh.setEnabled(false));
+        fountain.meshes.forEach((mesh) => { mesh.isPickable = false; });
+    } catch (error) {
+        console.warn('Không tải được fountain.glb, dùng mesh dự phòng:', error.message);
+    }
+    try {
+        const benchPositions = [[-5.2, 3.1], [5.2, 3.1], [-4.8, -3.3], [4.8, -3.3]];
+        const benchProcedural = proceduralMeshes.filter((mesh) => mesh.name.startsWith('bench-'));
+        for (const [x, z] of benchPositions) {
+            const bench = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'stone-bench.glb', scene);
+            const root = bench.meshes.find((mesh) => !mesh.parent) || bench.meshes[0];
+            root.position.x = x; root.position.z = z; root.position.y = 0;
+            bench.meshes.forEach((mesh) => { mesh.isPickable = false; });
+        }
+        benchProcedural.forEach((mesh) => mesh.setEnabled(false));
+    } catch (error) {
+        console.warn('Không tải được stone-bench.glb, dùng mesh dự phòng:', error.message);
+    }
+
+    // Additional park props are loaded as reusable GLB modules. If one is unavailable,
+    // its procedural counterpart remains visible so the map is still usable.
+    await importPlacements('tree.glb', [[-8.0, -5.0], [8.0, -5.0], [-8.0, 4.2], [8.0, 4.2]], {
+        disablePrefixes: ['tree-'],
+        scale: 1.0
+    });
+    await importPlacements('flowerbed.glb', [[-4.2, -1.9], [4.2, -1.9], [-4.2, 1.9], [4.2, 1.9]], {
+        disablePrefixes: ['flower-'],
+        scale: 0.9
+    });
+    await importPlacements('lamp.glb', [[-3.35, -4.4], [3.35, -4.4], [-3.35, 4.4], [3.35, 4.4]], {
+        disablePrefixes: ['lamp-'],
+        scale: 1.0
+    });
+    await importPlacements('pergola.glb', [[-7.0, 2.8], [7.0, 2.8]], {
+        disablePrefixes: ['pergola-'],
+        scale: 0.9
+    });
+    await importPlacements('path.glb', [[0, -6.0], [0, 6.0], [-7.0, 0, Math.PI / 2], [7.0, 0, Math.PI / 2]], {
+        disablePrefixes: ['fountain-path'],
+        scale: 1.0
+    });
+    await importPlacements('railing.glb', [[0, -7.15], [0, 7.15], [-9.0, 0, Math.PI / 2], [9.0, 0, Math.PI / 2]], {
+        scale: 1.0
+    });
+}
+
 function addFountainObject(scene) {
     const stone = createFountainMaterial(scene, 'fountain-stone', '#dce5dc');
     const water = createFountainMaterial(scene, 'fountain-water', '#2d9fbc', '#0e536b');
@@ -188,6 +260,9 @@ function activateBabylonFountain() {
     const scene = new BABYLON.Scene(engine); scene.clearColor = new BABYLON.Color4(.055, .12, .08, 1);
     const camera = new BABYLON.ArcRotateCamera('fountain-camera', -Math.PI / 2, 1.05, 19, new BABYLON.Vector3(0, .5, 0), scene);
     camera.attachControl(canvas, true); camera.lowerRadiusLimit = 13; camera.upperRadiusLimit = 24; camera.wheelPrecision = 70;
+    // Arrow/WASD keys belong to the player controller, never to the 3D camera.
+    camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
+    camera.inputs.attached.keyboard?.detachControl();
     new BABYLON.HemisphericLight('fountain-sun', new BABYLON.Vector3(0, 1, 0), scene).intensity = .9;
     const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 22, height: 16 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
     addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
@@ -198,7 +273,9 @@ function activateBabylonFountain() {
     addFountainPergola(scene, -7, 2.8); addFountainPergola(scene, 7, 2.8);
     addFountainFlowerBed(scene, -4.3, -1.8, 1.1); addFountainFlowerBed(scene, 4.3, -1.8, 1.1); addFountainFlowerBed(scene, -4.3, 1.8, 1.1); addFountainFlowerBed(scene, 4.3, 1.8, 1.1);
     const gui = BABYLON.GUI ? BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('fountain-gui', true, scene) : null;
+    const proceduralMeshes = scene.meshes.slice();
     babylonFountain = { canvas, engine, scene, gui, players: new Map() };
+    void loadReferenceFountainAssets(scene, proceduralMeshes);
     const phaserCanvas = document.querySelector('canvas:not(#babylon-fountain-canvas)'); if (phaserCanvas) phaserCanvas.classList.add('phaser-map-hidden');
     engine.runRenderLoop(() => scene.render()); window.addEventListener('resize', () => engine.resize());
     updateBabylonFountainPlayers(); return true;
