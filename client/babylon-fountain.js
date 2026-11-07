@@ -193,14 +193,8 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
         const fountain = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'fountain.glb?v=park-detail-2', scene);
         proceduralMeshes.filter((mesh) => mesh.name.startsWith('fountain-') && mesh.name !== 'fountain-ground' && mesh.name !== 'fountain-path').forEach((mesh) => mesh.setEnabled(false));
         fountain.meshes.forEach((mesh) => { mesh.isPickable = false; });
-        const fountainWater = fountain.meshes.filter((mesh) => /water|jet|sphere/i.test(mesh.name));
-        scene.onBeforeRenderObservable.add(() => {
-            const pulse = 1 + Math.sin(performance.now() / 220) * .08;
-            fountainWater.forEach((mesh, index) => {
-                if (/jet/i.test(mesh.name)) mesh.scaling.y = pulse;
-                if (/water/i.test(mesh.name)) mesh.rotation.y += .0008 * (index % 2 ? -1 : 1);
-            });
-        });
+        fountain.meshes.filter(mesh=>/water|jet/i.test(mesh.name)).forEach(mesh=>mesh.setEnabled(false));
+        createFountainWater(scene);
     } catch (error) {
         console.warn('Không tải được fountain.glb, dùng mesh dự phòng:', error.message);
     }
