@@ -94,8 +94,10 @@ function addFountainFlowerBed(scene, x, z, scale = 1) {
 function addFountainPlazaRings(scene) {
     const paving = createFountainMaterial(scene, 'plaza-paving', '#e4cfa5');
     const trim = createFountainMaterial(scene, 'plaza-trim', '#b9a67f');
-    const innerRing = BABYLON.MeshBuilder.CreateTorus('plaza-inner-ring', { diameter: 8.2, thickness: 1.0, tessellation: 64 }, scene);
-    innerRing.position.y = .035; innerRing.rotation.x = 0; innerRing.material = paving;
+    const innerRing = BABYLON.MeshBuilder.CreateTorus('plaza-inner-ring', { diameter: 8.65, thickness: .16, tessellation: 64 }, scene);
+    innerRing.position.y = .07; innerRing.material = trim;
+    const plazaDisc = BABYLON.MeshBuilder.CreateCylinder('plaza-paving-disc', { diameter: 10.9, height: .055, tessellation: 96 }, scene);
+    plazaDisc.position.y = .025; plazaDisc.material = paving;
     const outerRing = BABYLON.MeshBuilder.CreateTorus('plaza-outer-ring', { diameter: 11.0, thickness: .16, tessellation: 64 }, scene);
     outerRing.position.y = .055; outerRing.material = trim;
     for (let index = 0; index < 24; index++) {
@@ -112,21 +114,43 @@ function addFountainExitVortex(scene) {
     portal.position.set(8.15, .08, 5.15);
     const glow = createFountainMaterial(scene, 'exit-glow', '#54d8ff', '#1b9fcb');
     const coreMat = createFountainMaterial(scene, 'exit-core', '#b9f7ff', '#54d8ff');
-    const ringOuter = BABYLON.MeshBuilder.CreateTorus('exit-ring-outer', { diameter: 1.45, thickness: .12, tessellation: 36 }, scene);
+    const dark = createFountainMaterial(scene, 'exit-dark-teal', '#163f4b');
+    const base = BABYLON.MeshBuilder.CreateCylinder('exit-base', { diameter: 1.95, height: .18, tessellation: 40 }, scene);
+    base.parent = portal; base.position.y = .09; base.material = dark;
+    const baseTrim = BABYLON.MeshBuilder.CreateTorus('exit-base-trim', { diameter: 1.65, thickness: .07, tessellation: 40 }, scene);
+    baseTrim.parent = portal; baseTrim.position.y = .19; baseTrim.material = glow;
+    const ringOuter = BABYLON.MeshBuilder.CreateTorus('exit-ring-outer', { diameter: 1.55, thickness: .13, tessellation: 48 }, scene);
     ringOuter.parent = portal; ringOuter.rotation.x = Math.PI / 2; ringOuter.material = glow;
-    const ringInner = BABYLON.MeshBuilder.CreateTorus('exit-ring-inner', { diameter: .9, thickness: .07, tessellation: 32 }, scene);
+    ringOuter.position.y = .86;
+    const ringInner = BABYLON.MeshBuilder.CreateTorus('exit-ring-inner', { diameter: 1.02, thickness: .075, tessellation: 40 }, scene);
     ringInner.parent = portal; ringInner.rotation.x = Math.PI / 2; ringInner.material = coreMat;
-    const core = BABYLON.MeshBuilder.CreateDisc('exit-core', { radius: .32, tessellation: 32 }, scene);
-    core.parent = portal; core.rotation.x = Math.PI / 2; core.material = coreMat;
-    const pedestal = BABYLON.MeshBuilder.CreateCylinder('exit-pedestal', { diameter: 1.75, height: .12, tessellation: 32 }, scene);
-    pedestal.parent = portal; pedestal.position.y = -.04; pedestal.material = createFountainMaterial(scene, 'exit-pedestal', '#294f5c');
+    ringInner.parent = portal; ringInner.position.y = .86;
+    const core = BABYLON.MeshBuilder.CreateSphere('exit-core', { diameter: .58, segments: 16 }, scene);
+    core.parent = portal; core.position.y = .86; core.material = coreMat;
+    const sparks = [];
+    for (let index = 0; index < 12; index++) {
+        const spark = BABYLON.MeshBuilder.CreateSphere(`exit-spark-${index}`, { diameter: .055, segments: 6 }, scene);
+        spark.parent = portal; spark.material = glow;
+        sparks.push({ mesh: spark, phase: index * .42, radius: .38 + (index % 3) * .14 });
+    }
     const label = BABYLON.MeshBuilder.CreatePlane('exit-label', { width: 2.2, height: .42 }, scene);
     label.parent = portal; label.position.y = 1.05; label.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
     const labelTexture = new BABYLON.DynamicTexture('exit-label-texture', { width: 512, height: 100 }, scene, true);
     labelTexture.hasAlpha = true; labelTexture.drawText('THOÁT MAP', 256, 65, 'bold 42px Arial', 'white', 'transparent', true);
     const labelMaterial = new BABYLON.StandardMaterial('exit-label-material', scene); labelMaterial.diffuseTexture = labelTexture; labelMaterial.emissiveColor = BABYLON.Color3.White(); label.material = labelMaterial;
-    [ringOuter, ringInner, core, label].forEach((mesh) => { mesh.isPickable = true; mesh.actionManager = new BABYLON.ActionManager(scene); mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => { mapExitTarget = { x: 690, y: 475 }; targetPosition = { x: 690, y: 475 }; showToast('Đang đi đến vòng xoáy để thoát map…'); })); });
-    scene.onBeforeRenderObservable.add(() => { ringOuter.rotation.z += .012; ringInner.rotation.z -= .018; core.scaling.x = 1 + Math.sin(performance.now() / 260) * .08; core.scaling.y = 1 + Math.sin(performance.now() / 260) * .08; });
+    [base, baseTrim, ringOuter, ringInner, core, label, ...sparks.map(({ mesh }) => mesh)].forEach((mesh) => { mesh.isPickable = true; mesh.actionManager = new BABYLON.ActionManager(scene); mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => { mapExitTarget = { x: 690, y: 475 }; targetPosition = { x: 690, y: 475 }; showToast('Đang đi đến vòng xoáy để thoát map…'); })); });
+    scene.onBeforeRenderObservable.add(() => {
+        const now = performance.now();
+        ringOuter.rotation.z += .012; ringInner.rotation.z -= .018;
+        const pulse = 1 + Math.sin(now / 260) * .08;
+        core.scaling.setAll(pulse);
+        sparks.forEach(({ mesh, phase, radius }) => {
+            const t = now / 500 + phase;
+            mesh.position.x = Math.cos(t) * radius;
+            mesh.position.y = .86 + Math.sin(t * 1.25) * radius;
+            mesh.position.z = Math.sin(t) * .16;
+        });
+    });
 }
 
 async function loadReferenceFountainAssets(scene, proceduralMeshes) {
@@ -134,13 +158,15 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
     const importPlacements = async (file, placements, { disablePrefixes = [], scale = 1 } = {}) => {
         for (const [x, z, rotation = 0] of placements) {
             try {
-                const result = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', file, scene);
+                if (scene.isDisposed) return false;
+                const result = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', file + '?v=park-detail-2', scene);
                 const roots = result.meshes.filter((mesh) => !mesh.parent);
                 const root = roots[0] || result.meshes[0];
                 if (root) {
                     root.position.set(x, 0, z);
+                    root.rotationQuaternion = null;
                     root.rotation.y = rotation;
-                    root.scaling.setAll(scale);
+                    root.scaling.scaleInPlace(scale);
                 }
                 result.meshes.forEach((mesh) => { mesh.isPickable = false; });
             } catch (error) {
@@ -154,8 +180,8 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
         return true;
     };
     try {
-        const fountain = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'fountain.glb', scene);
-        proceduralMeshes.filter((mesh) => mesh.name.startsWith('fountain-')).forEach((mesh) => mesh.setEnabled(false));
+        const fountain = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'fountain.glb?v=park-detail-2', scene);
+        proceduralMeshes.filter((mesh) => mesh.name.startsWith('fountain-') && mesh.name !== 'fountain-ground' && mesh.name !== 'fountain-path').forEach((mesh) => mesh.setEnabled(false));
         fountain.meshes.forEach((mesh) => { mesh.isPickable = false; });
         const fountainWater = fountain.meshes.filter((mesh) => /water|jet|sphere/i.test(mesh.name));
         scene.onBeforeRenderObservable.add(() => {
@@ -168,19 +194,7 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
     } catch (error) {
         console.warn('Không tải được fountain.glb, dùng mesh dự phòng:', error.message);
     }
-    try {
-        const benchPositions = [[-5.2, 3.1], [5.2, 3.1], [-4.8, -3.3], [4.8, -3.3]];
-        const benchProcedural = proceduralMeshes.filter((mesh) => mesh.name.startsWith('bench-'));
-        for (const [x, z] of benchPositions) {
-            const bench = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'stone-bench.glb', scene);
-            const root = bench.meshes.find((mesh) => !mesh.parent) || bench.meshes[0];
-            root.position.x = x; root.position.z = z; root.position.y = 0;
-            bench.meshes.forEach((mesh) => { mesh.isPickable = false; });
-        }
-        benchProcedural.forEach((mesh) => mesh.setEnabled(false));
-    } catch (error) {
-        console.warn('Không tải được stone-bench.glb, dùng mesh dự phòng:', error.message);
-    }
+    await importPlacements('stone-bench.glb', [[-3.8, 3.8, Math.PI], [3.8, 3.8, Math.PI], [-3.8, -3.8], [3.8, -3.8]], { disablePrefixes: ['bench-'], scale: .85 });
 
     // Additional park props are loaded as reusable GLB modules. If one is unavailable,
     // its procedural counterpart remains visible so the map is still usable.
@@ -188,7 +202,7 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
         disablePrefixes: ['tree-'],
         scale: 1.0
     });
-    await importPlacements('flowerbed.glb', [[-4.2, -1.9], [4.2, -1.9], [-4.2, 1.9], [4.2, 1.9]], {
+    await importPlacements('flowerbed.glb', [[-3.8, -4.7], [3.8, -4.7], [-3.8, 4.7], [3.8, 4.7]], {
         disablePrefixes: ['flower-'],
         scale: 0.9
     });
@@ -196,7 +210,7 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
         disablePrefixes: ['lamp-'],
         scale: 1.0
     });
-    await importPlacements('pergola.glb', [[-7.0, 2.8], [7.0, 2.8]], {
+    await importPlacements('pergola.glb', [[-7.0, 3.5, Math.PI], [7.0, 3.5, Math.PI]], {
         disablePrefixes: ['pergola-'],
         scale: 0.9
     });
@@ -204,9 +218,8 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
         disablePrefixes: ['fountain-path'],
         scale: 1.0
     });
-    await importPlacements('railing.glb', [[0, -7.15], [0, 7.15], [-9.0, 0, Math.PI / 2], [9.0, 0, Math.PI / 2]], {
-        scale: 1.0
-    });
+    // The reference plaza is open and uncluttered; railings remain available as an
+    // asset but are intentionally not placed in this map.
 }
 
 function addFountainObject(scene) {
@@ -282,12 +295,20 @@ function activateBabylonFountain() {
     const canvas = document.createElement('canvas'); canvas.id = 'babylon-fountain-canvas'; document.body.appendChild(canvas);
     const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
     const scene = new BABYLON.Scene(engine); scene.clearColor = new BABYLON.Color4(.34, .58, .38, 1);
-    const camera = new BABYLON.ArcRotateCamera('fountain-camera', -Math.PI / 2, 1.05, 19, new BABYLON.Vector3(0, .5, 0), scene);
+    const camera = new BABYLON.ArcRotateCamera('fountain-camera', -Math.PI / 2, 1.12, 23, new BABYLON.Vector3(0, .5, 0), scene);
     camera.attachControl(canvas, true); camera.lowerRadiusLimit = 13; camera.upperRadiusLimit = 24; camera.wheelPrecision = 70;
     // Arrow/WASD keys belong to the player controller, never to the 3D camera.
     camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
     camera.inputs.attached.keyboard?.detachControl();
     new BABYLON.HemisphericLight('fountain-sun', new BABYLON.Vector3(0, 1, 0), scene).intensity = .9;
+    const sunlight = new BABYLON.DirectionalLight('park-sunlight', new BABYLON.Vector3(-.6, -1, .35), scene);
+    sunlight.position.set(8, 14, -8); sunlight.intensity = 1.2;
+    const shadows = new BABYLON.ShadowGenerator(1024, sunlight);
+    shadows.useBlurExponentialShadowMap = true; shadows.blurKernel = 16;
+    scene.onNewMeshAddedObservable.add((mesh) => {
+        mesh.receiveShadows = true;
+        if (!/ground|path|plaza|exit-|water|jet|droplet/.test(mesh.name)) shadows.addShadowCaster(mesh);
+    });
     const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 30, height: 24 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
     addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
     addFountainPlazaRings(scene);
