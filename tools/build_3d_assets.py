@@ -2,6 +2,7 @@ import bpy
 import math
 import os
 import random
+import sys
 from mathutils import Vector
 
 try:
@@ -264,6 +265,50 @@ def detailed_tree():
             apply_mat(obj,greens[rng.randrange(len(greens))])
     export_selected(os.path.join(OUT, 'tree.glb'))
 
+def build_student():
+    skin=mat('Student skin',(.86,.49,.25))
+    shirt=mat('Student green shirt',(.13,.40,.065))
+    pants=mat('Student navy trousers',(.035,.08,.16))
+    hair=mat('Student dark hair',(.075,.037,.028))
+    soles=mat('Student ivory soles',(.81,.77,.66))
+    mouth=mat('Student smile',(.34,.07,.025))
+    def sphere(name,location,scale,material):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16,ring_count=10,radius=1,location=location)
+        obj=bpy.context.object; obj.name=name; obj.scale=scale; apply_mat(obj,material)
+        for polygon in obj.data.polygons: polygon.use_smooth=True
+    cube('student_torso',(.48,.27,.57),(0,0,1.12),shirt,.10)
+    cylinder('student_neck',.08,.13,1.47,skin,vertices=16)
+    sphere('student_head',(0,0,1.70),(.23,.20,.27),skin)
+    sphere('student_hair_back',(0,.065,1.82),(.24,.19,.23),hair)
+    # Separate faceted locks create the swept silhouette in the reference.
+    for index,(x,y,z,sx,sy,sz) in enumerate([(-.14,-.09,1.91,.13,.13,.10),(-.06,-.12,1.96,.16,.12,.10),(.07,-.07,2.00,.16,.15,.08),(.15,.03,1.94,.10,.16,.12)]):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=1,location=(x,y,z))
+        obj=bpy.context.object; obj.name='student_hair_lock'; obj.scale=(sx,sy,sz); obj.rotation_euler[1]=-.25
+        apply_mat(obj,hair)
+    for x in (-.235,.235): sphere('student_ear',(x,0,1.70),(.055,.044,.078),skin)
+    for x in (-.09,.09):
+        sphere('student_eye',(x,-.191,1.73),(.023,.018,.03),hair)
+        brow=cube('student_eyebrow',(.068,.025,.016),(x,-.185,1.80),hair,.007)
+        brow.rotation_euler[1]=.06 if x>0 else -.06
+    sphere('student_nose',(0,-.21,1.66),(.035,.04,.04),skin)
+    tube('student_smile',[(x,-.194,1.595+.7*x*x) for x in [-.065,-.04,0,.04,.065]],.009,mouth)
+    collar=torus('student_collar',.09,.018,1.42,shirt)
+    for x in (-.15,.15):
+        cube('student_trouser_leg',(.21,.24,.66),(x,0,.49),pants,.055)
+        cube('student_shoe',(.23,.38,.15),(x,-.07,.105),METAL,.045)
+        cube('student_shoe_sole',(.245,.39,.055),(x,-.07,.042),soles,.022)
+        cube('student_trouser_cuff',(.23,.26,.065),(x,0,.20),pants,.015)
+    for x in (-.32,.32):
+        sphere('student_sleeve',(x,0,1.27),(.13,.15,.18),shirt)
+        sphere('student_forearm',(x,0,.99),(.075,.08,.22),skin)
+        sphere('student_hand',(x,-.01,.77),(.08,.08,.10),skin)
+        for finger in range(4):
+            sphere('student_finger',(x-.045+finger*.029,-.035,.706),(.019,.036,.055),skin)
+        sphere('student_thumb',(x+(.065 if x<0 else -.065),-.05,.77),(.025,.035,.055),skin)
+    export_selected(os.path.join(OUT,'student.glb'))
+
+build_student()
+if '--student-only' in sys.argv: sys.exit(0)
 detailed_fountain()
 build_bench()
 detailed_tree()

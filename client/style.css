@@ -859,6 +859,7 @@ body > .game-confirm-modal { position: fixed !important; inset: 0 !important; }
 
 /* Mobile touch D-pad: hold a direction to walk, release to stop. */
 #mobile-movement-pad { display: none; }
+.fountain-camera-toggle { position: fixed; z-index: 35; transform: translateX(-50%); padding: 7px 12px; border: 1px solid #9cbdba; border-radius: 18px; color: #f1fbff; background: #173b47e8; cursor: pointer; touch-action: manipulation; font-size: 13px; }
 @media (max-width: 600px) and (pointer: coarse) {
     #mobile-movement-pad {
         position: fixed;

@@ -36,6 +36,7 @@ function update(time, delta) {
     if (!socket.id || !players[socket.id]) return;
 
     const p = players[socket.id];
+    if (currentMapId === 'fountain') targetPosition = null;
     const previousX = p.x;
     const previousY = p.y;
     const fatigue = Number(playerStatsState.stats.fatigue) || 0;
@@ -48,6 +49,8 @@ function update(time, delta) {
     const moveRight = cursors.right.isDown || mobileMoveState.right;
     const moveUp = cursors.up.isDown || mobileMoveState.up;
     const moveDown = cursors.down.isDown || mobileMoveState.down;
+    speed *= Math.min(Number(delta) || 16.667, 50) / 16.667;
+    if ((moveLeft || moveRight) && (moveUp || moveDown)) speed /= Math.SQRT2;
     if (moveLeft) { p.x -= speed; keyActive = true; }
     else if (moveRight) { p.x += speed; keyActive = true; }
 
@@ -80,7 +83,7 @@ function update(time, delta) {
     p.x = Phaser.Math.Clamp(p.x, 15, 785);
     p.y = Phaser.Math.Clamp(p.y, 15, 585);
 
-    if (isBlockedPosition(p.x, p.y)) {
+    if (isBlockedPosition(p.x, p.y) || (currentMapId === 'fountain' && FountainPhysics.blockedPath(previousX,previousY,p.x,p.y))) {
         p.x = previousX;
         p.y = previousY;
         targetPosition = null;

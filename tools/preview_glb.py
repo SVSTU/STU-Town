@@ -27,3 +27,10 @@ for filename in sorted(os.listdir(root)):
     scene.render.resolution_x = 800; scene.render.resolution_y = 800; scene.render.resolution_percentage = 100
     scene.render.filepath = os.path.join(out, filename.replace('.glb','.png'))
     bpy.ops.render.render(write_still=True)
+    if filename == 'student.glb':
+        scene.cycles.samples = 16
+        for direction, offset in [('front',(0,-3,0)),('back',(0,3,0)),('left',(-3,0,0)),('right',(3,0,0)),('top',(0,0,3)),('bottom',(0,0,-3))]:
+            camera.location = center + Vector(offset)*size
+            camera.rotation_euler = (center-camera.location).to_track_quat('-Z','Y').to_euler()
+            scene.render.filepath = os.path.join(out,'student-'+direction+'.png')
+            bpy.ops.render.render(write_still=True)

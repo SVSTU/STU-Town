@@ -562,10 +562,12 @@ function emitSessionLeaderboard() {
   });
 }
 
+const FountainPhysics = require('../client/fountain-physics.js');
+const ALL_REST_BENCHES = [...CAMPUS_BENCHES, ...FountainPhysics.benches];
 function getCampusBenchOccupants() {
   const occupants = {};
   Object.entries(players)
-    .filter(([, player]) => player.mapId === 'campus' && player.sittingAtBench)
+    .filter(([, player]) => ['campus','fountain'].includes(player.mapId) && player.sittingAtBench)
     .forEach(([id, player]) => {
       if (!occupants[player.sittingAtBench]) occupants[player.sittingAtBench] = [];
       occupants[player.sittingAtBench].push(id);
@@ -574,7 +576,7 @@ function getCampusBenchOccupants() {
 }
 
 function positionCampusBenchOccupants(benchId) {
-  const bench = CAMPUS_BENCHES.find((item) => item.id === benchId);
+  const bench = ALL_REST_BENCHES.find((item) => item.id === benchId);
   const occupantIds = getCampusBenchOccupants()[benchId] || [];
   if (!bench) return;
   const offsets = [-16, 16];
@@ -584,12 +586,13 @@ function positionCampusBenchOccupants(benchId) {
     player.x = bench.x + offsets[index];
     player.y = bench.y + 28;
     io.sockets.sockets.get(id)?.emit('playerMoved', { id, x: player.x, y: player.y });
-    io.to('map:campus').emit('playerMoved', { id, x: player.x, y: player.y });
+    io.to(`map:${player.mapId}`).emit('playerMoved', { id, x: player.x, y: player.y });
   });
 }
 
 function emitCampusBenchOccupants() {
   io.to('map:campus').emit('campusBenchOccupancy', getCampusBenchOccupants());
+  io.to('map:fountain').emit('campusBenchOccupancy', getCampusBenchOccupants());
 }
 
 function stopCampusBenchRest(player) {
@@ -606,10 +609,10 @@ function getBenchPrivateOfferForPlayer(playerId) {
 }
 
 function ejectBenchPair(playerIds, message) {
-  const activeIds = playerIds.filter((id) => players[id]?.mapId === 'campus');
+  const activeIds = playerIds.filter((id) => ['campus','fountain'].includes(players[id]?.mapId));
   activeIds.forEach((id, index) => {
     const player = players[id];
-    const bench = CAMPUS_BENCHES.find((item) => item.id === player.sittingAtBench);
+    const bench = ALL_REST_BENCHES.find((item) => item.id === player.sittingAtBench);
     const wasSitting = stopCampusBenchRest(player);
     if (bench) {
       player.x = Math.max(30, Math.min(770, bench.x + 78 + index * 22));
@@ -617,21 +620,21 @@ function ejectBenchPair(playerIds, message) {
     }
     const playerSocket = io.sockets.sockets.get(id);
     playerSocket?.emit('benchRestResult', { message, state: getPlayerState(player), x: player.x, y: player.y });
-    if (wasSitting) playerSocket?.to('map:campus').emit('playerMoved', { id, x: player.x, y: player.y });
+    if (wasSitting) playerSocket?.to(`map:${player.mapId}`).emit('playerMoved', { id, x: player.x, y: player.y });
   });
   emitCampusBenchOccupants();
 }
 
 function moveBenchPairToPrivateSpace(offer) {
-  const activeIds = offer.playerIds.filter((id) => players[id]?.mapId === 'campus' && players[id].sittingAtBench === offer.benchId);
+  const activeIds = offer.playerIds.filter((id) => ['campus','fountain'].includes(players[id]?.mapId) && players[id].sittingAtBench === offer.benchId);
   if (activeIds.length !== 2) return false;
   const privateMapId = `bench-private:${offer.id}`;
   activeIds.forEach((id, index) => {
     const player = players[id];
     const playerSocket = io.sockets.sockets.get(id);
     stopCampusBenchRest(player);
-    playerSocket?.leave('map:campus');
-    playerSocket?.to('map:campus').emit('playerLeftMap', id);
+    playerSocket?.leave(`map:${player.mapId}`);
+    playerSocket?.to(`map:${player.mapId}`).emit('playerLeftMap', id);
     Object.assign(player, { mapId: privateMapId, x: index ? 455 : 345, y: 310 });
     playerSocket?.join(`map:${privateMapId}`);
   });
@@ -672,7 +675,7 @@ function tickCampusBenchRest() {
   let occupancyChanged = false;
   for (const [id, player] of Object.entries(players)) {
     if (!player.benchRestStartedAt) continue;
-    if (player.mapId !== 'campus' || !player.sittingAtBench) {
+    if (!['campus','fountain'].includes(player.mapId) || !player.sittingAtBench) {
       occupancyChanged = stopCampusBenchRest(player) || occupancyChanged;
       continue;
     }
@@ -1125,10 +1128,11 @@ io.on('connection', (socket) => {
     socket.leave(`map:${previousMapId}`);
     socket.to(`map:${previousMapId}`).emit('playerLeftMap', socket.id);
     if (previousMapId === 'campus' && wasSittingAtBench) emitCampusBenchOccupants();
-    const spawn = mapId === 'farm' ? { x: 400, y: 430 } : { x: 400, y: 300 };
+    const spawn = mapId === 'fountain' ? FountainPhysics.spawn : mapId === 'farm' ? { x: 400, y: 430 } : { x: 400, y: 300 };
     Object.assign(players[socket.id], spawn, { mapId });
     socket.join(`map:${mapId}`);
     socket.emit('mapChanged', { mapId, players: getMapPlayers(mapId) });
+    if (mapId === 'fountain') socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
     if (mapId === 'campus') socket.emit('campusBenchOccupancy', getCampusBenchOccupants());
     socket.to(`map:${mapId}`).emit('newPlayer', { id: socket.id, ...players[socket.id] });
     if (mapId === 'canteen') void emitCanteenBestSellingProducts(socket);
@@ -1173,6 +1177,7 @@ io.on('connection', (socket) => {
       const x = Math.max(15, Math.min(785, data.x));
       const y = Math.max(15, Math.min(585, data.y));
       if (players[socket.id].mapId === 'campus' && isBlockedPosition(x, y)) return;
+      if (players[socket.id].mapId === 'fountain' && FountainPhysics.blockedPath(players[socket.id].x,players[socket.id].y,x,y)) return;
       stopCampusBenchRest(players[socket.id]);
       if (wasSittingAtBench) {
         socket.emit('benchRestResult', { message: 'Bạn đứng dậy; lượt nghỉ đã dừng.' });
@@ -1315,8 +1320,8 @@ io.on('connection', (socket) => {
 
   socket.on('restAtCampusBench', (benchId) => {
     const player = players[socket.id];
-    const bench = CAMPUS_BENCHES.find((item) => item.id === benchId);
-    if (!player || player.mapId !== 'campus' || !bench) {
+    const bench = ALL_REST_BENCHES.find((item) => item.id === benchId);
+    if (!player || !bench || player.mapId !== (benchId.startsWith('fountain-') ? 'fountain' : 'campus')) {
       return socket.emit('benchRestResult', { message: 'Ghế nghỉ chỉ dùng được tại sân trường.' });
     }
     const distance = Math.hypot(player.x - bench.x, player.y - bench.y);
@@ -1351,7 +1356,7 @@ io.on('connection', (socket) => {
     const offer = campusBenchPrivateOffers.get(offerId);
     const player = players[socket.id];
     if (!offer || !player || !offer.playerIds.includes(socket.id) || Date.now() > offer.expiresAt) return;
-    if (player.mapId !== 'campus' || player.sittingAtBench !== offer.benchId) return;
+    if (!['campus','fountain'].includes(player.mapId) || player.sittingAtBench !== offer.benchId) return;
     if (accept !== true) {
       campusBenchPrivateOffers.delete(offerId);
       return ejectBenchPair(offer.playerIds, 'Bạn chưa cùng xác nhận không gian riêng nên đã rời ghế để nhường chỗ.');
@@ -1728,7 +1733,7 @@ io.on('connection', (socket) => {
     halloweenProgress.delete(socket.id);
     if (halloweenFinders.size) io.emit('halloweenLeaderboard', getHalloweenLeaderboard());
     emitSessionLeaderboard();
-    if (mapId === 'campus') emitCampusBenchOccupants();
+    if (['campus','fountain'].includes(mapId)) emitCampusBenchOccupants();
     if (mapId === 'farm' && farmMembers().length === 0) {
       clearFarmMouseTimers();
       activeFarmMouse = null;

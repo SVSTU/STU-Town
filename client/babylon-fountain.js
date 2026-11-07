@@ -169,6 +169,16 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
                     root.scaling.scaleInPlace(scale);
                 }
                 result.meshes.forEach((mesh) => { mesh.isPickable = false; });
+                if (file === 'stone-bench.glb') {
+                    const bench = FountainPhysics.benches.find(b => Math.abs(b.x-(400+x*34))<1 && Math.abs(b.y-(300+z*34))<1);
+                    result.meshes.forEach(mesh => {
+                        mesh.isPickable = true;
+                        mesh.actionManager = new BABYLON.ActionManager(scene);
+                        mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
+                            if (bench) socket.emit('restAtCampusBench',bench.id);
+                        }));
+                    });
+                }
             } catch (error) {
                 console.warn(`Không tải được ${file}, dùng mesh dự phòng:`, error.message);
                 return false;
@@ -280,6 +290,14 @@ function createBabylonHuman(scene, id) {
     });
     const shadow = BABYLON.MeshBuilder.CreateDisc('human-shadow', { radius: .48, tessellation: 24 }, scene);
     shadow.parent = root; shadow.rotation.x = Math.PI / 2; shadow.position.y = .015; shadow.material = createFountainMaterial(scene, `shadow-${id}`, '#14251b');
+    const fallbackMeshes = root.getChildMeshes().filter((mesh) => mesh !== shadow);
+    BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'student.glb?v=2', scene).then((asset) => {
+        if (scene.isDisposed || root.isDisposed()) { asset.meshes.forEach((mesh) => mesh.dispose()); return; }
+        const modelRoot = asset.meshes.find((mesh) => !mesh.parent);
+        if (modelRoot) modelRoot.parent = root;
+        root._studentParts = asset.meshes.map(mesh=>({mesh,position:mesh.position.clone(),rotation:mesh.rotation.clone()}));
+        fallbackMeshes.forEach((mesh) => { mesh.visibility = 0; mesh._cameraBaseVisibility = 0; });
+    }).catch((error) => console.warn('Student model fallback:', error.message));
     if (BABYLON.GUI) {
         const label = new BABYLON.GUI.Rectangle(`name-${id}`);
         label.width = '110px'; label.height = '25px'; label.cornerRadius = 6; label.thickness = 0;
@@ -300,14 +318,14 @@ function activateBabylonFountain() {
     // Arrow/WASD keys belong to the player controller, never to the 3D camera.
     camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
     camera.inputs.attached.keyboard?.detachControl();
-    new BABYLON.HemisphericLight('fountain-sun', new BABYLON.Vector3(0, 1, 0), scene).intensity = .9;
+    const ambient = new BABYLON.HemisphericLight('fountain-ambient', new BABYLON.Vector3(0, 1, 0), scene);
     const sunlight = new BABYLON.DirectionalLight('park-sunlight', new BABYLON.Vector3(-.6, -1, .35), scene);
     sunlight.position.set(8, 14, -8); sunlight.intensity = 1.2;
     const shadows = new BABYLON.ShadowGenerator(1024, sunlight);
     shadows.useBlurExponentialShadowMap = true; shadows.blurKernel = 16;
     scene.onNewMeshAddedObservable.add((mesh) => {
         mesh.receiveShadows = true;
-        if (!/ground|path|plaza|exit-|water|jet|droplet/.test(mesh.name)) shadows.addShadowCaster(mesh);
+        if (!/ground|path|plaza|exit-|water|jet|droplet|sky-/.test(mesh.name)) shadows.addShadowCaster(mesh);
     });
     const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 30, height: 24 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
     addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
@@ -319,8 +337,18 @@ function activateBabylonFountain() {
     addFountainPergola(scene, -7, 2.8); addFountainPergola(scene, 7, 2.8);
     addFountainFlowerBed(scene, -4.3, -1.8, 1.1); addFountainFlowerBed(scene, 4.3, -1.8, 1.1); addFountainFlowerBed(scene, -4.3, 1.8, 1.1); addFountainFlowerBed(scene, 4.3, 1.8, 1.1);
     const gui = BABYLON.GUI ? BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('fountain-gui', true, scene) : null;
+    const sitKey = event => {
+        if (event.code !== 'KeyE' || event.repeat || /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName)) return;
+        const player = players[socket.id];
+        const bench = player && FountainPhysics.benches.find(b => Math.hypot(player.x-b.x,player.y-b.y)<=55);
+        if (bench) socket.emit('restAtCampusBench', bench.id);
+    };
+    window.addEventListener('keydown', sitKey);
+    scene.onDisposeObservable.add(()=>window.removeEventListener('keydown',sitKey));
     const proceduralMeshes = scene.meshes.slice();
     babylonFountain = { canvas, engine, scene, gui, players: new Map() };
+    createFountainWeather(scene, sunlight, ambient);
+    bindFountainCamera(scene, canvas, camera);
     void loadReferenceFountainAssets(scene, proceduralMeshes);
     const phaserCanvas = document.querySelector('canvas:not(#babylon-fountain-canvas)'); if (phaserCanvas) phaserCanvas.classList.add('phaser-map-hidden');
     engine.runRenderLoop(() => scene.render()); window.addEventListener('resize', () => engine.resize());
@@ -332,6 +360,24 @@ function updateBabylonFountainPlayers() {
     Object.entries(players || {}).forEach(([id, player]) => {
         if (!babylonFountain.players.has(id)) babylonFountain.players.set(id, createBabylonHuman(babylonFountain.scene, id));
         const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y); mesh.position.x = pos.x; mesh.position.z = pos.z;
+        const seat = Object.entries(campusBenchOccupants || {}).find(([benchId,ids])=>benchId.startsWith('fountain-') && Array.isArray(ids) && ids.includes(id));
+        if (seat) {
+            const bench = FountainPhysics.benches.find(b=>b.id===seat[0]);
+            if (bench) {
+                mesh.position.x=(bench.x-400)/34+(seat[1].indexOf(id)===0?-.35:.35);
+                mesh.position.z=(bench.y-300)/34;
+                mesh.position.y=.36;
+                mesh.rotation.y=bench.rotation;
+            }
+        } else { mesh.position.y=0; }
+        for (const part of mesh._studentParts || []) {
+            part.mesh.position.copyFrom(part.position); part.mesh.rotation.copyFrom(part.rotation);
+            if (seat && /trouser_leg|trouser_cuff|shoe/.test(part.mesh.name)) {
+                part.mesh.position.y=part.position.y*.45+.40;
+                part.mesh.position.z=part.position.z-.30;
+                if (/trouser_leg/.test(part.mesh.name)) part.mesh.rotation.x=-Math.PI/2;
+            }
+        }
         if (mesh._nameText) mesh._nameText.text = player.playerNickname || (id === socket.id ? 'Bạn' : `Khách (${id.slice(0, 4)})`);
     });
     babylonFountain.players.forEach((mesh, id) => { if (!players[id]) { mesh._nameLabel?.dispose(); mesh.dispose(); babylonFountain.players.delete(id); } });

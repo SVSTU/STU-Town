@@ -301,6 +301,7 @@ function interactWithCurrentZone() {
 }
 
 function isBlockedPosition(x, y) {
+    if (currentMapId === 'fountain') return FountainPhysics.blocked(x,y);
     // Campus buildings only occupy the campus map. Reusing these collision
     // rectangles in interiors blocks movement at unrelated coordinates.
     if (currentMapId !== 'campus') return false;
