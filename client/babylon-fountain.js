@@ -34,6 +34,52 @@ function addFountainBench(scene, x, z) {
     });
 }
 
+function addFountainLamp(scene, x, z) {
+    const dark = createFountainMaterial(scene, 'lamp-dark', '#263d45');
+    const glow = createFountainMaterial(scene, 'lamp-glow', '#ffd77a', '#ffb83d');
+    const pole = BABYLON.MeshBuilder.CreateCylinder('lamp-pole', { height: 2.7, diameter: .12, tessellation: 8 }, scene);
+    pole.position.set(x, 1.35, z); pole.material = dark;
+    const cap = BABYLON.MeshBuilder.CreateCylinder('lamp-cap', { height: .18, diameter: .46, tessellation: 8 }, scene);
+    cap.position.set(x, 2.75, z); cap.material = dark;
+    const light = BABYLON.MeshBuilder.CreateSphere('lamp-light', { diameter: .25, segments: 8 }, scene);
+    light.position.set(x, 2.58, z); light.material = glow;
+}
+
+function addFountainPergola(scene, x, z) {
+    const wood = createFountainMaterial(scene, 'pergola-wood', '#9b6138');
+    const leaf = createFountainMaterial(scene, 'pergola-leaf', '#5d9d4f');
+    [-1.5, 1.5].forEach((offset) => {
+        [-.9, .9].forEach((depth) => {
+            const post = BABYLON.MeshBuilder.CreateBox('pergola-post', { width: .18, height: 2.1, depth: .18 }, scene);
+            post.position.set(x + offset, 1.05, z + depth); post.material = wood;
+        });
+    });
+    const roof = BABYLON.MeshBuilder.CreateBox('pergola-roof', { width: 3.5, height: .18, depth: 2.2 }, scene);
+    roof.position.set(x, 2.2, z); roof.material = wood;
+    for (let index = -2; index <= 2; index++) {
+        const vine = BABYLON.MeshBuilder.CreateBox('pergola-vine', { width: .55, height: .16, depth: 2.3 }, scene);
+        vine.position.set(x + index * .62, 2.32, z); vine.material = leaf;
+    }
+    addFountainBench(scene, x, z + .1);
+}
+
+function addFountainPath(scene, x, z, width, depth, rotation = 0) {
+    const path = BABYLON.MeshBuilder.CreateBox('fountain-path', { width, height: .035, depth }, scene);
+    path.position.set(x, .025, z); path.rotation.y = rotation;
+    path.material = createFountainMaterial(scene, 'path-stone', '#d8c9a9');
+}
+
+function addFountainFlowerBed(scene, x, z, scale = 1) {
+    const soil = createFountainMaterial(scene, 'flower-soil', '#715137');
+    const flower = createFountainMaterial(scene, 'flower-pink', '#e88fa7');
+    const bed = BABYLON.MeshBuilder.CreateCylinder('flower-bed', { diameter: 2.4 * scale, height: .16, tessellation: 32 }, scene);
+    bed.position.set(x, .1, z); bed.material = soil;
+    [-.55, 0, .55].forEach((offset) => {
+        const bloom = BABYLON.MeshBuilder.CreateSphere('flower-bloom', { diameter: .32 * scale, segments: 8 }, scene);
+        bloom.position.set(x + offset * scale, .36, z + (offset % .35) * scale); bloom.material = flower;
+    });
+}
+
 function addFountainObject(scene) {
     const stone = createFountainMaterial(scene, 'fountain-stone', '#dce5dc');
     const water = createFountainMaterial(scene, 'fountain-water', '#2d9fbc', '#0e536b');
@@ -86,7 +132,13 @@ function activateBabylonFountain() {
     camera.attachControl(canvas, true); camera.lowerRadiusLimit = 13; camera.upperRadiusLimit = 24; camera.wheelPrecision = 70;
     new BABYLON.HemisphericLight('fountain-sun', new BABYLON.Vector3(0, 1, 0), scene).intensity = .9;
     const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 22, height: 16 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
-    addFountainObject(scene); addFountainTree(scene, -8, -5, 1.15); addFountainTree(scene, 8, -5, 1.15); addFountainTree(scene, -8, 4, .85); addFountainTree(scene, 8, 4, .85); addFountainBench(scene, -5, 3.2); addFountainBench(scene, 5, 3.2);
+    addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
+    addFountainObject(scene);
+    addFountainTree(scene, -8, -5, 1.15); addFountainTree(scene, 8, -5, 1.15); addFountainTree(scene, -8, 4, .85); addFountainTree(scene, 8, 4, .85);
+    addFountainBench(scene, -5.2, 3.1); addFountainBench(scene, 5.2, 3.1); addFountainBench(scene, -4.8, -3.3); addFountainBench(scene, 4.8, -3.3);
+    addFountainLamp(scene, -3.3, -4.4); addFountainLamp(scene, 3.3, -4.4); addFountainLamp(scene, -3.3, 4.4); addFountainLamp(scene, 3.3, 4.4);
+    addFountainPergola(scene, -7, 2.8); addFountainPergola(scene, 7, 2.8);
+    addFountainFlowerBed(scene, -4.3, -1.8, 1.1); addFountainFlowerBed(scene, 4.3, -1.8, 1.1); addFountainFlowerBed(scene, -4.3, 1.8, 1.1); addFountainFlowerBed(scene, 4.3, 1.8, 1.1);
     const gui = BABYLON.GUI ? BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('fountain-gui', true, scene) : null;
     babylonFountain = { canvas, engine, scene, gui, players: new Map() };
     canvas.addEventListener('pointerdown', (event) => { const rect = canvas.getBoundingClientRect(); targetPosition = { x: ((event.clientX - rect.left) / rect.width) * 800, y: ((event.clientY - rect.top) / rect.height) * 600 }; });
