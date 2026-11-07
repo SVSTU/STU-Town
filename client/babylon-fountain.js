@@ -91,6 +91,22 @@ function addFountainFlowerBed(scene, x, z, scale = 1) {
     });
 }
 
+function addFountainPlazaRings(scene) {
+    const paving = createFountainMaterial(scene, 'plaza-paving', '#e4cfa5');
+    const trim = createFountainMaterial(scene, 'plaza-trim', '#b9a67f');
+    const innerRing = BABYLON.MeshBuilder.CreateTorus('plaza-inner-ring', { diameter: 8.2, thickness: 1.0, tessellation: 64 }, scene);
+    innerRing.position.y = .035; innerRing.rotation.x = 0; innerRing.material = paving;
+    const outerRing = BABYLON.MeshBuilder.CreateTorus('plaza-outer-ring', { diameter: 11.0, thickness: .16, tessellation: 64 }, scene);
+    outerRing.position.y = .055; outerRing.material = trim;
+    for (let index = 0; index < 24; index++) {
+        const angle = index * Math.PI * 2 / 24;
+        const tile = BABYLON.MeshBuilder.CreateBox(`plaza-tile-${index}`, { width: .72, height: .045, depth: .34 }, scene);
+        tile.position.set(Math.cos(angle) * 4.65, .075, Math.sin(angle) * 4.65);
+        tile.rotation.y = -angle;
+        tile.material = paving;
+    }
+}
+
 function addFountainExitVortex(scene) {
     const portal = new BABYLON.TransformNode('fountain-exit-vortex', scene);
     portal.position.set(8.15, .08, 5.15);
@@ -141,6 +157,14 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
         const fountain = await BABYLON.SceneLoader.ImportMeshAsync('', 'assets/3d/', 'fountain.glb', scene);
         proceduralMeshes.filter((mesh) => mesh.name.startsWith('fountain-')).forEach((mesh) => mesh.setEnabled(false));
         fountain.meshes.forEach((mesh) => { mesh.isPickable = false; });
+        const fountainWater = fountain.meshes.filter((mesh) => /water|jet|sphere/i.test(mesh.name));
+        scene.onBeforeRenderObservable.add(() => {
+            const pulse = 1 + Math.sin(performance.now() / 220) * .08;
+            fountainWater.forEach((mesh, index) => {
+                if (/jet/i.test(mesh.name)) mesh.scaling.y = pulse;
+                if (/water/i.test(mesh.name)) mesh.rotation.y += .0008 * (index % 2 ? -1 : 1);
+            });
+        });
     } catch (error) {
         console.warn('Không tải được fountain.glb, dùng mesh dự phòng:', error.message);
     }
@@ -257,15 +281,16 @@ function activateBabylonFountain() {
     if (!window.BABYLON || babylonFountain) return Boolean(babylonFountain);
     const canvas = document.createElement('canvas'); canvas.id = 'babylon-fountain-canvas'; document.body.appendChild(canvas);
     const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
-    const scene = new BABYLON.Scene(engine); scene.clearColor = new BABYLON.Color4(.055, .12, .08, 1);
+    const scene = new BABYLON.Scene(engine); scene.clearColor = new BABYLON.Color4(.34, .58, .38, 1);
     const camera = new BABYLON.ArcRotateCamera('fountain-camera', -Math.PI / 2, 1.05, 19, new BABYLON.Vector3(0, .5, 0), scene);
     camera.attachControl(canvas, true); camera.lowerRadiusLimit = 13; camera.upperRadiusLimit = 24; camera.wheelPrecision = 70;
     // Arrow/WASD keys belong to the player controller, never to the 3D camera.
     camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
     camera.inputs.attached.keyboard?.detachControl();
     new BABYLON.HemisphericLight('fountain-sun', new BABYLON.Vector3(0, 1, 0), scene).intensity = .9;
-    const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 22, height: 16 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
+    const ground = BABYLON.MeshBuilder.CreateGround('fountain-ground', { width: 30, height: 24 }, scene); ground.material = createFountainMaterial(scene, 'ground', '#78a866');
     addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
+    addFountainPlazaRings(scene);
     addFountainObject(scene); addFountainExitVortex(scene);
     addFountainTree(scene, -8, -5, 1.15); addFountainTree(scene, 8, -5, 1.15); addFountainTree(scene, -8, 4, .85); addFountainTree(scene, 8, 4, .85);
     addFountainBench(scene, -5.2, 3.1); addFountainBench(scene, 5.2, 3.1); addFountainBench(scene, -4.8, -3.3); addFountainBench(scene, 4.8, -3.3);

@@ -114,20 +114,27 @@ def build_bench():
     export_selected(os.path.join(OUT, 'stone-bench.glb'))
 
 def build_tree():
-    trunk = cylinder('tree_trunk', .28, 2.2, 1.1, WOOD, vertices=12)
-    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=1.35, location=(0, 0, 2.45))
-    apply_mat(bpy.context.object, mat('Tree leaves', (0.18, 0.48, 0.16), roughness=.85))
+    trunk = cylinder('tree_trunk', .30, 2.5, 1.25, WOOD, vertices=12)
+    leaves_a = mat('Tree leaves light', (0.28, 0.65, 0.18), roughness=.85)
+    leaves_b = mat('Tree leaves dark', (0.14, 0.42, 0.12), roughness=.85)
+    # Clustered crowns read closer to the reference park trees than one sphere.
+    for index, (x, y, z, radius, material) in enumerate([
+        (-.55, 0, 2.35, 1.0, leaves_a), (.55, 0, 2.35, 1.0, leaves_b),
+        (0, -.25, 2.85, 1.05, leaves_a), (0, .35, 2.65, .9, leaves_b)
+    ]):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=radius, location=(x, y, z))
+        bpy.context.object.name = f'tree_crown_{index}'
+        apply_mat(bpy.context.object, material)
     export_selected(os.path.join(OUT, 'tree.glb'))
 
 def build_flowerbed():
     soil = mat('Flower soil', (0.25, 0.13, 0.07), roughness=.9)
     pink = mat('Flower pink', (0.88, 0.25, 0.42), roughness=.6)
     green = mat('Flower leaves', (0.20, 0.55, 0.18), roughness=.85)
-    cylinder('flowerbed_soil', 1.25, .22, .11, soil, vertices=40)
-    for index in range(7):
-        angle = index * math.tau / 7
-        x, y = math.cos(angle) * .72, math.sin(angle) * .72
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.2, location=(x, y, .36))
+    cube('flowerbed_soil', (2.55, 1.45, .22), (0, 0, .11), soil, .12)
+    for index, (x, y) in enumerate([(-.85, -.38), (-.28, -.35), (.32, -.36), (.88, -.35),
+                                     (-.62, .3), (0, .28), (.62, .3)]):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.2, location=(x, y, .37))
         apply_mat(bpy.context.object, pink if index % 2 else green)
     export_selected(os.path.join(OUT, 'flowerbed.glb'))
 
@@ -146,6 +153,10 @@ def build_pergola():
         for y in (-.9, .9): cube('pergola_post', (.18, .18, 2.2), (x, y, 1.1), wood)
     cube('pergola_roof', (3.5, 2.2, .18), (0, 0, 2.25), wood)
     for x in (-1.2, -.6, 0, .6, 1.2): cube('pergola_vine', (.45, 2.3, .14), (x, 0, 2.38), leaf, .02)
+    for index, (x, y) in enumerate([(-1.1, -.55), (-.35, .45), (.45, -.45), (1.1, .5)]):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.34, location=(x, y, 2.42))
+        bpy.context.object.name = f'pergola_leaf_{index}'
+        apply_mat(bpy.context.object, leaf)
     export_selected(os.path.join(OUT, 'pergola.glb'))
 
 def build_path():
