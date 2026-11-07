@@ -432,6 +432,53 @@ function drawBenchPrivateScene(scene, g) {
     }).setOrigin(0.5).setDepth(-9);
 }
 
+function drawFountain3DScene(scene, g) {
+    // Prototype 3D/isometric: lớp nền, khối cảnh quan và bóng đổ tạo chiều sâu.
+    g.fillStyle(0x29402d, 0.32).fillEllipse(400, 430, 600, 58);
+    g.fillStyle(0x6c955d, 1).fillRoundedRect(105, 155, 590, 295, 28);
+    g.lineStyle(3, 0xd8edba, 0.7).strokeRoundedRect(118, 168, 564, 268, 23);
+    g.fillStyle(0x8caf72, 0.5).fillEllipse(400, 330, 500, 160);
+    const tree = (x, y, scale = 1) => {
+        g.fillStyle(0x29402d, 0.3).fillEllipse(x + 5, y + 27 * scale, 58 * scale, 14 * scale);
+        g.fillStyle(0x714a2d, 1).fillRoundedRect(x - 5 * scale, y + 4 * scale, 10 * scale, 30 * scale, 3);
+        g.fillStyle(0x4c7d48, 1).fillCircle(x - 13 * scale, y, 19 * scale);
+        g.fillStyle(0x60994f, 1).fillCircle(x + 9 * scale, y - 6 * scale, 23 * scale);
+        g.fillStyle(0x87bd6b, 0.9).fillCircle(x - 2 * scale, y - 18 * scale, 15 * scale);
+    };
+    tree(165, 210, 1.1); tree(635, 210, 1.1); tree(155, 390, 0.8); tree(650, 390, 0.8);
+
+    // Bệ đài nổi theo nhiều lớp elip để tạo cảm giác khối 3D.
+    g.fillStyle(0x29402d, 0.35).fillEllipse(405, 385, 270, 52);
+    g.fillStyle(0xb9c9c2, 1).fillEllipse(400, 315, 245, 125);
+    g.fillStyle(0xe6eee4, 1).fillEllipse(400, 303, 230, 112);
+    g.fillStyle(0x227e9a, 1).fillEllipse(400, 303, 188, 88);
+    g.lineStyle(4, 0x7fe0ec, 0.95).strokeEllipse(400, 300, 165, 70);
+    g.fillStyle(0x16647e, 1).fillEllipse(400, 298, 108, 54);
+    g.fillStyle(0xb8f5ff, 0.9).fillEllipse(400, 292, 42, 20);
+    // Vòi trung tâm và tia nước động.
+    g.fillStyle(0xf4d77c, 1).fillCircle(400, 280, 9);
+    const waterDrops = [
+        scene.add.ellipse(400, 245, 12, 30, 0xb8f5ff, 0.8),
+        scene.add.ellipse(375, 255, 8, 20, 0x7fe0ec, 0.75),
+        scene.add.ellipse(425, 255, 8, 20, 0x7fe0ec, 0.75)
+    ];
+    waterDrops.forEach((drop, index) => {
+        drop.setDepth(-7.2);
+        scene.tweens.add({ targets: drop, y: { from: 245 + index * 5, to: 270 }, alpha: { from: 0.85, to: 0.2 }, scaleY: { from: 1, to: 0.65 }, duration: 900 + index * 180, yoyo: true, repeat: -1, delay: index * 180 });
+    });
+    const bench = (x, y) => {
+        g.fillStyle(0x29402d, 0.28).fillEllipse(x, y + 24, 90, 16);
+        g.fillStyle(0x684326, 1).fillRoundedRect(x - 42, y - 4, 84, 10, 3);
+        g.fillStyle(0xc58a4e, 1).fillRoundedRect(x - 39, y - 8, 78, 7, 3);
+        g.fillStyle(0x684326, 1).fillRoundedRect(x - 37, y - 28, 74, 7, 3);
+        g.fillStyle(0x51351f, 1).fillRoundedRect(x - 32, y + 5, 6, 24, 2).fillRoundedRect(x + 26, y + 5, 6, 24, 2);
+    };
+    bench(245, 365); bench(555, 365);
+    scene.add.text(400, 205, '⛲ ĐÀI PHUN NƯỚC', {
+        font: 'bold 20px Arial', color: '#fff', backgroundColor: '#29402d', padding: { x: 10, y: 6 }
+    }).setOrigin(0.5).setDepth(-9);
+}
+
 function drawInteriorMap(scene, mapId) {
     const firstMapChild = scene.children.list.length;
     const labels = mapId.startsWith('halloween:') ? ['Tầng Halloween', '50 hộp quà · Mỗi hộp chỉ mở một lần']
@@ -499,14 +546,7 @@ function drawInteriorMap(scene, mapId) {
             g.strokeRect(204, 245, 52, 110).strokeRect(544, 245, 52, 110);
             g.fillStyle(0xe4f0d1, 0.9).fillCircle(400, 300, 4);
         } else if (mapId === 'fountain') {
-            g.fillStyle(0x29402d, 0.25).fillEllipse(405, 385, 190, 42);
-            g.fillStyle(0xe4e7df, 1).fillCircle(400, 300, 100);
-            g.lineStyle(5, 0xc2cfc1, 1).strokeCircle(400, 300, 91);
-            g.fillStyle(0x3299b5, 1).fillCircle(400, 300, 78);
-            g.lineStyle(3, 0x78d9e8, 0.9).strokeCircle(400, 300, 62);
-            g.fillStyle(0xb9f3ff, 1).fillCircle(400, 300, 35);
-            g.fillStyle(0xffffff, 0.9).fillEllipse(384, 278, 20, 8).fillEllipse(415, 319, 13, 6);
-            g.fillStyle(0xf4d77c, 1).fillCircle(400, 300, 8);
+            drawFountain3DScene(scene, g);
         } else if (mapId === 'auditorium') {
             g.fillStyle(0x624b35, 1).fillRoundedRect(235, 210, 330, 185, 10);
             g.fillStyle(0xe4e7df, 1).fillRoundedRect(250, 225, 300, 155, 6);

@@ -52,7 +52,9 @@ function createPlayer(scene, info, id) {
 
     scene.add.existing(container);
     players[id] = container;
-    if (isPrivateBenchGuest) {
+    if (String(info.mapId || '') === 'fountain') {
+        setPlayerHumanVisual(container, false);
+    } else if (isPrivateBenchGuest) {
         // Không gian riêng luôn dùng hình người ngồi phong cách 3D giả lập,
         // không hiển thị avatar/vòng tròn; màu tên là dấu hiệu duy nhất.
         setPlayerSeatedVisual(container, true);
@@ -71,6 +73,7 @@ function updatePlayerName(player, nickname, id) {
     const shortId = id.substring(0, 4);
     player.textLabel.setText(nickname || (id === socket.id ? 'Bạn' : `Khách (${shortId})`));
     if (player.isSeatedAtBench) player.textLabel.setColor(id === socket.id ? '#62ff9a' : '#ff9a4a');
+    if (player.isHumanVisual) player.textLabel.setBackgroundColor(id === socket.id ? '#1c7d52' : '#9a4d2b');
 }
 
 // Hàm gán ảnh tải lên dạng Base64 vào nhân vật
@@ -99,7 +102,7 @@ function setAvatarFromBase64(scene, container, base64Str) {
         if (player.avatarSprite) player.avatarSprite.destroy();
         player.avatarSprite = scene.add.image(0, 0, textureKey)
             .setDisplaySize(player.playerRadius * 2, player.playerRadius * 2)
-            .setVisible(!player.isSeatedAtBench);
+            .setVisible(!player.isSeatedAtBench && !player.isHumanVisual);
         player.addAt(player.avatarSprite, 1);
         if (player.textLabel) player.bringToTop(player.textLabel);
     };
@@ -132,4 +135,37 @@ function setPlayerSeatedVisual(container, seated) {
         ? (container.playerId === socket.id.replace(/[^a-zA-Z0-9_-]/g, '_') ? '#62ff9a' : '#ff9a4a')
         : '#ffffff');
     container.isSeatedAtBench = Boolean(seated);
+}
+
+function setPlayerHumanVisual(container, sitting = false) {
+    if (!container || !container.scene) return;
+    if (container.avatarSprite) container.avatarSprite.setVisible(false);
+    if (container.borderRing) container.borderRing.setVisible(false);
+    if (container.seatedFigure) container.seatedFigure.setVisible(false);
+    if (container.humanFigure) container.humanFigure.destroy();
+    const scene = container.scene;
+    const figure = scene.add.container(0, sitting ? 0 : 2);
+    const isMe = container.playerId === socket.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const shirt = isMe ? 0x2aa96b : 0xd87536;
+    const skin = 0xf2c39f;
+    const shadow = scene.add.ellipse(0, sitting ? 17 : 22, sitting ? 25 : 22, 8, 0x16251c, 0.48);
+    const legs = sitting
+        ? scene.add.rectangle(0, 15, 23, 5, 0x493322, 1)
+        : scene.add.rectangle(0, 17, 12, 21, 0x334b75, 1);
+    const torso = scene.add.rectangle(0, sitting ? 4 : 2, 16, sitting ? 19 : 22, shirt, 1);
+    const head = scene.add.circle(0, sitting ? -10 : -15, 8, skin, 1);
+    const hair = scene.add.arc(0, sitting ? -13 : -18, 8, 180, 360, false, 0x3b2a22, 1);
+    const armLeft = scene.add.rectangle(-11, sitting ? 3 : 1, 5, 16, shirt, 1).setAngle(sitting ? -18 : 8);
+    const armRight = scene.add.rectangle(11, sitting ? 3 : 1, 5, 16, shirt, 1).setAngle(sitting ? 18 : -8);
+    figure.add([shadow, legs, torso, armLeft, armRight, head, hair]);
+    figure.setDepth(2);
+    container.add(figure);
+    container.humanFigure = figure;
+    container.isHumanVisual = true;
+    container.isSeatedAtBench = Boolean(sitting);
+    if (container.textLabel) {
+        container.textLabel.setColor('#ffffff');
+        container.textLabel.setBackgroundColor(isMe ? '#1c7d52' : '#9a4d2b');
+        container.bringToTop(container.textLabel);
+    }
 }
