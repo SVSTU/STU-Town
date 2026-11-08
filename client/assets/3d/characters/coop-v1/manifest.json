@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "units": "metres",
+  "assets": [
+    {
+      "file": "modular-human.glb",
+      "bytes": 773640,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.32999998331069946,
+          1.784999966621399
+        ]
+      },
+      "id": "modular-human",
+      "preset": null,
+      "jointContract": "student-animation-v1",
+      "heightMetres": 1.81,
+      "moduleNaming": "module__slot__option__part",
+      "front": "Blender -Y"
+    },
+    {
+      "file": "student.glb",
+      "bytes": 424640,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.32999998331069946,
+          1.784999966621399
+        ]
+      },
+      "id": "student",
+      "preset": {
+        "hair": "wavy",
+        "outfit": "polo",
+        "accessories": [
+          "backpack"
+        ]
+      },
+      "jointContract": "student-animation-v1",
+      "heightMetres": 1.81,
+      "moduleNaming": "module__slot__option__part",
+      "front": "Blender -Y"
+    },
+    {
+      "file": "professor.glb",
+      "bytes": 447464,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.23000000417232513,
+          1.784999966621399
+        ]
+      },
+      "id": "professor",
+      "preset": {
+        "hair": "gray",
+        "outfit": "vest",
+        "accessories": [
+          "glasses"
+        ]
+      },
+      "jointContract": "student-animation-v1",
+      "heightMetres": 1.81,
+      "moduleNaming": "module__slot__option__part",
+      "front": "Blender -Y"
+    },
+    {
+      "file": "merchant.glb",
+      "bytes": 382204,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.3009999990463257,
+          1.784999966621399
+        ]
+      },
+      "id": "merchant",
+      "preset": {
+        "hair": "braid",
+        "outfit": "apron",
+        "accessories": []
+      },
+      "jointContract": "student-animation-v1",
+      "heightMetres": 1.81,
+      "moduleNaming": "module__slot__option__part",
+      "front": "Blender -Y"
+    }
+  ],
+  "slots": {
+    "hair": [
+      "wavy",
+      "braid",
+      "gray"
+    ],
+    "outfit": [
+      "polo",
+      "apron",
+      "vest"
+    ],
+    "accessories": [
+      "backpack",
+      "glasses"
+    ]
+  },
+  "rig": "student-animation-v1"
+}

@@ -1,0 +1,24 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="../client/"><link rel="stylesheet" href="style.css"></head><body>
+<canvas id="phaser-placeholder" width="800" height="600"></canvas>
+<section id="interaction-hud" hidden><h3 id="interaction-zone-name"></h3><p id="interaction-zone-description"></p><div id="farm-seed-picker"></div><div id="farm-plot-list"></div><button id="interaction-button">Ngồi nghỉ (E)</button><p id="interaction-feedback"></p></section>
+<div id="mobile-movement-pad"><button data-move-direction="up">↑</button><button data-move-direction="left">←</button><button data-move-direction="down">↓</button><button data-move-direction="right">→</button><span>DI CHUYỂN</span></div>
+<script>
+// Isolated local fixtures: no live Socket.IO server, accounts or state writes.
+const smokeErrors=[],smokeEmits=[];
+window.addEventListener('error',e=>smokeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>smokeErrors.push(String(e.reason)));
+const io=()=>({id:'demo',connected:true,emit:(...args)=>smokeEmits.push(args),auth:{}});
+let players={demo:{x:400,y:500,playerNickname:'Bạn'}},currentMapId='fountain',campusBenchOccupants={},activeInteractionZoneId='',targetPosition=null,mapExitTarget=null;
+let environmentConditions={isDay:true,cloudCover:10,weatherCode:0};
+const sceneRef={input:{keyboard:{enabled:true,resetKeys(){}}}},cursors={},playerStatsState={stats:{hunger:100,fatigue:0}};
+const Phaser={Math:{Clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),Distance:{Between:(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by)}}};
+function renderEnvironmentOverlay(){}function showToast(){}
+</script>
+<script src="map-3d-layouts.js"></script><script src="game-config.js"></script>
+<script src="https://cdn.babylonjs.com/babylon.js"></script><script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script><script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<script>const SunCalc={getPosition:()=>({altitude:.8,azimuth:-.6}),getMoonPosition:()=>({altitude:-.6,azimuth:1}),getMoonIllumination:()=>({fraction:.5})};</script>
+<script src="fountain-physics.js"></script><script src="fountain-weather.js"></script><script src="fountain-camera.js"></script><script src="fountain-water.js"></script><script src="student-animation.js"></script><script src="character-assets.js"></script><script src="babylon-fountain.js"></script><script src="player-controller.js"></script><script src="world-interactions.js"></script>
+<script>
+activateBabylonFountain();bindMobileMovementControls();
+document.getElementById('interaction-button').onclick=interactWithCurrentZone;
+babylonFountain.scene.onBeforeRenderObservable.add(()=>update(performance.now(),babylonFountain.engine.getDeltaTime()));
+</script></body></html>

@@ -1,0 +1,448 @@
+{
+  "version": 1,
+  "units": "metres",
+  "reference": "design/khu-a-coop-reference/00-approved-concept.png",
+  "assets": [
+    {
+      "file": "floor-module.glb",
+      "bytes": 15344,
+      "boundsBlender": {
+        "min": [
+          -2.0,
+          -2.0,
+          -0.20000000298023224
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.013999998569488525
+        ]
+      },
+      "id": "floor-module",
+      "estimatedTriangles": 180,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "wall-window.glb",
+      "bytes": 201812,
+      "boundsBlender": {
+        "min": [
+          -2.0250000953674316,
+          -0.38750001788139343,
+          0.0
+        ],
+        "max": [
+          2.049999952316284,
+          0.14000000059604645,
+          3.5399999618530273
+        ]
+      },
+      "id": "wall-window",
+      "estimatedTriangles": 3068,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "wall-low.glb",
+      "bytes": 36052,
+      "boundsBlender": {
+        "min": [
+          -2.0199999809265137,
+          -0.125,
+          0.0
+        ],
+        "max": [
+          2.0199999809265137,
+          0.125,
+          0.6699999570846558
+        ]
+      },
+      "id": "wall-low",
+      "estimatedTriangles": 520,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "window-shutters.glb",
+      "bytes": 79888,
+      "boundsBlender": {
+        "min": [
+          -0.7400000095367432,
+          -0.22749999165534973,
+          0.0
+        ],
+        "max": [
+          0.7400000095367432,
+          0.07999999821186066,
+          1.2999999523162842
+        ]
+      },
+      "id": "window-shutters",
+      "estimatedTriangles": 1196,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "seed-stall.glb",
+      "bytes": 828812,
+      "boundsBlender": {
+        "min": [
+          -1.7899999618530273,
+          -0.8299999833106995,
+          0.0
+        ],
+        "max": [
+          1.7899999618530273,
+          0.7400000095367432,
+          3.1550002098083496
+        ]
+      },
+      "id": "seed-stall",
+      "estimatedTriangles": 21668,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "produce-stall.glb",
+      "bytes": 784276,
+      "boundsBlender": {
+        "min": [
+          -1.7899999618530273,
+          -0.8299999833106995,
+          0.0
+        ],
+        "max": [
+          1.7899999618530273,
+          0.7400000095367432,
+          3.1550002098083496
+        ]
+      },
+      "id": "produce-stall",
+      "estimatedTriangles": 13552,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "professor-desk.glb",
+      "bytes": 35556,
+      "boundsBlender": {
+        "min": [
+          -1.399999976158142,
+          -0.6150000095367432,
+          0.0
+        ],
+        "max": [
+          1.399999976158142,
+          0.5249999761581421,
+          1.3650000095367432
+        ]
+      },
+      "id": "professor-desk",
+      "estimatedTriangles": 500,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "price-board.glb",
+      "bytes": 255344,
+      "boundsBlender": {
+        "min": [
+          -1.125,
+          -0.12099999934434891,
+          0.0
+        ],
+        "max": [
+          1.125,
+          0.06499999761581421,
+          1.399999976158142
+        ]
+      },
+      "id": "price-board",
+      "estimatedTriangles": 9296,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "order-board.glb",
+      "bytes": 157644,
+      "boundsBlender": {
+        "min": [
+          -1.125,
+          -0.19645404815673828,
+          0.0
+        ],
+        "max": [
+          1.125,
+          0.06499999761581421,
+          1.399999976158142
+        ]
+      },
+      "id": "order-board",
+      "estimatedTriangles": 4348,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "exit-gate.glb",
+      "bytes": 275272,
+      "boundsBlender": {
+        "min": [
+          -1.8250000476837158,
+          -0.9700000286102295,
+          -0.09999990463256836
+        ],
+        "max": [
+          1.8249999284744263,
+          0.20999999344348907,
+          3.2100000381469727
+        ]
+      },
+      "id": "exit-gate",
+      "estimatedTriangles": 5592,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "recovery-station.glb",
+      "bytes": 101320,
+      "boundsBlender": {
+        "min": [
+          -1.4700000286102295,
+          -0.3550000488758087,
+          0.0
+        ],
+        "max": [
+          1.470000147819519,
+          0.4399999976158142,
+          2.625
+        ]
+      },
+      "id": "recovery-station",
+      "estimatedTriangles": 2324,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "handcart.glb",
+      "bytes": 52904,
+      "boundsBlender": {
+        "min": [
+          -0.42000001668930054,
+          -0.41999998688697815,
+          0.0
+        ],
+        "max": [
+          0.42000001668930054,
+          0.41999998688697815,
+          1.2225000858306885
+        ]
+      },
+      "id": "handcart",
+      "estimatedTriangles": 728,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "wall-lantern.glb",
+      "bytes": 82880,
+      "boundsBlender": {
+        "min": [
+          -0.11999999731779099,
+          -0.23500001430511475,
+          0.040000006556510925
+        ],
+        "max": [
+          0.11999999731779099,
+          0.12000000476837158,
+          0.4050000011920929
+        ]
+      },
+      "id": "wall-lantern",
+      "estimatedTriangles": 1188,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "seed-sack.glb",
+      "bytes": 34316,
+      "boundsBlender": {
+        "min": [
+          -0.2199999839067459,
+          -0.22960525751113892,
+          0.0
+        ],
+        "max": [
+          0.2199999988079071,
+          0.18000000715255737,
+          0.5032869577407837
+        ]
+      },
+      "id": "seed-sack",
+      "estimatedTriangles": 1296,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "seedling-tray.glb",
+      "bytes": 114868,
+      "boundsBlender": {
+        "min": [
+          -0.3400000035762787,
+          -0.20999999344348907,
+          0.0
+        ],
+        "max": [
+          0.3400000035762787,
+          0.20999999344348907,
+          0.3075000047683716
+        ]
+      },
+      "id": "seedling-tray",
+      "estimatedTriangles": 1732,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "produce-crate.glb",
+      "bytes": 125440,
+      "boundsBlender": {
+        "min": [
+          -0.3525000214576721,
+          -0.2524999976158142,
+          -5.587935447692871e-09
+        ],
+        "max": [
+          0.3525000214576721,
+          0.2524999976158142,
+          0.4000000059604645
+        ]
+      },
+      "id": "produce-crate",
+      "estimatedTriangles": 2356,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "countertop-scale.glb",
+      "bytes": 32460,
+      "boundsBlender": {
+        "min": [
+          -0.23000000417232513,
+          -0.23000000417232513,
+          0.0
+        ],
+        "max": [
+          0.23000000417232513,
+          0.23000000417232513,
+          0.48000001907348633
+        ]
+      },
+      "id": "countertop-scale",
+      "estimatedTriangles": 500,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "potted-plant.glb",
+      "bytes": 11388,
+      "boundsBlender": {
+        "min": [
+          -0.36038753390312195,
+          -0.38997116684913635,
+          0.0
+        ],
+        "max": [
+          0.4000000059604645,
+          0.38997116684913635,
+          0.800000011920929
+        ]
+      },
+      "id": "potted-plant",
+      "estimatedTriangles": 272,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "flower-planter.glb",
+      "bytes": 339968,
+      "boundsBlender": {
+        "min": [
+          -0.675000011920929,
+          -0.2483949065208435,
+          0.0
+        ],
+        "max": [
+          0.675000011920929,
+          0.2483949065208435,
+          0.7149999737739563
+        ]
+      },
+      "id": "flower-planter",
+      "estimatedTriangles": 12964,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "hanging-plant.glb",
+      "bytes": 21488,
+      "boundsBlender": {
+        "min": [
+          -0.25,
+          -0.29140782356262207,
+          -0.4659103453159332
+        ],
+        "max": [
+          0.25999999046325684,
+          0.25348126888275146,
+          0.5199999809265137
+        ]
+      },
+      "id": "hanging-plant",
+      "estimatedTriangles": 584,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    },
+    {
+      "file": "locked-farm-gate.glb",
+      "bytes": 585812,
+      "boundsBlender": {
+        "min": [
+          -1.6197125911712646,
+          -0.9700000286102295,
+          -0.09999990463256836
+        ],
+        "max": [
+          1.6197127103805542,
+          0.4749999940395355,
+          3.763747453689575
+        ]
+      },
+      "id": "locked-farm-gate",
+      "estimatedTriangles": 17226,
+      "front": "Blender -Y; glTF -Z",
+      "pivot": "ground center or wall mount",
+      "units": "metres"
+    }
+  ]
+}

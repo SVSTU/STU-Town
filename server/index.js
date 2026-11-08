@@ -584,8 +584,8 @@ function positionCampusBenchOccupants(benchId) {
   occupantIds.slice(0, 2).forEach((id, index) => {
     const player = players[id];
     if (!player) return;
-    player.x = bench.x + offsets[index];
-    player.y = bench.y + (benchId.startsWith('fountain-') ? -Math.cos(bench.rotation)*32 : 28);
+    const position=benchId.startsWith('fountain-')?FountainPhysics.approachPosition(bench,index):{x:bench.x+offsets[index],y:bench.y+28};
+    Object.assign(player,position);
     io.sockets.sockets.get(id)?.emit('playerMoved', { id, x: player.x, y: player.y });
     io.to(`map:${player.mapId}`).emit('playerMoved', { id, x: player.x, y: player.y });
   });
@@ -616,8 +616,8 @@ function ejectBenchPair(playerIds, message) {
     const bench = ALL_REST_BENCHES.find((item) => item.id === player.sittingAtBench);
     const wasSitting = stopCampusBenchRest(player);
     if (bench) {
-      player.x = Math.max(30, Math.min(770, bench.x + 78 + index * 22));
-      player.y = Math.max(30, Math.min(570, bench.y + 65 + index * 12));
+      const position=bench.id.startsWith('fountain-')?FountainPhysics.standPosition(bench,index):{x:Math.max(30,Math.min(770,bench.x+78+index*22)),y:Math.max(30,Math.min(570,bench.y+65+index*12))};
+      Object.assign(player,position);
     }
     const playerSocket = io.sockets.sockets.get(id);
     playerSocket?.emit('benchRestResult', { message, state: getPlayerState(player), x: player.x, y: player.y });

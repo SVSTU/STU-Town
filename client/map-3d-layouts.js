@@ -2,11 +2,19 @@
 const Map3DLayouts = (() => {
     const prop=(file,x,y,scale=1,action='',w=0,d=0)=>({file,x,y,scale,action,w,d,front:['seed-stall','produce-stall','food-counter','card-machine','ticket-machine','recovery-station'].includes(file)});
     const maps={
-        'khu-a': {title:'Khu A · Giao dịch',pack:'khu-a',floor:'#b6ac8e',spawn:{x:400,y:455},props:[
-            prop('seed-stall',270,245,1,'merchant',29,17),
-            prop('produce-stall',340,245,1,'merchant',29,17),
-            prop('professor',500,255,1,'professor',10,10),
-            prop('recovery-station',400,378,1,'recovery',15,12)]},
+        'khu-a': {title:'Khu A · Hợp tác xã',pack:'khu-a-coop-v1',theme:'coop-v1',floor:'#c7b8a5',
+            playerRadius:10,spawn:{x:400,y:300},exit:{x:400,y:126},
+            bounds:{minX:128,maxX:672,minY:96,maxY:504},props:[
+            prop('seed-stall',237,436,1,'merchant',62,30),
+            prop('produce-stall',563,436,1,'merchant',62,30),
+            {...prop('professor-desk',400,436,1,'professor',48,20),front:true},
+            prop('recovery-station',215,230,1,'recovery',52,19),
+            {...prop('locked-farm-gate',575,230,1,'locked-farm',56,34),front:true},
+            prop('handcart',640,370,1,'',16,23),
+            prop('potted-plant',153,372,1,'',15,15),prop('potted-plant',647,308,1,'',15,15)],
+            barriers:[{id:'coop-wall-left',x:128,y:300,w:4,d:204},{id:'coop-wall-right',x:672,y:300,w:4,d:204},
+                {id:'coop-wall-back',x:400,y:504,w:272,d:5},
+                {id:'coop-front-left',x:238,y:96,w:110,d:5},{id:'coop-front-right',x:562,y:96,w:110,d:5}]},
         canteen:{title:'Căn tin · STU',pack:'canteen-v2',theme:'canteen-v2',floor:'#c9b292',spawn:{x:400,y:155},returnSpawn:{x:610,y:330},exit:{x:620,y:160},props:[
             prop('food-counter',400,455,1,'canteen-counter',88,28),
             {...prop('ticket-machine',640,330,1,'elevator-vending',12,15),rotation:Math.PI/2},

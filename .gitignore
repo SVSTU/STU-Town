@@ -1,0 +1,5 @@
+tools/.preview-cache/
+tools/__pycache__/
+tools/khu-a-*.log
+source-assets/khu-a-coop-v1/**/*.blend1
+source-assets/khu-a-coop-v1/*.blend1

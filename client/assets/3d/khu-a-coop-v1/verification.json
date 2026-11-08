@@ -1,0 +1,60 @@
+{
+  "renderer": {
+    "map": "khu-a",
+    "meshes": 293,
+    "portal": true,
+    "boards": 0,
+    "occlusion": {
+      "blocked": true,
+      "hiddenSkipped": true
+    },
+    "rig": [
+      {
+        "name": "student_hip_left",
+        "angle": 0
+      },
+      {
+        "name": "student_hip_right",
+        "angle": 0
+      }
+    ],
+    "errors": []
+  },
+  "state": {
+    "state": {
+      "theme": "coop-v1",
+      "farmLocked": true,
+      "exitDestination": "campus",
+      "npcCount": 3
+    },
+    "character": "student-coop-01",
+    "joints": 8,
+    "lockedMeshes": 9,
+    "spawnClear": true,
+    "stats": {
+      "meshes": 340,
+      "vertices": 181306,
+      "active": 334
+    }
+  },
+  "interactions": {
+    "remote-0": true,
+    "near-0": true,
+    "remote-1": true,
+    "near-1": true,
+    "remote-2": true,
+    "near-2": true,
+    "remote-3": true,
+    "near-3": true,
+    "remote-4": true,
+    "near-4": true,
+    "spawnStays": true,
+    "exitWorks": true
+  },
+  "mobile": {
+    "viewport": true,
+    "canvas": true,
+    "pad": true
+  },
+  "moduleSelection": true
+}

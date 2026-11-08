@@ -10,21 +10,21 @@ for(const [map,action] of services){
     assert(!layouts.canInteract(map,layouts.get(map).spawn,action),'remote access '+action);
 }
 const props=layouts.get('khu-a').props;
-props.push({x:270,y:220,w:10,d:3});
-assert(!layouts.canInteract('khu-a',{x:270,y:205},'merchant'),'obstacle must block line of sight');props.pop();
+props.push({x:237,y:398,w:70,d:3});
+assert(!layouts.canInteract('khu-a',{x:237,y:388},'merchant'),'obstacle must block line of sight');props.pop();
 for(const bench of fountain.benches){
-    const offset=-Math.cos(bench.rotation)*32;
-    assert(fountain.canUseBench({x:bench.x,y:bench.y+offset},bench.id));
-    assert(!fountain.canUseBench({x:bench.x,y:bench.y-offset},bench.id));
+    const front=fountain.approachPosition(bench),back={x:bench.x-(front.x-bench.x),y:bench.y-(front.y-bench.y)};
+    assert(fountain.canUseBench(front,bench.id));
+    assert(!fountain.canUseBench(back,bench.id));
 }
-console.log('PASS reach rules: service fronts, remote/rear denial, occlusion and all four benches');
+console.log('PASS reach rules: service fronts, remote/rear denial, occlusion and all six fountain benches');
 
 // Run real server handlers in a sandbox, with isolated in-memory balances only.
 const source=fs.readFileSync('server/index.js','utf8');
 function execute(event,map,position,payload){
     const start=source.indexOf("  socket.on('"+event+"'"),next=source.indexOf('\n  socket.on(',start+1),handlers={};
     const player={mapId:map,...position,coins:1500,reputation:100,stats:{hunger:30,strength:30,fatigue:50},lastFarmActionAt:0,farmPlantCount:0};
-    const inventory={seeds:{carrot:3},produce:{carrot:0},items:{bread:0,eventGoldCoin:2,elevatorTicket:1}},plot={crop:'',plantedAt:0};
+    const inventory={seeds:{carrot:3},produce:{carrot:3},items:{bread:0,eventGoldCoin:2,elevatorTicket:1}},plot={crop:'',plantedAt:0};
     const noop=()=>{};
     const ctx={console,Map,Date,Math,Number,Object,Promise,Map3DLayouts:layouts,socket:{id:'review',on:(name,fn)=>handlers[name]=fn,emit:noop},players:{review:player},playerInventories:new Map([['review',inventory]]),farmPlots:new Map([['plot-1',plot]]),FARM_CROP_KEYS:{carrot:'carrot'},CROP_PRICES:{carrot:100},FOOD_MENU:{bread:{coins:100,reputation:20}},applyFarmWorkCost:()=>'',emitPlayerState:noop,emitSessionLeaderboard:noop,schedulePlayerSave:noop,getPlayerState:()=>({}),getFarmSnapshot:()=>({}),clampStat:v=>Math.max(0,Math.min(100,v)),io:{to:()=>({emit:noop})},recordCanteenSale:()=>Promise.resolve(),emitCanteenBestSellingProducts:()=>Promise.resolve(),isKhuCScheduleOpen:()=>false};
     vm.createContext(ctx);vm.runInContext(source.slice(start,next<0?undefined:next),ctx);handlers[event](payload);
@@ -32,8 +32,9 @@ function execute(event,map,position,payload){
 }
 const cases=[
     ['interactFarmPlot','farm',nearPlot,{plotId:'plot-1',action:'plant',cropKey:'carrot'},s=>s.inventory.seeds.carrot===2],
-    ['farmShopAction','khu-a',{x:270,y:205},{action:'buy-seed',cropKey:'carrot',quantity:1},s=>s.player.coins===1400],
-    ['useRecoveryStation','khu-a',{x:400,y:350},undefined,s=>s.player.coins===1000],
+    ['farmShopAction','khu-a',{x:237,y:388},{action:'buy-seed',cropKey:'carrot',quantity:1},s=>s.player.coins===1400],
+    ['farmShopAction','khu-a',{x:563,y:388},{action:'sell-crop',cropKey:'carrot',quantity:1},s=>s.player.coins===1600&&s.inventory.produce.carrot===2],
+    ['useRecoveryStation','khu-a',{x:215,y:193},undefined,s=>s.player.coins===1000&&s.player.stats.hunger===80&&s.player.stats.strength===80&&s.player.stats.fatigue===0],
     ['canteenPurchase','canteen',{x:400,y:415},{itemId:'bread',currency:'coins',quantity:1},s=>s.inventory.items.bread===1],
     ['buyElevatorTicket','canteen',{x:610,y:330},undefined,s=>s.inventory.items.elevatorTicket===2]
 ];
@@ -54,3 +55,10 @@ ctx.halloweenOpenedBoxes.clear();ctx.updateHalloweenBoxInteraction({x:112,y:212}
 ctx.currentMapId='farm';doc.getElementById('interaction-button').disabled=true;ctx.updateFarmPlotInteraction(nearPlot);assert(!doc.getElementById('interaction-button').disabled);
 ctx.currentMapId='canteen';doc.getElementById('interaction-button').disabled=true;ctx.updateInteriorInteraction({x:400,y:415});assert(!doc.getElementById('interaction-button').disabled);
 console.log('PASS UI: same Halloween box becomes usable after reset; farm/canteen buttons recover');
+const lockedToasts=[],lockedEmits=[];
+Object.assign(ctx,{currentMapId:'khu-a',socket:{id:'review',emit:(...args)=>lockedEmits.push(args)},players:{review:{x:575,y:178}},showToast:text=>lockedToasts.push(text)});
+ctx.updateInteriorInteraction(ctx.players.review);ctx.interactWithCurrentZone();
+assert.equal(lockedToasts.length,1);assert(lockedToasts[0].includes('Nông trại hiện chưa mở'));assert.equal(lockedEmits.length,0);
+assert.equal(execute('enterCampusMap','khu-a',{x:575,y:178},'personal-farm').player.mapId,'khu-a');
+assert.equal(execute('enterCampusMap','campus',{x:400,y:250},'personal-farm').player.mapId,'campus');
+console.log('PASS cooperative: locked farm shows feedback, emits no travel, server denies personal-farm entry.');

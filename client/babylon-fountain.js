@@ -32,10 +32,10 @@ function addFountainBench(scene, x, z) {
     const dark = createFountainMaterial(scene, 'bench-dark', '#4e311f');
     const stone = createFountainMaterial(scene, 'bench-stone', '#e7dcc1');
     const seat = BABYLON.MeshBuilder.CreateBox('bench-seat', { width: 2.8, height: .18, depth: .48 }, scene);
-    seat.position.set(x, .78, z); seat.material = wood;
+    seat.position.set(x, .89, z); seat.material = wood;
     for (let index = -1; index <= 1; index++) {
         const slat = BABYLON.MeshBuilder.CreateBox('bench-seat-slat', { width: 2.78, height: .08, depth: .13 }, scene);
-        slat.position.set(x, .84 + index * .14, z - index * .03); slat.material = wood;
+        slat.position.set(x, .91, z + index * .20); slat.material = wood;
     }
     const back = BABYLON.MeshBuilder.CreateBox('bench-back', { width: 2.72, height: .68, depth: .12 }, scene);
     back.position.set(x, 1.32, z + .25); back.material = wood;
@@ -77,7 +77,10 @@ function addFountainPergola(scene, x, z) {
         const vine = BABYLON.MeshBuilder.CreateBox('pergola-vine', { width: .55, height: .16, depth: 2.3 }, scene);
         vine.position.set(x + index * .62, 2.32, z); vine.material = leaf;
     }
-    addFountainBench(scene, x, z + .1);
+    const seat=BABYLON.MeshBuilder.CreateBox('pergola-bench-seat',{width:2.65,height:.10,depth:.58},scene);
+    seat.position.set(x,.55,z+.40);seat.material=wood;
+    const back=BABYLON.MeshBuilder.CreateBox('pergola-bench-back',{width:2.65,height:.54,depth:.12},scene);
+    back.position.set(x,.82,z+.65);back.material=wood;
 }
 
 function addFountainPath(scene, x, z, width, depth, rotation = 0) {
@@ -89,8 +92,8 @@ function addFountainPath(scene, x, z, width, depth, rotation = 0) {
 function addFountainFlowerBed(scene, x, z, scale = 1) {
     const soil = createFountainMaterial(scene, 'flower-soil', '#715137');
     const flower = createFountainMaterial(scene, 'flower-pink', '#e88fa7');
-    const bed = BABYLON.MeshBuilder.CreateCylinder('flower-bed', { diameter: 2.4 * scale, height: .16, tessellation: 32 }, scene);
-    bed.position.set(x, .1, z); bed.material = soil;
+    const bed = BABYLON.MeshBuilder.CreateBox('flower-bed', { width:2.8*scale,depth:1.62*scale,height:.40*scale }, scene);
+    bed.position.set(x, .20*scale, z); bed.material = soil;
     [-.55, 0, .55].forEach((offset) => {
         const bloom = BABYLON.MeshBuilder.CreateSphere('flower-bloom', { diameter: .32 * scale, segments: 8 }, scene);
         bloom.position.set(x + offset * scale, .36, z + (offset % .35) * scale); bloom.material = flower;
@@ -113,6 +116,13 @@ function addFountainPlazaRings(scene) {
         tile.rotation.y = -angle;
         tile.material = paving;
     }
+}
+
+function placeFountainFallback(scene,build,x,z,rotation=0,scale=1){
+    const before=new Set([...scene.meshes,...scene.transformNodes]);build();
+    const nodes=[...scene.meshes,...scene.transformNodes].filter(n=>!before.has(n)&&!n.parent);
+    const root=new BABYLON.TransformNode('fallback-placement',scene);root.position.set(x,0,z);root.rotation.y=rotation;root.scaling.setAll(scale);
+    nodes.forEach(node=>node.parent=root);
 }
 
 function addFountainExitVortex(scene, exit = {x:690,y:475}) {
@@ -173,13 +183,15 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
                     // Keep the import root's quaternion/scale: they convert glTF
                     // coordinates. Place/rotate the prop using a separate parent.
                     const placement = new BABYLON.TransformNode(`placement-${file}-${x}-${z}`,scene);
-                    placement.position.set(x,0,z);placement.rotation.y=rotation;placement.scaling.setAll(scale);
+                    placement.position.set(x,0,z);placement.rotation.y=rotation+(['stone-bench.glb','pergola.glb'].includes(file)?Math.PI:0);placement.scaling.setAll(scale);
+                    placement.metadata={file,x,z,rotation};
                     roots.forEach(node=>node.parent=placement);
                 }
                 result.meshes.forEach((mesh) => { mesh.isPickable = true; });
-                if (file === 'stone-bench.glb') {
-                    const bench = FountainPhysics.benches.find(b => Math.abs(b.x-(400+x*34))<1 && Math.abs(b.y-(300+z*34))<1);
-                    result.meshes.forEach(mesh => {
+                if (file === 'stone-bench.glb'||file === 'pergola.glb') {
+                    const pergola=FountainPhysics.pergolas.find(p=>p.x===x&&p.z===z);
+                    const bench = FountainPhysics.benches.find(b => file==='pergola.glb'?b.pergolaId===pergola?.id:b.kind==='stone'&&Math.abs(b.x-(400+x*34))<1&&Math.abs(b.y-(300+z*34))<1);
+                    result.meshes.filter(mesh=>file==='stone-bench.glb'||/pergola_bench/.test(mesh.name)).forEach(mesh => {
                         mesh.isPickable = true;
                         mesh.actionManager = new BABYLON.ActionManager(scene);
                         mesh.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () => {
@@ -207,23 +219,23 @@ async function loadReferenceFountainAssets(scene, proceduralMeshes) {
     } catch (error) {
         console.warn('Không tải được fountain.glb, dùng mesh dự phòng:', error.message);
     }
-    await importPlacements('stone-bench.glb', FountainPhysics.benches.map(bench=>[(bench.x-400)/34,(bench.y-300)/34,bench.rotation]), { disablePrefixes: ['bench-'], scale: .85 });
+    await importPlacements('stone-bench.glb', FountainPhysics.stoneBenches.map(b=>[b.worldX,b.worldZ,b.rotation]), { disablePrefixes: ['bench-'], scale: .85 });
 
     // Additional park props are loaded as reusable GLB modules. If one is unavailable,
     // its procedural counterpart remains visible so the map is still usable.
-    await importPlacements('tree.glb', [[-8.0, -5.0], [8.0, -5.0], [-8.0, 4.2], [8.0, 4.2]], {
+    await importPlacements('tree.glb', FountainPhysics.trees.map(p=>[p.x,p.z]), {
         disablePrefixes: ['tree-'],
         scale: 1.0
     });
-    await importPlacements('flowerbed.glb', [[-3.8, -4.7], [3.8, -4.7], [-3.8, 4.7], [3.8, 4.7]], {
+    await importPlacements('flowerbed.glb', FountainPhysics.flowerBeds.map(p=>[p.x,p.z,p.rotation]), {
         disablePrefixes: ['flower-'],
         scale: 0.9
     });
-    await importPlacements('lamp.glb', [[-3.35, -4.4], [3.35, -4.4], [-3.35, 4.4], [3.35, 4.4]], {
+    await importPlacements('lamp.glb', FountainPhysics.lamps.map(p=>[p.x,p.z]), {
         disablePrefixes: ['lamp-'],
         scale: 1.0
     });
-    await importPlacements('pergola.glb', [[-7.0, 3.5, Math.PI], [7.0, 3.5, Math.PI]], {
+    await importPlacements('pergola.glb', FountainPhysics.pergolas.map(p=>[p.x,p.z,p.rotation]), {
         disablePrefixes: ['pergola-'],
         scale: 0.9
     });
@@ -311,6 +323,8 @@ function createBabylonHuman(scene, id) {
         if (modelRoot) {root._characterModel?.dispose();modelRoot.parent = root;root._characterModel=modelRoot;}
         const face=asset.meshes.find(mesh=>mesh.name==='student_nose');
         const skull=asset.meshes.find(mesh=>mesh.name==='student_head');
+        const hip=asset.transformNodes?.find(node=>node.name==='student_hip_left');
+        if(hip){root.computeWorldMatrix(true);hip.computeWorldMatrix(true);root._seatedHipBottom=BABYLON.Vector3.TransformCoordinates(hip.getAbsolutePosition(),root.getWorldMatrix().clone().invert()).y-.08;}
         if(skull)root._nameLabel?.linkWithMesh(skull);
         if(face&&skull) {
             root.computeWorldMatrix(true);skull.computeWorldMatrix(true);face.computeWorldMatrix(true);
@@ -318,10 +332,13 @@ function createBabylonHuman(scene, id) {
             root._modelForwardYaw=Math.atan2(direction.x,direction.z);
             if(root._desiredYaw!==undefined)root.rotation.y=root._desiredYaw-root._modelForwardYaw;
         }
-        if(modelRoot)root._animateStudent=bindStudentAnimation(root,modelRoot);
+        if(modelRoot){
+            if(descriptor.modules)CharacterAssets.applyModules(modelRoot,descriptor.modules);
+            root._animateStudent=bindStudentAnimation(root,modelRoot);
+        }
         fallbackMeshes.forEach((mesh) => { mesh.visibility = 0; mesh._cameraBaseVisibility = 0; });
     };
-    void root._setCharacterAsset(CharacterAssets.resolve(players[id]?.characterAssetId));
+    void root._setCharacterAsset(CharacterAssets.forPlayer(players[id],babylonFountain.mapId));
     if (BABYLON.GUI) {
         const label = new BABYLON.GUI.Rectangle(`name-${id}`);
         label.width = '100px'; label.height = '22px'; label.cornerRadius = 6; label.thickness = 0;
@@ -356,20 +373,12 @@ function activateBabylonFountain() {
     addFountainPath(scene, 0, -6, 2.6, 4.5); addFountainPath(scene, 0, 6, 2.6, 4.5); addFountainPath(scene, -7, 0, 4.5, 2.6, Math.PI / 2); addFountainPath(scene, 7, 0, 4.5, 2.6, Math.PI / 2);
     addFountainPlazaRings(scene);
     addFountainObject(scene); addFountainExitVortex(scene);
-    addFountainTree(scene, -8, -5, 1.15); addFountainTree(scene, 8, -5, 1.15); addFountainTree(scene, -8, 4, .85); addFountainTree(scene, 8, 4, .85);
-    addFountainBench(scene, -5.2, 3.1); addFountainBench(scene, 5.2, 3.1); addFountainBench(scene, -4.8, -3.3); addFountainBench(scene, 4.8, -3.3);
-    addFountainLamp(scene, -3.3, -4.4); addFountainLamp(scene, 3.3, -4.4); addFountainLamp(scene, -3.3, 4.4); addFountainLamp(scene, 3.3, 4.4);
-    addFountainPergola(scene, -7, 2.8); addFountainPergola(scene, 7, 2.8);
-    addFountainFlowerBed(scene, -4.3, -1.8, 1.1); addFountainFlowerBed(scene, 4.3, -1.8, 1.1); addFountainFlowerBed(scene, -4.3, 1.8, 1.1); addFountainFlowerBed(scene, 4.3, 1.8, 1.1);
+    FountainPhysics.trees.forEach(p=>placeFountainFallback(scene,()=>addFountainTree(scene,0,0),p.x,p.z));
+    FountainPhysics.stoneBenches.forEach(b=>placeFountainFallback(scene,()=>addFountainBench(scene,0,0),b.worldX,b.worldZ,b.rotation,.85));
+    FountainPhysics.lamps.forEach(p=>placeFountainFallback(scene,()=>addFountainLamp(scene,0,0),p.x,p.z));
+    FountainPhysics.pergolas.forEach(p=>placeFountainFallback(scene,()=>addFountainPergola(scene,0,0),p.x,p.z,p.rotation,p.scale));
+    FountainPhysics.flowerBeds.forEach(p=>placeFountainFallback(scene,()=>addFountainFlowerBed(scene,0,0),p.x,p.z,p.rotation,p.scale));
     const gui = BABYLON.GUI ? BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('fountain-gui', true, scene) : null;
-    const sitKey = event => {
-        if (event.code !== 'KeyE' || event.repeat || /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName)) return;
-        const player = players[socket.id];
-        const bench = player && FountainPhysics.benches.find(b => FountainPhysics.canUseBench(player,b.id));
-        if (bench) socket.emit('restAtCampusBench', bench.id);
-    };
-    window.addEventListener('keydown', sitKey);
-    scene.onDisposeObservable.add(()=>window.removeEventListener('keydown',sitKey));
     const proceduralMeshes = scene.meshes.slice();
     babylonFountain = { canvas, engine, scene, gui, mapId:'fountain', camera, exit:{x:690,y:475}, players: new Map() };
     document.body.classList.add('is-map-3d');
@@ -389,7 +398,7 @@ function updateBabylonFountainPlayers() {
     Object.entries(players || {}).forEach(([id, player]) => {
         if (!babylonFountain.players.has(id)) babylonFountain.players.set(id, createBabylonHuman(babylonFountain.scene, id));
         const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y);
-        const appearance=CharacterAssets.resolve(player.characterAssetId);
+        const appearance=CharacterAssets.forPlayer(player,babylonFountain.mapId);
         if(mesh._characterKey!==appearance.id)void mesh._setCharacterAsset(appearance);
         if(!mesh._placed) {
             const camera=babylonFountain.camera||babylonFountain.scene.activeCamera;
@@ -412,14 +421,14 @@ function updateBabylonFountainPlayers() {
         if (seat) {
             const bench = FountainPhysics.benches.find(b=>b.id===seat[0]);
             if (bench) {
-                mesh.position.x=(bench.x-400)/34+(seat[1].indexOf(id)===0?-.35:.35);
-                mesh.position.z=(bench.y-300)/34;
-                mesh.position.y=mesh._seatOffset??.20;
-                mesh.rotation.y=bench.rotation+Math.PI-(mesh._modelForwardYaw??Math.PI);
+                const transform=FountainPhysics.seatTransform(bench,seat[1].indexOf(id),mesh._seatedHipBottom??.69);
+                mesh.position.set(transform.x,transform.y,transform.z);
+                mesh.rotation.y=transform.yaw-(mesh._modelForwardYaw??Math.PI);
             }
         } else { mesh.position.y=0; }
         if(mesh._contactShadow)mesh._contactShadow.isVisible=!seat;
         mesh._animateStudent?.(dt,Math.hypot(mesh.position.x-previousVisualX,mesh.position.z-previousVisualZ),walk,Boolean(seat));
+        if(babylonFountain.mapId==='fountain'&&!seat)mesh.position.y+=FountainPhysics.groundHeight(400+mesh.position.x*34,300+mesh.position.z*34);
         if (mesh._nameText) mesh._nameText.text = player.playerNickname || (id === socket.id ? 'Bạn' : `Khách (${id.slice(0, 4)})`);
     });
     babylonFountain.players.forEach((mesh, id) => { if (!players[id]) { mesh._nameLabel?.dispose(); mesh.dispose(); babylonFountain.players.delete(id); } });

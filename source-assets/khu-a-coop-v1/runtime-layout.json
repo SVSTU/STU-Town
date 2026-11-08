@@ -1,0 +1,140 @@
+{
+  "title": "Khu A · Hợp tác xã",
+  "pack": "khu-a-coop-v1",
+  "theme": "coop-v1",
+  "floor": "#c7b8a5",
+  "playerRadius": 10,
+  "spawn": {
+    "x": 400,
+    "y": 300
+  },
+  "exit": {
+    "x": 400,
+    "y": 126
+  },
+  "bounds": {
+    "minX": 128,
+    "maxX": 672,
+    "minY": 96,
+    "maxY": 504
+  },
+  "props": [
+    {
+      "file": "seed-stall",
+      "x": 237,
+      "y": 436,
+      "scale": 1,
+      "action": "merchant",
+      "w": 62,
+      "d": 30,
+      "front": true
+    },
+    {
+      "file": "produce-stall",
+      "x": 563,
+      "y": 436,
+      "scale": 1,
+      "action": "merchant",
+      "w": 62,
+      "d": 30,
+      "front": true
+    },
+    {
+      "file": "professor-desk",
+      "x": 400,
+      "y": 436,
+      "scale": 1,
+      "action": "professor",
+      "w": 48,
+      "d": 20,
+      "front": true
+    },
+    {
+      "file": "recovery-station",
+      "x": 215,
+      "y": 230,
+      "scale": 1,
+      "action": "recovery",
+      "w": 52,
+      "d": 19,
+      "front": true
+    },
+    {
+      "file": "locked-farm-gate",
+      "x": 575,
+      "y": 230,
+      "scale": 1,
+      "action": "locked-farm",
+      "w": 56,
+      "d": 34,
+      "front": true
+    },
+    {
+      "file": "handcart",
+      "x": 640,
+      "y": 370,
+      "scale": 1,
+      "action": "",
+      "w": 16,
+      "d": 23,
+      "front": false
+    },
+    {
+      "file": "potted-plant",
+      "x": 153,
+      "y": 372,
+      "scale": 1,
+      "action": "",
+      "w": 15,
+      "d": 15,
+      "front": false
+    },
+    {
+      "file": "potted-plant",
+      "x": 647,
+      "y": 308,
+      "scale": 1,
+      "action": "",
+      "w": 15,
+      "d": 15,
+      "front": false
+    }
+  ],
+  "barriers": [
+    {
+      "id": "coop-wall-left",
+      "x": 128,
+      "y": 300,
+      "w": 4,
+      "d": 204
+    },
+    {
+      "id": "coop-wall-right",
+      "x": 672,
+      "y": 300,
+      "w": 4,
+      "d": 204
+    },
+    {
+      "id": "coop-wall-back",
+      "x": 400,
+      "y": 504,
+      "w": 272,
+      "d": 5
+    },
+    {
+      "id": "coop-front-left",
+      "x": 238,
+      "y": 96,
+      "w": 110,
+      "d": 5
+    },
+    {
+      "id": "coop-front-right",
+      "x": 562,
+      "y": 96,
+      "w": 110,
+      "d": 5
+    }
+  ]
+}

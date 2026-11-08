@@ -31,6 +31,18 @@ function isWithinInteractionArea(player, target, padding = 20) {
 }
 
 function updateInteractionZone(player) {
+    if(currentMapId==='fountain'){
+        const bench=FountainPhysics.benches.filter(b=>FountainPhysics.canUseBench(player,b.id)).sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];
+        activeInteractionZoneId=bench?.id||'';
+        document.getElementById('interaction-hud').hidden=!bench;
+        if(!bench)return;
+        document.getElementById('interaction-zone-name').textContent=bench.kind==='pergola'?'Ghế trong chòi nghỉ':'Ghế quanh đài phun nước';
+        document.getElementById('farm-plot-list').hidden=true;
+        document.getElementById('farm-seed-picker').hidden=true;
+        document.getElementById('interaction-button').hidden=false;
+        updateBenchInteractionState({...bench,detail:'Ghế dành cho 2 người. Ngồi nghỉ để giảm độ mệt; di chuyển để đứng dậy.'});
+        return;
+    }
     if (currentMapId.startsWith('halloween:')) {
         updateHalloweenBoxInteraction(player);
         return;
@@ -255,6 +267,12 @@ function updateInteriorInteraction(player) {
 }
 
 function interactWithCurrentZone() {
+    if(currentMapId==='fountain'){
+        const player=players[socket.id];if(!player)return;
+        updateInteractionZone(player);
+        if(activeInteractionZoneId&&socket.connected&&!document.getElementById('interaction-button').disabled)socket.emit('restAtCampusBench',activeInteractionZoneId);
+        return;
+    }
     if(Map3DLayouts.get(currentMapId)&&players[socket.id])updateInteractionZone(players[socket.id]);
     if (currentMapId.startsWith('halloween:') && activeHalloweenBox >= 0) {
         if (!halloweenOpenedBoxes.has(activeHalloweenBox) && socket.connected) socket.emit('openHalloweenBox', activeHalloweenBox);
@@ -268,6 +286,10 @@ function interactWithCurrentZone() {
     }
     if (activeInteractionZoneId.startsWith('interior:')) {
         const objectId = activeInteriorObjectId;
+        if(currentMapId==='khu-a'&&objectId==='locked-farm') {
+            showToast('Nông trại hiện chưa mở. Bạn có thể vào vườn cộng đồng từ bản đồ chính.');
+            return;
+        }
         if(objectId==='ranking-reputation'||objectId==='ranking-coins') {
             openCanteenRanking(objectId.slice(8));return;
         }
