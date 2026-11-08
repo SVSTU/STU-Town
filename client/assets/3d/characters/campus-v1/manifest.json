@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "units": "metres",
+  "assets": [
+    {
+      "file": "modular-human.glb",
+      "bytes": 923692,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.36000001430511475,
+          1.784999966621399
+        ]
+      },
+      "id": "modular-human",
+      "preset": null,
+      "rig": "student-animation-v1"
+    },
+    {
+      "file": "student.glb",
+      "bytes": 419836,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.32999998331069946,
+          1.784999966621399
+        ]
+      },
+      "id": "student",
+      "preset": {
+        "hair": "wavy",
+        "outfit": "polo",
+        "accessories": [
+          "backpack"
+        ]
+      },
+      "rig": "student-animation-v1"
+    },
+    {
+      "file": "student-female.glb",
+      "bytes": 443244,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.36000001430511475,
+          1.784999966621399
+        ]
+      },
+      "id": "student-female",
+      "preset": {
+        "hair": "ponytail",
+        "outfit": "uniform",
+        "accessories": [
+          "backpack"
+        ]
+      },
+      "rig": "student-animation-v1"
+    },
+    {
+      "file": "professor.glb",
+      "bytes": 446708,
+      "boundsBlender": {
+        "min": [
+          -0.43033838272094727,
+          -0.2580000162124634,
+          0.014999985694885254
+        ],
+        "max": [
+          0.43033838272094727,
+          0.23000000417232513,
+          1.784999966621399
+        ]
+      },
+      "id": "professor",
+      "preset": {
+        "hair": "gray",
+        "outfit": "vest",
+        "accessories": [
+          "glasses"
+        ]
+      },
+      "rig": "student-animation-v1"
+    }
+  ],
+  "rig": "student-animation-v1",
+  "slots": {
+    "hair": [
+      "wavy",
+      "braid",
+      "gray",
+      "ponytail"
+    ],
+    "outfit": [
+      "polo",
+      "apron",
+      "vest",
+      "uniform"
+    ],
+    "accessories": [
+      "backpack",
+      "glasses"
+    ]
+  }
+}

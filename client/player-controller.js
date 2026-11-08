@@ -175,7 +175,9 @@ function update(time, delta) {
     if(is3D) {
         babylonFountain.localMoving=isMoved;
         const exit=babylonFountain.exit;
-        if(exit&&!babylonFountain.exitPending&&Math.hypot(p.x-exit.x,p.y-exit.y)<=24) {
+        if(exit&&!babylonFountain.exitPending&&Math.hypot(p.x-exit.x,p.y-exit.y)<=(Map3DLayouts.get(currentMapId)?.exitRadius||24)) {
+            // Socket order guarantees the server receives the final threshold position first.
+            socket.emit('playerMovement',{x:p.x,y:p.y});lastMovementSentAt=time;
             babylonFountain.exitPending=true;socket.emit('returnToCampus');
         }
     }

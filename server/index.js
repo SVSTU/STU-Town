@@ -22,7 +22,8 @@ const EVENT_RATE_LIMITS = {
   sendPrivateMessage: { max: 8, windowMs: 10_000 },
   reactToMessage: { max: 20, windowMs: 10_000 },
   reactToPrivateMessage: { max: 20, windowMs: 10_000 },
-  sendPlayerEmote: { max: 12, windowMs: 10_000 }
+  sendPlayerEmote: { max: 12, windowMs: 10_000 },
+  sitAtPrivateBench: { max: 8, windowMs: 10_000 }
 };
 
 function consumeSocketRate(socket, key, max, windowMs) {
@@ -564,6 +565,7 @@ function emitSessionLeaderboard() {
 
 const FountainPhysics = require('../client/fountain-physics.js');
 const Map3DLayouts = require('../client/map-3d-layouts.js');
+const privateBench = require('./private-bench').createPrivateBenchSystem({players,io,layouts:Map3DLayouts,allowEvent:socket=>allowSocketEvent(socket,'sitAtPrivateBench')});
 const ALL_REST_BENCHES = [...CAMPUS_BENCHES, ...FountainPhysics.benches];
 function getCampusBenchOccupants() {
   const occupants = {};
@@ -636,7 +638,8 @@ function moveBenchPairToPrivateSpace(offer) {
     stopCampusBenchRest(player);
     playerSocket?.leave(`map:${player.mapId}`);
     playerSocket?.to(`map:${player.mapId}`).emit('playerLeftMap', id);
-    Object.assign(player, { mapId: privateMapId, x: index ? 455 : 345, y: 310 });
+    delete player.privateSeatIndex;
+    Object.assign(player, { mapId: privateMapId, ...Map3DLayouts.get(privateMapId).spawns[index] });
     playerSocket?.join(`map:${privateMapId}`);
   });
   emitCampusBenchOccupants();
@@ -1154,6 +1157,8 @@ io.on('connection', (socket) => {
   socket.on('returnToCampus', () => {
     const previousMapId = players[socket.id]?.mapId || 'campus';
     if (previousMapId === 'campus') return;
+    if(!privateBench.canExit(players[socket.id]))return socket.emit('mapChangeDenied','Hãy đi đến vòng xoáy để rời vườn ghế riêng.');
+    privateBench.leave(socket.id);
     if (previousMapId.startsWith('halloween:')) {
       returnHalloweenToCanteen(socket, 'Bạn rời tầng Halloween.');
       return;
@@ -1184,6 +1189,7 @@ io.on('connection', (socket) => {
       if (Map3DLayouts.get(players[socket.id].mapId) && Map3DLayouts.blockedPath(players[socket.id].mapId,players[socket.id].x,players[socket.id].y,x,y)) {
         socket.emit('movementCorrection',{x:players[socket.id].x,y:players[socket.id].y});return;
       }
+      if(Math.hypot(x-players[socket.id].x,y-players[socket.id].y)>.01)privateBench.leave(socket.id);
       stopCampusBenchRest(players[socket.id]);
       if (wasSittingAtBench) {
         socket.emit('benchRestResult', { message: 'Bạn đứng dậy; lượt nghỉ đã dừng.' });
@@ -1362,6 +1368,7 @@ io.on('connection', (socket) => {
     });
   });
 
+  privateBench.bind(socket);
   socket.on('benchPrivateSeatResponse', ({ offerId, accept } = {}) => {
     const offer = campusBenchPrivateOffers.get(offerId);
     const player = players[socket.id];
@@ -1716,6 +1723,7 @@ io.on('connection', (socket) => {
   // 5. Xử lý khi người chơi thoát game
   socket.on('disconnect', async () => {
     console.log('Người chơi thoát:', socket.id);
+    privateBench.leave(socket.id);
     clearTimeout(profileSaveTimers.get(socket.id));
     profileSaveTimers.delete(socket.id);
     await persistPlayer(socket.id);

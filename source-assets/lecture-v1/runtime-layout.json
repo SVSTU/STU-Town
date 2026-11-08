@@ -1,0 +1,521 @@
+{
+  "title": "Khu C · Giảng đường",
+  "pack": "lecture-v1",
+  "theme": "lecture-v1",
+  "floor": "#d5c4a8",
+  "room": {
+    "width": 18,
+    "depth": 14
+  },
+  "playerRadius": 10,
+  "spawn": {
+    "x": 400,
+    "y": 300
+  },
+  "exit": {
+    "x": 400,
+    "y": 88
+  },
+  "bounds": {
+    "minX": 94,
+    "maxX": 706,
+    "minY": 62,
+    "maxY": 538
+  },
+  "props": [
+    {
+      "file": "teacher-desk",
+      "x": 287.8,
+      "y": 480,
+      "scale": 1,
+      "action": "lecture-info",
+      "w": 37,
+      "d": 16,
+      "front": true,
+      "height": 0.28
+    },
+    {
+      "file": "bookshelf",
+      "x": 605.7,
+      "y": 485.3,
+      "scale": 1,
+      "action": "",
+      "w": 32,
+      "d": 11,
+      "front": false,
+      "height": 0.28
+    },
+    {
+      "file": "student-desk",
+      "x": 287.8,
+      "y": 181,
+      "scale": 1,
+      "action": "",
+      "w": 28,
+      "d": 12,
+      "front": false
+    },
+    {
+      "file": "student-chair",
+      "x": 272.84000000000003,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-chair",
+      "x": 302.76,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-desk",
+      "x": 287.8,
+      "y": 262.6,
+      "scale": 1,
+      "action": "",
+      "w": 28,
+      "d": 12,
+      "front": false
+    },
+    {
+      "file": "student-chair",
+      "x": 272.84000000000003,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-chair",
+      "x": 302.76,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-desk",
+      "x": 287.8,
+      "y": 344.2,
+      "scale": 1,
+      "action": "",
+      "w": 28,
+      "d": 12,
+      "front": false
+    },
+    {
+      "file": "student-chair",
+      "x": 272.84000000000003,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-chair",
+      "x": 302.76,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-desk",
+      "x": 512.2,
+      "y": 181,
+      "scale": 1,
+      "action": "",
+      "w": 28,
+      "d": 12,
+      "front": false
+    },
+    {
+      "file": "student-chair",
+      "x": 497.24000000000007,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-chair",
+      "x": 527.1600000000001,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-desk",
+      "x": 512.2,
+      "y": 262.6,
+      "scale": 1,
+      "action": "",
+      "w": 28,
+      "d": 12,
+      "front": false
+    },
+    {
+      "file": "student-chair",
+      "x": 497.24000000000007,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-chair",
+      "x": 527.1600000000001,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-desk",
+      "x": 512.2,
+      "y": 344.2,
+      "scale": 1,
+      "action": "",
+      "w": 28,
+      "d": 12,
+      "front": false
+    },
+    {
+      "file": "student-chair",
+      "x": 497.24000000000007,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    },
+    {
+      "file": "student-chair",
+      "x": 527.1600000000001,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "w": 9,
+      "d": 10,
+      "front": false,
+      "rotation": 3.141592653589793
+    }
+  ],
+  "barriers": [
+    {
+      "id": "lecture-left",
+      "x": 94,
+      "y": 300,
+      "w": 4,
+      "d": 238
+    },
+    {
+      "id": "lecture-right",
+      "x": 706,
+      "y": 300,
+      "w": 4,
+      "d": 238
+    },
+    {
+      "id": "lecture-back",
+      "x": 400,
+      "y": 538,
+      "w": 306,
+      "d": 5
+    },
+    {
+      "id": "lecture-front-left",
+      "x": 219.8,
+      "y": 62,
+      "w": 125.8,
+      "d": 5
+    },
+    {
+      "id": "lecture-front-right",
+      "x": 580.2,
+      "y": 62,
+      "w": 125.8,
+      "d": 5
+    },
+    {
+      "id": "stage-front-left",
+      "x": 257.2,
+      "y": 430.9,
+      "w": 95.2,
+      "d": 1
+    },
+    {
+      "id": "stage-front-right",
+      "x": 542.8,
+      "y": 430.9,
+      "w": 95.2,
+      "d": 1
+    },
+    {
+      "id": "stage-edge-left",
+      "x": 162,
+      "y": 478.5,
+      "w": 1,
+      "d": 47.6
+    },
+    {
+      "id": "stage-edge-right",
+      "x": 638,
+      "y": 478.5,
+      "w": 1,
+      "d": 47.6
+    },
+    {
+      "id": "stage-edge-back",
+      "x": 400,
+      "y": 526.1,
+      "w": 238,
+      "d": 1
+    },
+    {
+      "id": "lecture-pot-front-left",
+      "x": 124,
+      "y": 125,
+      "w": 9,
+      "d": 9
+    },
+    {
+      "id": "lecture-pot-front-right",
+      "x": 676,
+      "y": 125,
+      "w": 9,
+      "d": 9
+    },
+    {
+      "id": "lecture-pot-back-left",
+      "x": 185,
+      "y": 480,
+      "w": 10,
+      "d": 10
+    },
+    {
+      "id": "lecture-pot-back-right",
+      "x": 550,
+      "y": 482,
+      "w": 10,
+      "d": 10
+    },
+    {
+      "id": "lecture-flowers-left",
+      "x": 320,
+      "y": 80,
+      "w": 20,
+      "d": 7
+    },
+    {
+      "id": "lecture-flowers-right",
+      "x": 480,
+      "y": 80,
+      "w": 20,
+      "d": 7
+    }
+  ],
+  "desks": [
+    {
+      "id": "desk-1",
+      "x": 287.8,
+      "y": 181
+    },
+    {
+      "id": "desk-2",
+      "x": 287.8,
+      "y": 262.6
+    },
+    {
+      "id": "desk-3",
+      "x": 287.8,
+      "y": 344.2
+    },
+    {
+      "id": "desk-4",
+      "x": 512.2,
+      "y": 181
+    },
+    {
+      "id": "desk-5",
+      "x": 512.2,
+      "y": 262.6
+    },
+    {
+      "id": "desk-6",
+      "x": 512.2,
+      "y": 344.2
+    }
+  ],
+  "seats": [
+    {
+      "id": "seat-1",
+      "x": 272.84000000000003,
+      "y": 157.88,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 244.84000000000003,
+        "y": 157.88
+      }
+    },
+    {
+      "id": "seat-2",
+      "x": 302.76,
+      "y": 157.88,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 330.76,
+        "y": 157.88
+      }
+    },
+    {
+      "id": "seat-3",
+      "x": 272.84000000000003,
+      "y": 239.48000000000002,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 244.84000000000003,
+        "y": 239.48000000000002
+      }
+    },
+    {
+      "id": "seat-4",
+      "x": 302.76,
+      "y": 239.48000000000002,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 330.76,
+        "y": 239.48000000000002
+      }
+    },
+    {
+      "id": "seat-5",
+      "x": 272.84000000000003,
+      "y": 321.08,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 244.84000000000003,
+        "y": 321.08
+      }
+    },
+    {
+      "id": "seat-6",
+      "x": 302.76,
+      "y": 321.08,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 330.76,
+        "y": 321.08
+      }
+    },
+    {
+      "id": "seat-7",
+      "x": 497.24000000000007,
+      "y": 157.88,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 469.24000000000007,
+        "y": 157.88
+      }
+    },
+    {
+      "id": "seat-8",
+      "x": 527.1600000000001,
+      "y": 157.88,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 555.1600000000001,
+        "y": 157.88
+      }
+    },
+    {
+      "id": "seat-9",
+      "x": 497.24000000000007,
+      "y": 239.48000000000002,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 469.24000000000007,
+        "y": 239.48000000000002
+      }
+    },
+    {
+      "id": "seat-10",
+      "x": 527.1600000000001,
+      "y": 239.48000000000002,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 555.1600000000001,
+        "y": 239.48000000000002
+      }
+    },
+    {
+      "id": "seat-11",
+      "x": 497.24000000000007,
+      "y": 321.08,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 469.24000000000007,
+        "y": 321.08
+      }
+    },
+    {
+      "id": "seat-12",
+      "x": 527.1600000000001,
+      "y": 321.08,
+      "rotation": 3.141592653589793,
+      "height": 0.45,
+      "approach": {
+        "x": 555.1600000000001,
+        "y": 321.08
+      }
+    }
+  ]
+}

@@ -297,6 +297,7 @@ function createBabylonHuman(scene, id) {
     body.parent = root; body.position.y = .85; body.material = shirt;
     const head = BABYLON.MeshBuilder.CreateSphere('human-head', { diameter: .52, segments: 12 }, scene);
     head.parent = root; head.position.y = 1.62; head.material = skin;
+    root._labelAnchor=head;
     [-.28, .28].forEach((x) => {
         const arm = BABYLON.MeshBuilder.CreateCylinder('human-arm', { height: .8, diameter: .13, tessellation: 8 }, scene);
         arm.parent = root; arm.position.set(x, .86, 0); arm.rotation.z = x < 0 ? -.12 : .12; arm.material = shirt;
@@ -325,7 +326,7 @@ function createBabylonHuman(scene, id) {
         const skull=asset.meshes.find(mesh=>mesh.name==='student_head');
         const hip=asset.transformNodes?.find(node=>node.name==='student_hip_left');
         if(hip){root.computeWorldMatrix(true);hip.computeWorldMatrix(true);root._seatedHipBottom=BABYLON.Vector3.TransformCoordinates(hip.getAbsolutePosition(),root.getWorldMatrix().clone().invert()).y-.08;}
-        if(skull)root._nameLabel?.linkWithMesh(skull);
+        if(skull){root._nameLabel?.linkWithMesh(skull);root._labelAnchor=skull;}
         if(face&&skull) {
             root.computeWorldMatrix(true);skull.computeWorldMatrix(true);face.computeWorldMatrix(true);
             const direction=BABYLON.Vector3.TransformNormal(face.getAbsolutePosition().subtract(skull.getAbsolutePosition()),root.getWorldMatrix().clone().invert());
@@ -333,7 +334,8 @@ function createBabylonHuman(scene, id) {
             if(root._desiredYaw!==undefined)root.rotation.y=root._desiredYaw-root._modelForwardYaw;
         }
         if(modelRoot){
-            if(descriptor.modules)CharacterAssets.applyModules(modelRoot,descriptor.modules);
+            if(descriptor.modules)CharacterAssets.applyModules(modelRoot,descriptor.modules,descriptor.moduleSlots);
+            root._moduleSignature=null;
             root._animateStudent=bindStudentAnimation(root,modelRoot);
         }
         fallbackMeshes.forEach((mesh) => { mesh.visibility = 0; mesh._cameraBaseVisibility = 0; });
@@ -343,10 +345,34 @@ function createBabylonHuman(scene, id) {
         const label = new BABYLON.GUI.Rectangle(`name-${id}`);
         label.width = '100px'; label.height = '22px'; label.cornerRadius = 6; label.thickness = 0;
         label.background = isMe ? '#1c7d52' : '#9a4d2b';
-        const text = new BABYLON.GUI.TextBlock(); text.text = players[id]?.playerNickname || (isMe ? 'Bạn' : `Khách (${id.slice(0, 4)})`); text.color = 'white'; text.fontSize = 12;
+        const text = new BABYLON.GUI.TextBlock(); text.text = players[id]?.playerNickname || (isMe ? 'Bạn' : `Khách (${id.slice(0, 4)})`); text.color = 'white'; text.fontSize = 12;text.fontFamily='Segoe UI, Arial';
+        label.isPointerBlocker=true;label.hoverCursor='pointer';label.onPointerClickObservable.add(()=>{if(typeof showPlayerInfoCard==='function')showPlayerInfoCard(players[id]);});
         label.addControl(text); babylonFountain.gui.addControl(label); label.linkWithMesh(head); label.linkOffsetY = -24; root._nameLabel = label; root._nameText = text;
     }
     return root;
+}
+
+function showBabylonPlayerText(player,content,kind='chat') {
+    const world=babylonFountain,id=player?.playerSocketId,root=world?.players.get(id);
+    if(!root||!world.gui)return false;
+    const B=BABYLON,emote=kind==='emote',start=performance.now(),duration=emote?1300:4000;let disposed=false;
+    if(!emote)root._chatControl?.dispose();
+    const control=emote?new B.GUI.TextBlock('floating-emote',content):new B.GUI.Rectangle('chat-bubble');
+    if(emote){control.fontSize=30;control.width='60px';control.height='52px';}
+    else{
+        control.width='220px';control.height='66px';control.cornerRadius=8;control.thickness=1;control.color='#254735';
+        control.background=kind==='private'?'#643b91':'#fff9e8';
+        const text=new B.GUI.TextBlock('',String(content));text.textWrapping=true;text.fontSize=13;text.fontFamily='Segoe UI, Arial';text.color=kind==='private'?'#fff':'#172e23';text.paddingLeft='8px';text.paddingRight='8px';control.addControl(text);
+        root._chatControl=control;
+    }
+    control.onDisposeObservable.add(()=>disposed=true);
+    control.isHitTestVisible=false;world.gui.addControl(control);control.linkWithMesh(root._labelAnchor);control.linkOffsetY=emote?-64:-80;
+    const observer=world.scene.onBeforeRenderObservable.add(()=>{
+        const t=(performance.now()-start)/duration;
+        if(root.isDisposed()||t>=1||disposed){control.dispose();world.scene.onBeforeRenderObservable.remove(observer);return;}
+        if(emote){control.linkOffsetY=-64-55*(1-Math.pow(1-t,3));control.alpha=1-t;}
+    });
+    return true;
 }
 
 function activateBabylonFountain() {
@@ -400,6 +426,7 @@ function updateBabylonFountainPlayers() {
         const mesh = babylonFountain.players.get(id); const pos = fountainWorldPosition(player.x, player.y);
         const appearance=CharacterAssets.forPlayer(player,babylonFountain.mapId);
         if(mesh._characterKey!==appearance.id)void mesh._setCharacterAsset(appearance);
+        if(appearance.modules&&mesh._characterModel){const signature=JSON.stringify(appearance.modules);if(mesh._moduleSignature!==signature){CharacterAssets.applyModules(mesh._characterModel,appearance.modules,appearance.moduleSlots);mesh._moduleSignature=signature;}}
         if(!mesh._placed) {
             const camera=babylonFountain.camera||babylonFountain.scene.activeCamera;
             mesh._desiredYaw=Math.atan2(camera.position.x-pos.x,camera.position.z-pos.z);
@@ -417,9 +444,15 @@ function updateBabylonFountainPlayers() {
         if(moving)mesh._desiredYaw=Math.atan2(dx,dz);
         mesh._heading=mesh._desiredYaw-(mesh._modelForwardYaw??Math.PI);
         if(mesh._heading!==undefined) {const angle=Math.atan2(Math.sin(mesh._heading-mesh.rotation.y),Math.cos(mesh._heading-mesh.rotation.y));mesh.rotation.y+=angle*(1-Math.exp(-18*dt));}
-        const seat = babylonFountain.mapId==='fountain' && Object.entries(campusBenchOccupants || {}).find(([benchId,ids])=>benchId.startsWith('fountain-') && Array.isArray(ids) && ids.includes(id));
+        const privateSeat=Map3DLayouts.key(babylonFountain.mapId)==='bench-private'&&Number.isInteger(player.privateSeatIndex)&&player.privateSeatIndex>=0&&player.privateSeatIndex<2;
+        const seat = privateSeat||babylonFountain.mapId==='fountain' && Object.entries(campusBenchOccupants || {}).find(([benchId,ids])=>benchId.startsWith('fountain-') && Array.isArray(ids) && ids.includes(id));
         if (seat) {
-            const bench = FountainPhysics.benches.find(b=>b.id===seat[0]);
+            const bench = !privateSeat&&FountainPhysics.benches.find(b=>b.id===seat[0]);
+            if(privateSeat){
+                const config=Map3DLayouts.get(babylonFountain.mapId).seat,pos=fountainWorldPosition(config.x,config.y);
+                mesh.position.set(pos.x+(player.privateSeatIndex===0?-.5:.5)*config.spacing,config.height-(mesh._seatedHipBottom??.69),pos.z);
+                mesh.rotation.y=config.rotation+Math.PI-(mesh._modelForwardYaw??Math.PI);
+            }
             if (bench) {
                 const transform=FountainPhysics.seatTransform(bench,seat[1].indexOf(id),mesh._seatedHipBottom??.69);
                 mesh.position.set(transform.x,transform.y,transform.z);
@@ -429,9 +462,22 @@ function updateBabylonFountainPlayers() {
         if(mesh._contactShadow)mesh._contactShadow.isVisible=!seat;
         mesh._animateStudent?.(dt,Math.hypot(mesh.position.x-previousVisualX,mesh.position.z-previousVisualZ),walk,Boolean(seat));
         if(babylonFountain.mapId==='fountain'&&!seat)mesh.position.y+=FountainPhysics.groundHeight(400+mesh.position.x*34,300+mesh.position.z*34);
+        if(!seat&&babylonFountain.groundHeight)mesh.position.y+=babylonFountain.groundHeight(400+mesh.position.x*34,300+mesh.position.z*34);
+        if(babylonFountain.mapId==='khu-c'&&!seat)mesh.position.y+=Map3DLayouts.groundHeight('khu-c',400+mesh.position.x*34,300+mesh.position.z*34);
         if (mesh._nameText) mesh._nameText.text = player.playerNickname || (id === socket.id ? 'Bạn' : `Khách (${id.slice(0, 4)})`);
     });
     babylonFountain.players.forEach((mesh, id) => { if (!players[id]) { mesh._nameLabel?.dispose(); mesh.dispose(); babylonFountain.players.delete(id); } });
+    if(Map3DLayouts.key(babylonFountain.mapId)==='bench-private'){
+        // At overview distance the two linked names otherwise cover one another.
+        const world=babylonFountain,viewport=world.scene.activeCamera.viewport.toGlobal(world.engine.getRenderWidth(),world.engine.getRenderHeight());
+        const labels=[...world.players.values()].filter(root=>root._nameLabel&&root._labelAnchor).map(root=>{
+            root.computeWorldMatrix(true);root._labelAnchor.computeWorldMatrix(true);
+            const p=BABYLON.Vector3.Project(root._labelAnchor.getAbsolutePosition(),BABYLON.Matrix.Identity(),world.scene.getTransformMatrix(),viewport);
+            return {root,x:p.x};
+        }).sort((a,b)=>a.x-b.x);
+        labels.forEach(({root})=>root._nameLabel.linkOffsetX=0);
+        if(labels.length===2&&labels[1].x-labels[0].x<108){const centre=(labels[0].x+labels[1].x)/2;labels.forEach(({root,x},index)=>root._nameLabel.linkOffsetX=centre+(index?54:-54)-x);}
+    }
 }
 
 function deactivateBabylonFountain() {

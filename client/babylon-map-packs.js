@@ -13,25 +13,27 @@ function activateBabylonMapPack(mapId) {
     bind3DOcclusion(scene);
     const halloween=Map3DLayouts.key(mapId)==='halloween';
     const canteen=layout.theme==='canteen-v2';
-    const garden=layout.theme==='garden-v2',coop=layout.theme==='coop-v1',detailed=canteen||garden||coop;
+    const garden=layout.theme==='garden-v2',coop=layout.theme==='coop-v1',lecture=layout.theme==='lecture-v1',privateGarden=layout.theme==='private-garden-v1',detailed=canteen||garden||coop||lecture||privateGarden;
     scene.clearColor=halloween?new B.Color4(.055,.035,.09,1):new B.Color4(.44,.60,.53,1);
-    if(canteen||coop)scene.clearColor=new B.Color4(.10,.19,.17,1);
+    if(canteen||coop||lecture)scene.clearColor=new B.Color4(.10,.19,.17,1);
     const camera=new B.ArcRotateCamera('map-camera',-Math.PI/2,.72,27,new B.Vector3(0,0,0),scene);
     camera.lowerRadiusLimit=garden?8:16;camera.upperRadiusLimit=32;
     camera.lowerBetaLimit=.15;camera.upperBetaLimit=1.45;
     if(canteen){camera.setTarget(new B.Vector3(0,.7,0));camera.beta=1.06;camera.radius=18.5;}
     if(garden){camera.setTarget(new B.Vector3(0,.7,0));camera.beta=.98;camera.radius=20;}
     if(coop){camera.setTarget(new B.Vector3(0,1,0));camera.beta=.93;camera.radius=21;camera.lowerRadiusLimit=10;}
+    if(lecture){camera.setTarget(new B.Vector3(0,1,0));camera.beta=.94;camera.radius=23;camera.lowerRadiusLimit=10;}
+    if(privateGarden){camera.setTarget(new B.Vector3(0,.8,0));camera.beta=.97;camera.radius=15;camera.lowerRadiusLimit=6;}
     camera.panningSensibility=0;camera.wheelPrecision=70;
     camera.attachControl(canvas,true);camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
     const ambient=new B.HemisphericLight('map-ambient',new B.Vector3(0,1,0),scene);
     ambient.intensity=halloween?.65:.85;
-    if(canteen||coop){ambient.intensity=.80;ambient.groundColor=new B.Color3(.37,.31,.24);}
+    if(canteen||coop||lecture){ambient.intensity=.80;ambient.groundColor=new B.Color3(.37,.31,.24);}
     const sun=new B.DirectionalLight('park-sunlight',new B.Vector3(-.6,-1,.3),scene);
     sun.position.set(8,16,-8);sun.intensity=halloween?.35:1;
-    if(canteen||coop){sun.intensity=.65;sun.diffuse=new B.Color3(1,.92,.80);}
+    if(canteen||coop||lecture){sun.intensity=.65;sun.diffuse=new B.Color3(1,.92,.80);}
     const shadows=new B.ShadowGenerator(1024,sun);shadows.usePercentageCloserFiltering=true;
-    const ground=B.MeshBuilder.CreateGround('pack-ground',{width:detailed?16:23.5,height:detailed?12:17.5},scene);
+    const ground=B.MeshBuilder.CreateGround('pack-ground',{width:layout.room?.width||(detailed?16:23.5),height:layout.room?.depth||(detailed?12:17.5)},scene);
     if(detailed)ground.position.y=-.15;
     ground.material=createFountainMaterial(scene,'pack-floor',layout.floor);ground.receiveShadows=true;
     const floorTrim=createFountainMaterial(scene,'pack-trim',halloween?'#795198':'#b9c39c');
@@ -49,7 +51,7 @@ function activateBabylonMapPack(mapId) {
     document.body.classList.add('is-map-3d');
     if(!detailed)addFountainExitVortex(scene,world.exit);
     bindFountainCamera(scene,canvas,camera);
-    if(mapId==='farm')createFountainWeather(scene,sun,ambient);
+    if(mapId==='farm'||privateGarden)createFountainWeather(scene,sun,ambient);
     const title=document.createElement('div');title.className='map-3d-title';
     title.textContent=layout.title+' · Mũi tên: đi · E: tương tác · Kéo/vuốt: xoay';
     document.body.appendChild(title);
@@ -81,7 +83,8 @@ function activateBabylonMapPack(mapId) {
         const player=players[socket.id];if(!player)return;
         updateInteractionZone(player);
         let near=false;
-        if(action.startsWith('box:'))near=activeHalloweenBox===Number(action.slice(4));
+        if(action==='private-bench')near=activeInteractionZoneId==='private-bench';
+        else if(action.startsWith('box:'))near=activeHalloweenBox===Number(action.slice(4));
         else if(action.startsWith('plot:'))near=activeFarmPlotId===action.slice(5);
         else near=activeInteriorObjectId===action;
         if(!near){showToast('Dùng mũi tên đến gần đối tượng, rồi nhấn E hoặc bấm lại.');return;}
@@ -117,8 +120,10 @@ function activateBabylonMapPack(mapId) {
         options.onReady?.(root);
     }
     function remove(id){const slot=slots.get(id);slot?.instance?.dispose();slot?.root?.dispose();slots.delete(id);}
-    layout.props.forEach((p,i)=>void place('static-'+i,`${layout.pack}/${p.file}.glb`,p.x,p.y,p.scale,p.action,'',{rotation:p.rotation||0}));
+    layout.props.forEach((p,i)=>void place('static-'+i,`${layout.pack}/${p.file}.glb`,p.x,p.y,p.scale,p.action,'',{rotation:p.rotation||0,height:p.height||0}));
+    if(privateGarden)createPrivateBenchScene(scene,world,{place,shadows});
     if(coop)createKhuACoopScene(scene,world,{place,interact,shadows});
+    if(lecture)createLectureScene(scene,world,{place,interact,shadows});
     const updateGarden=garden?createCommunityGardenScene(scene,world,{place,remove,interact,shadows}):null;
     const rankingBoards=canteen?createCanteenConceptScene(scene,world,{place,interact,shadows}):(layout.boards||[]).map(board=>{
         const root=new B.TransformNode(board.id,scene),p=fountainWorldPosition(board.x,board.y);

@@ -24,6 +24,7 @@ function toggleSettings() {
 
 function showChatBubble(scene, playerContainer, message, isPrivate = false) {
     if (!scene || !playerContainer) return;
+    if(typeof showBabylonPlayerText==='function'&&showBabylonPlayerText(playerContainer,message,isPrivate?'private':'chat'))return;
     if (playerContainer.chatBubble) {
         playerContainer.chatBubble.destroy();
     }
@@ -52,6 +53,7 @@ function showChatBubble(scene, playerContainer, message, isPrivate = false) {
 
 function showFloatingEmote(scene, playerContainer, emoji) {
     if (!scene || !playerContainer || !QUICK_FLOATING_EMOTES.includes(emoji)) return;
+    if(typeof showBabylonPlayerText==='function'&&showBabylonPlayerText(playerContainer,emoji,'emote'))return;
 
     const emote = scene.add.text(0, -54, emoji, {
         font: '30px Arial',

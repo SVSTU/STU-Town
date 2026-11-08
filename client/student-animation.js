@@ -2,10 +2,11 @@
 function bindStudentAnimation(root, model) {
     const joints=new Map();
     for(const node of model.getDescendants()) {
-        if(!/^student_(hip|knee|shoulder|elbow)_(left|right)$/.test(node.name))continue;
+        const jointName=node.name.slice(node.name.lastIndexOf(':')+1);
+        if(!/^student_(hip|knee|shoulder|elbow)_(left|right)$/.test(jointName))continue;
         const rest=node.rotationQuaternion?node.rotationQuaternion.toEulerAngles():node.rotation.clone();
         node.rotationQuaternion=null;node.rotation.copyFrom(rest);
-        joints.set(node.name,{node,rest});
+        joints.set(jointName,{node,rest});
     }
     let phase=0,blend=0;
     const angles=new Map();

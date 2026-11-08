@@ -1,0 +1,353 @@
+{
+  "status": "proposed reconstruction reference only; no runtime code changes",
+  "units": "metres",
+  "axes": {
+    "x": "right",
+    "y": "up",
+    "z": "back; classroom exit at -Z"
+  },
+  "viewOrder": [
+    "front (-Z)",
+    "back (+Z)",
+    "left (-X)",
+    "right (+X)",
+    "top (+Y)",
+    "bottom (-Y)"
+  ],
+  "room": {
+    "width": 18,
+    "depth": 14,
+    "rearWallHeight": 3.8,
+    "cutawayFrontSideWallHeight": 0.65,
+    "openRoof": true,
+    "mainEntryWidth": 3.2,
+    "scheduleSupportPanel": {
+      "position": [6.2, 0.825, -7],
+      "size": [2.4, 1.65, 0.18],
+      "note": "Local front-right panel supports schedule plaque above the lower cutaway wall; keep main entrance unobstructed."
+    }
+  },
+  "player": {
+    "height": 1.7,
+    "proposedCapsuleRadius": 0.32,
+    "spawn": [
+      0,
+      0,
+      -1
+    ]
+  },
+  "desks": [
+    {
+      "id": "desk-1",
+      "position": [
+        -3.3,
+        0,
+        -3.5
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.65
+      ],
+      "chairPositions": [
+        [
+          -3.7399999999999998,
+          0,
+          -4.18
+        ],
+        [
+          -2.86,
+          0,
+          -4.18
+        ]
+      ],
+      "chairsFacing": "+Z toward teaching board"
+    },
+    {
+      "id": "desk-2",
+      "position": [
+        -3.3,
+        0,
+        -1.1
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.65
+      ],
+      "chairPositions": [
+        [
+          -3.7399999999999998,
+          0,
+          -1.7800000000000002
+        ],
+        [
+          -2.86,
+          0,
+          -1.7800000000000002
+        ]
+      ],
+      "chairsFacing": "+Z toward teaching board"
+    },
+    {
+      "id": "desk-3",
+      "position": [
+        -3.3,
+        0,
+        1.3
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.65
+      ],
+      "chairPositions": [
+        [
+          -3.7399999999999998,
+          0,
+          0.62
+        ],
+        [
+          -2.86,
+          0,
+          0.62
+        ]
+      ],
+      "chairsFacing": "+Z toward teaching board"
+    },
+    {
+      "id": "desk-4",
+      "position": [
+        3.3,
+        0,
+        -3.5
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.65
+      ],
+      "chairPositions": [
+        [
+          2.86,
+          0,
+          -4.18
+        ],
+        [
+          3.7399999999999998,
+          0,
+          -4.18
+        ]
+      ],
+      "chairsFacing": "+Z toward teaching board"
+    },
+    {
+      "id": "desk-5",
+      "position": [
+        3.3,
+        0,
+        -1.1
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.65
+      ],
+      "chairPositions": [
+        [
+          2.86,
+          0,
+          -1.7800000000000002
+        ],
+        [
+          3.7399999999999998,
+          0,
+          -1.7800000000000002
+        ]
+      ],
+      "chairsFacing": "+Z toward teaching board"
+    },
+    {
+      "id": "desk-6",
+      "position": [
+        3.3,
+        0,
+        1.3
+      ],
+      "size": [
+        1.6,
+        0.76,
+        0.65
+      ],
+      "chairPositions": [
+        [
+          2.86,
+          0,
+          0.62
+        ],
+        [
+          3.7399999999999998,
+          0,
+          0.62
+        ]
+      ],
+      "chairsFacing": "+Z toward teaching board"
+    }
+  ],
+  "teachingPlatform": {
+    "center": [
+      0,
+      0.14,
+      5.25
+    ],
+    "size": [
+      14,
+      0.28,
+      2.8
+    ],
+    "steps": {
+      "count": 2,
+      "riser": 0.14,
+      "tread": 0.32,
+      "width": 2.8
+    }
+  },
+  "objects": [
+    {
+      "id": "teacher-desk",
+      "position": [
+        -3.3,
+        0.28,
+        5
+      ],
+      "size": [
+        2,
+        0.95,
+        0.85
+      ],
+      "front": "-Z"
+    },
+    {
+      "id": "chalkboard",
+      "position": [
+        0,
+        2.1,
+        6.75
+      ],
+      "size": [
+        8,
+        1.8,
+        0.12
+      ],
+      "front": "-Z"
+    },
+    {
+      "id": "projection-screen",
+      "position": [
+        0.6,
+        2.1,
+        6.58
+      ],
+      "size": [
+        3.2,
+        1.9,
+        0.12
+      ],
+      "front": "-Z"
+    },
+    {
+      "id": "projector",
+      "position": [
+        0.6,
+        3.6,
+        4.7
+      ],
+      "size": [
+        0.45,
+        0.25,
+        0.35
+      ],
+      "front": "+Z toward screen"
+    },
+    {
+      "id": "bookshelf",
+      "position": [
+        6.05,
+        0.28,
+        5.45
+      ],
+      "size": [
+        1.8,
+        2.8,
+        0.6
+      ],
+      "front": "-Z"
+    },
+    {
+      "id": "noticeboard",
+      "position": [
+        8.78,
+        1.9,
+        2.6
+      ],
+      "size": [
+        1.8,
+        1.3,
+        0.12
+      ],
+      "front": "-X"
+    },
+    {
+      "id": "main-exit",
+      "position": [
+        0,
+        0,
+        -6.7
+      ],
+      "size": [
+        3.2,
+        3.1,
+        1.2
+      ],
+      "destination": "campus",
+      "vfx": "separate gold layer"
+    },
+    {
+      "id": "schedule-sign",
+      "position": [
+        6.2,
+        1.1,
+        -7.12
+      ],
+      "size": [
+        1.8,
+        1.1,
+        0.1
+      ],
+      "front": "-Z"
+    }
+  ],
+  "navigation": {
+    "mainAisleMinimum": 2.2,
+    "sideAisleMinimum": 1.2,
+    "rowAccessMinimum": 1,
+    "avoid": "Desk/chair colliders must leave all 12 seats accessible. Use separate seated interaction anchor and walk target; do not teleport standing player into chair collider.",
+    "portal": "spawn must lie outside exit trigger; open route from spawn to teacher and exit"
+  },
+  "assetRules": {
+    "origin": "floor assets at ground center; wall signs mount center or bottom-center with explicit socket; all modules share axes",
+    "scale": "apply transforms; export GLB metres and Y-up",
+    "geometry": "consistent silhouettes, clean normals, no intersecting structural surfaces, thickness for single-sided boards/leaves if required",
+    "physics": "simple box/capsule collision separate from render meshes; exclude text leaves particles; use bounds of final exported geometry",
+    "performance": "reuse 6 desks and 12 chair instances, share materials, modest bevels, profile on target device, avoid baking characters into furniture",
+    "characters": "reuse existing coop-v1 presets/module contract where practical; eight transform joints currently supported; these sheets do not add a skinned rig",
+    "text": "UTF-8 NFC from labels.vi.json and editable signs SVG; never trust baked AI text; use font with full Vietnamese support",
+    "state": "image reference only; does not introduce lecture rewards, attendance, new seat mechanics or schedule changes"
+  },
+  "authority": {
+    "appearance": "00-approved-concept.png",
+    "text": "labels.vi.json",
+    "proposedDimensions": "this file",
+    "warning": "AI six-view sheets can disagree in hidden geometry or retain mild perspective. Reconcile geometry in Blender, then render true orthographic validation views."
+  }
+}

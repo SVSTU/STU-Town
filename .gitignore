@@ -3,3 +3,9 @@ tools/__pycache__/
 tools/khu-a-*.log
 source-assets/khu-a-coop-v1/**/*.blend1
 source-assets/khu-a-coop-v1/*.blend1
+tools/lecture-*.log
+source-assets/lecture-v1/**/*.blend1
+source-assets/lecture-v1/*.blend1
+tools/private-bench-*.log
+source-assets/private-bench-v1/**/*.blend1
+source-assets/private-bench-v1/*.blend1

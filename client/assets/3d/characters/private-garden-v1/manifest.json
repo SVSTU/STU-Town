@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "units": "metres",
+  "rig": "student-animation-v1",
+  "slots": {
+    "hair": [
+      "wavy",
+      "braid",
+      "gray"
+    ],
+    "outfit": [
+      "polo",
+      "apron",
+      "vest"
+    ],
+    "accessories": [
+      "backpack",
+      "glasses"
+    ]
+  },
+  "assets": [
+    {
+      "file": "modular-student.glb",
+      "bytes": 1421412,
+      "boundsBlender": {
+        "min": [
+          -0.36298102140426636,
+          -0.21149998903274536,
+          0.011499984189867973
+        ],
+        "max": [
+          0.36298102140426636,
+          0.26499998569488525,
+          1.7977858781814575
+        ]
+      },
+      "id": "modular-student",
+      "heightMetres": 1.78,
+      "jointContract": "student-animation-v1",
+      "moduleNaming": "module__slot__option__part",
+      "front": "Blender -Y",
+      "preset": null
+    },
+    {
+      "file": "student-polo.glb",
+      "bytes": 840672,
+      "boundsBlender": {
+        "min": [
+          -0.36298102140426636,
+          -0.21149998903274536,
+          0.011499984189867973
+        ],
+        "max": [
+          0.36298102140426636,
+          0.15599998831748962,
+          1.7977858781814575
+        ]
+      },
+      "id": "student-polo",
+      "heightMetres": 1.78,
+      "jointContract": "student-animation-v1",
+      "moduleNaming": "module__slot__option__part",
+      "front": "Blender -Y",
+      "preset": {
+        "hair": "wavy",
+        "outfit": "polo",
+        "accessories": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "renderer": {
+    "map": "khu-c",
+    "meshes": 525,
+    "portal": true,
+    "boards": 0,
+    "occlusion": {
+      "blocked": true,
+      "hiddenSkipped": true
+    },
+    "rig": [
+      {
+        "name": "student_hip_left",
+        "angle": 0
+      },
+      {
+        "name": "student_hip_right",
+        "angle": 0
+      }
+    ],
+    "errors": []
+  },
+  "state": {
+    "lecture": {
+      "desks": 6,
+      "chairs": 12,
+      "npcs": 5,
+      "exitDestination": "campus",
+      "schedule": [
+        "07:00–11:30",
+        "13:00–17:00"
+      ],
+      "scheduleAuthority": "server",
+      "characterLibrary": "campus-v1"
+    },
+    "character": "student-campus-01",
+    "joints": 8,
+    "desks": 6,
+    "chairs": 12,
+    "seatedHip": -1.4999999771550305,
+    "spawnClear": true,
+    "stats": {
+      "meshes": 563,
+      "vertices": 229542
+    }
+  },
+  "controls": {
+    "blocked": true,
+    "stopped": true,
+    "cameraStable": true
+  },
+  "interaction": {
+    "farDenied": true,
+    "nearAccepted": true,
+    "spawnStays": true,
+    "exitWorks": true
+  },
+  "stageHeight": 0.28,
+  "mobile": {
+    "viewport": true,
+    "canvas": true,
+    "pad": true
+  },
+  "occlusion": true,
+  "campusModules": true
+}

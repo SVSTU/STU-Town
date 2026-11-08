@@ -1,0 +1,164 @@
+{
+  "generator": "built-in imagegen",
+  "status": "visual-reference-only",
+  "approvedConcept": "00-approved-concept.png",
+  "viewOrder": [
+    "front",
+    "back",
+    "left",
+    "right",
+    "top",
+    "bottom"
+  ],
+  "sheets": [
+    {
+      "id": "01-map-six-views",
+      "title": "Toàn giảng đường",
+      "image": "01-map-six-views.png",
+      "subjects": [
+        "classroom-map"
+      ],
+      "columns": 3,
+      "rows": 2,
+      "arrangement": "six views row-major"
+    },
+    {
+      "id": "02-shell-six-views",
+      "title": "Vỏ phòng, nền và bục giảng",
+      "image": "02-shell-six-views.png",
+      "subjects": [
+        "room-shell"
+      ],
+      "columns": 3,
+      "rows": 2,
+      "arrangement": "six views row-major"
+    },
+    {
+      "id": "03-student-furniture-six-views",
+      "title": "Bàn sinh viên và ghế rời",
+      "image": "03-student-furniture-six-views.png",
+      "subjects": [
+        "student-desk",
+        "student-chair"
+      ],
+      "columns": 6,
+      "rows": 2,
+      "arrangement": "one object per row, six views left to right"
+    },
+    {
+      "id": "04-teacher-desk-six-views",
+      "title": "Bàn giảng viên",
+      "image": "04-teacher-desk-six-views.png",
+      "subjects": [
+        "teacher-desk"
+      ],
+      "columns": 3,
+      "rows": 2,
+      "arrangement": "six views row-major"
+    },
+    {
+      "id": "05-teaching-equipment-six-views",
+      "title": "Bảng, màn chiếu và máy chiếu",
+      "image": "05-teaching-equipment-six-views.png",
+      "subjects": [
+        "chalkboard",
+        "projection-screen",
+        "projector"
+      ],
+      "columns": 6,
+      "rows": 3,
+      "arrangement": "one object per row, six views left to right"
+    },
+    {
+      "id": "06-main-exit-six-views",
+      "title": "Cổng về bản đồ chính",
+      "image": "06-main-exit-six-views.png",
+      "subjects": [
+        "main-exit"
+      ],
+      "columns": 3,
+      "rows": 2,
+      "arrangement": "six views row-major"
+    },
+    {
+      "id": "07-bookshelf-six-views",
+      "title": "Tủ sách",
+      "image": "07-bookshelf-six-views.png",
+      "subjects": [
+        "bookshelf"
+      ],
+      "columns": 3,
+      "rows": 2,
+      "arrangement": "six views row-major"
+    },
+    {
+      "id": "08-architecture-props-six-views",
+      "title": "Cửa sổ, đèn và đồng hồ",
+      "image": "08-architecture-props-six-views.png",
+      "subjects": [
+        "window-shutters",
+        "wall-lantern",
+        "wall-clock"
+      ],
+      "columns": 6,
+      "rows": 3,
+      "arrangement": "one object per row, six views left to right"
+    },
+    {
+      "id": "09-signage-six-views",
+      "title": "Bảng tin và các biển chữ",
+      "image": "09-signage-six-views.png",
+      "subjects": [
+        "noticeboard",
+        "lecture-title-sign",
+        "schedule-sign"
+      ],
+      "columns": 6,
+      "rows": 3,
+      "arrangement": "one object per row, six views left to right"
+    },
+    {
+      "id": "10-plants-six-views",
+      "title": "Cây chậu, bồn hoa và cây rủ",
+      "image": "10-plants-six-views.png",
+      "subjects": [
+        "potted-plant",
+        "flower-planter",
+        "trailing-plant"
+      ],
+      "columns": 6,
+      "rows": 3,
+      "arrangement": "one object per row, six views left to right"
+    },
+    {
+      "id": "11-study-props-six-views",
+      "title": "Sách, laptop và dụng cụ học",
+      "image": "11-study-props-six-views.png",
+      "subjects": [
+        "open-book",
+        "closed-book",
+        "laptop",
+        "pen-holder"
+      ],
+      "columns": 6,
+      "rows": 4,
+      "arrangement": "one object per row, six views left to right"
+    },
+    {
+      "id": "12-characters-six-views",
+      "title": "Giáo sư và sinh viên",
+      "image": "12-characters-six-views.png",
+      "subjects": [
+        "professor",
+        "student-male",
+        "student-female"
+      ],
+      "columns": 6,
+      "rows": 3,
+      "arrangement": "one object per row, six views left to right"
+    }
+  ],
+  "labels": "labels.vi.json",
+  "layout": "layout-spec.json",
+  "characterReuse": "client/assets/3d/characters/coop-v1; no new character implementation in this package"
+}

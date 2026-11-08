@@ -1,0 +1,124 @@
+[
+  {
+    "id": "01-map-six-views",
+    "title": "Toàn giảng đường",
+    "subjects": [
+      "classroom-map"
+    ],
+    "prompt": "Create SIX-VIEW reconstruction sheet of the WHOLE classroom in the attached approved reference. 3 columns x 2 rows FRONT BACK LEFT RIGHT TOP BOTTOM. Keep same roofless cream plaster room, honey timber posts and brick skirting, slate-blue shutter windows, warm cream paving, back teaching platform with center steps, professor desk back left, large green chalkboard and white retractable projection screen center back, ceiling mounted small projector. Six paired student desks in two blocks, THREE rows left and THREE rows right; TWO chairs per desk, TWELVE chairs total, all face rear teaching board. Clear continuous center aisle and side aisles, no chairs blocking entry. Bookshelf back right, noticeboard right wall, corner plants, front-center open timber main-map exit arch with gold threshold, schedule plaque on front right wall. No characters to obscure structure. TOP directly overhead clearly depicts exact desk/chair count and orientation. BOTTOM plain foundation underside, no invented interior. Elevations retain consistent walls/window geometry and positions, use clean cutaway to reveal inner layout when appropriate. Exact readable Vietnamese signs only: rear 'KHU C · GIẢNG ĐƯỜNG', exit 'VỀ BẢN ĐỒ CHÍNH', schedule 'GIỜ HỌC' with '07:00–11:30' and '13:00–17:00'. Correct complete diacritics. Respect original appearance, no cooperative shops, no farm or recovery gate. Uniform light gray sheet background.",
+    "reference": "C:/Users/tai.bln/.codex/generated_images/01a1b6b5-9bda-7ae1-ba13-2cae54b13bfe/exec-e3fb65fc-a1bd-457d-8b93-7840f035bf4a.png"
+  },
+  {
+    "id": "02-shell-six-views",
+    "title": "Vỏ phòng, nền và bục giảng",
+    "subjects": [
+      "room-shell"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. ONLY one EMPTY architectural classroom shell, six views arranged 3 columns x 2 rows. Rectangular 18m wide x 14m deep proportional footprint, open roof. Cream plaster rear wall and low cutaway side/front walls, honey timber columns and top beams, terracotta brick skirting, light cream square stone paving, several rectangular blue shutter windows on side walls, simple center front doorway opening with steps, shallow wooden teaching platform across back with centered two steps. NO desks chairs shelves board screen projector noticeboards signs text plaques plants people portals or energy. Front lintel plain timber. Truly empty shell only. TOP shows platform floor and clear entry, BOTTOM plain foundation. Same dimensions and structural elements in every view.",
+    "reference": null
+  },
+  {
+    "id": "03-student-furniture-six-views",
+    "title": "Bàn sinh viên và ghế rời",
+    "subjects": [
+      "student-desk",
+      "student-chair"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. TWO separate object rows by SIX columns, each row FRONT BACK LEFT RIGHT TOP BOTTOM. Row A ONE two-person student desk, smooth honey wood rectangular tabletop with softly rounded corners, simple sturdy wooden apron frame and four legs, no chairs or books attached, 1.6m wide .65m deep .76m high proportions. Row B ONE separate student chair, muted slate-blue rounded rectangular seat and backrest, sturdy simple gray-blue metal legs and back supports, .46m wide .5m deep .85m tall proportions, seat .45m high. Neutral empty background, no room or floor slab, no people, NO text, no measurements. Same desk and same chair geometry across views. Real stable construction, correct unobstructed legroom.",
+    "reference": null
+  },
+  {
+    "id": "04-teacher-desk-six-views",
+    "title": "Bàn giảng viên",
+    "subjects": [
+      "teacher-desk"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. ONE standalone professor desk, six views in 3 columns x 2 rows. Honey timber university desk 2m wide .85m deep .95m high proportional dimensions, thick rectangular softly beveled tabletop, paneled front with central muted blue cloth banner bearing ONLY a simple cream open-book pictogram (no letters), short sturdy feet, rear knee recess and shallow drawer, cream trim. No professor, no books laptop stationery or chair, no board, no plant, no walls or floor. Six consistent directions reveal plain wood underside and practical rear leg space. No lettering.",
+    "reference": null
+  },
+  {
+    "id": "05-teaching-equipment-six-views",
+    "title": "Bảng, màn chiếu và máy chiếu",
+    "subjects": [
+      "chalkboard",
+      "projection-screen",
+      "projector"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. THREE separate object rows by SIX orthographic columns FRONT BACK LEFT RIGHT TOP BOTTOM. Row A one wide dark green wall chalkboard with honey wood frame, bottom chalk tray and two small chalk/eraser blocks, simple white chalk book and graduation-cap pictograms, absolutely no words. Row B one separate white pull-down projection screen extended from cream horizontal roller housing, thin bottom bar and pull ring, blank white fabric, wall mounting tabs, no projected image or lettering. Row C one small cream ceiling-mounted projector with dark circular lens at front, ventilation slots at sides and a short gray ceiling bracket above. No room or desks or people, distinct isolated components with realistic simple mounts. Preserve exact same mechanical shape across each row's six views.",
+    "reference": null
+  },
+  {
+    "id": "06-main-exit-six-views",
+    "title": "Cổng về bản đồ chính",
+    "subjects": [
+      "main-exit"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. ONE standalone open timber classroom EXIT ARCH, 3x2 six views. Two warm honey square timber posts with small cream stone feet, curved timber top arch and two small bronze warm-glass lanterns, hanging slate-blue gold-edged rectangular plaque. Plaque front text exactly 'VỀ BẢN ĐỒ CHÍNH', complete clear Vietnamese accents in bold sans-serif, generous padding. NO other letters or signs. Cream stone threshold with two shallow front steps. Soft GOLD travel threshold ring on ground inside open doorway and subtle gold edge light, no opaque portal surface so geometry remains visible. No roof, walls, plants or people. BACK shows plain unlettered rear plaque. True top and underside views.",
+    "reference": null
+  },
+  {
+    "id": "07-bookshelf-six-views",
+    "title": "Tủ sách",
+    "subjects": [
+      "bookshelf"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. ONE honey timber classroom bookshelf, six consistent orthographic views 3x2. Upright rectangular bookcase with three open shelf levels and solid simple back, sturdy plinth base, softly bevelled edges. Organized rows of simple colored hardback books in muted blue sage ochre cream, two cream storage boxes on lowest shelf. No readable writing on spines or boxes, no labels. No hanging plants, room or other objects. Same shelf count, book arrangement and proportions in all directions. Back plain vertical wood panels, underside simple base.",
+    "reference": null
+  },
+  {
+    "id": "08-architecture-props-six-views",
+    "title": "Cửa sổ, đèn và đồng hồ",
+    "subjects": [
+      "window-shutters",
+      "wall-lantern",
+      "wall-clock"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. THREE separate object rows x SIX columns FRONT BACK LEFT RIGHT TOP BOTTOM. Row A standalone tall rectangular timber window frame, cream glass divided by wood mullions, two open muted slate-blue louver shutters on sides, no wall. Row B small bronze wall lantern on simple curved dark bracket with warm cream glass box, rounded cap and mounting plate. Row C round cream classroom wall clock with slim honey timber rim, dark simple hour tick marks and two dark hands, no numbers or words. Each row isolated and consistent, side/back/top/bottom expose simple attachment geometry. No room or floor, no plants, no labels on objects.",
+    "reference": null
+  },
+  {
+    "id": "09-signage-six-views",
+    "title": "Bảng tin và các biển chữ",
+    "subjects": [
+      "noticeboard",
+      "lecture-title-sign",
+      "schedule-sign"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. THREE separate object rows x SIX columns FRONT BACK LEFT RIGHT TOP BOTTOM. Row A one wall noticeboard: honey wood frame, muted blue felt backing, three cream pinned paper slips with only simple lines and a tiny calendar icon, no words. Row B one long slate-blue classroom title plaque with honey/gold border, rounded corners and subtle cream wheat sprig symbols at ends; ONLY exact text 'KHU C · GIẢNG ĐƯỜNG' in bold cream Vietnamese sans-serif, all diacritics clear. Row C small slate-blue schedule plaque with honey/gold frame, ONLY heading 'GIỜ HỌC', below two cream inset rows '07:00–11:30' and '13:00–17:00', dark digits. Complete correct Unicode accents, adequate spacing and padding. Text only front face of correct sign, backs plain wood, never mirror lettering or duplicate on other faces. No unrelated text. Neutral studio background, isolated boards.",
+    "reference": null
+  },
+  {
+    "id": "10-plants-six-views",
+    "title": "Cây chậu, bồn hoa và cây rủ",
+    "subjects": [
+      "potted-plant",
+      "flower-planter",
+      "trailing-plant"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. THREE separate object rows x SIX columns FRONT BACK LEFT RIGHT TOP BOTTOM. Row A one terracotta tapered floor pot with 7 broad smooth green leaves on short stems, cozy game style. Row B one small rectangular cream/terracotta planter with green foliage and small pink five-petal flowers, plinth feet. Row C one small terracotta pot with trailing green vine falling over edge suitable for desk or bookshelf corner, no wall bracket. NO lettering, NO plaques, no logos anywhere on pots or planters. Simple consistent botanical silhouettes all views, no room furniture ground slab or people.",
+    "reference": null
+  },
+  {
+    "id": "11-study-props-six-views",
+    "title": "Sách, laptop và dụng cụ học",
+    "subjects": [
+      "open-book",
+      "closed-book",
+      "laptop",
+      "pen-holder"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. FOUR separate object rows x SIX columns FRONT BACK LEFT RIGHT TOP BOTTOM. Row A one open cream-page book with muted blue cover, gently curved page block and simple page grooves, NO readable writing. Row B one closed blue hardback book with cream page edges and plain cover. Row C one small open gray laptop, screen angled about 105 degrees, dark neutral screen with simple three colored rectangular shapes (no text or brand), keyboard with plain keys and trackpad. Row D one small honey wood square pen holder with three colored pens and one wooden pencil. No desk or room no characters no letters. Keep identical shape and arrangement within each row across views.",
+    "reference": null
+  },
+  {
+    "id": "12-characters-six-views",
+    "title": "Giáo sư và sinh viên",
+    "subjects": [
+      "professor",
+      "student-male",
+      "student-female"
+    ],
+    "prompt": "Use case: stylized-concept. Production modeling reference for STU Town Khu C classroom. Cozy softly bevelled low-poly 3D game art, matte honey timber, muted slate-blue paint, cream and terracotta accents, no photorealism. Neutral light gray background, even studio lighting without strong shadows. Each subject shown from SIX genuinely axis-aligned ORTHOGRAPHIC directions FRONT BACK LEFT RIGHT TOP BOTTOM, not six perspective camera orbits. Consistent geometry, proportions, components and material placement across ALL views. Small English view labels outside silhouettes. No crop, no watermark. Only requested objects, no surrounding room, no characters unless requested. No lettering on objects unless exact text is explicitly requested below. Never add extra signs or words. No dimension numbers. Invent unseen surfaces as simple plausible matching construction. ONLY THREE CHARACTER ROWS x SIX orthographic columns FRONT BACK LEFT RIGHT TOP BOTTOM. No house, room, furniture or extra first row. Friendly softly beveled low-poly chibi style, proportional to 1.7m game student, large rounded head, small stable hands/feet. Row A elderly male professor with gray side-part hair, round dark glasses, cream shirt, brown vest, dark trousers and brown shoes. Row B young male student avatar, wavy brown hair, green polo with cream collar, tan trousers, dark sneakers and small brown backpack. Row C young female student, brown tied-back hair, cream collared shirt under muted blue sleeveless vest, dark blue trousers, cream sneakers and small blue backpack. All in consistent relaxed neutral A-pose, arms slightly out to expose rig attachment areas. Hair, outfit, glasses/backpack have clear boundaries for modular modeling. NO text on clothes, no props, no ground pedestals, no extra architecture. Maintain identical anatomy and clothing geometry across views. Top and bottom directly vertical, bottom shows shoe soles.",
+    "reference": null
+  }
+]

@@ -31,6 +31,19 @@ function isWithinInteractionArea(player, target, padding = 20) {
 }
 
 function updateInteractionZone(player) {
+    if(currentMapId.startsWith('bench-private:')){
+        const near=Map3DLayouts.canInteract(currentMapId,player,'private-bench');
+        activeInteractionZoneId=near?'private-bench':'';
+        document.getElementById('interaction-hud').hidden=!near;
+        if(!near)return;
+        const count=Object.values(players).filter(p=>Number.isInteger(p.privateSeatIndex)).length;
+        const seated=Number.isInteger(player.privateSeatIndex),button=document.getElementById('interaction-button');
+        document.getElementById('interaction-zone-name').textContent='Ghế nghỉ riêng · '+count+'/2 người';
+        document.getElementById('interaction-zone-description').textContent='Không tiêu hao chỉ số. Giảm 1 độ mệt mỗi 5 phút. Di chuyển để đứng dậy.';
+        document.getElementById('farm-plot-list').hidden=true;document.getElementById('farm-seed-picker').hidden=true;
+        button.hidden=false;button.disabled=seated||count>=2;button.textContent=seated?'Bạn đang ngồi nghỉ':count>=2?'Ghế đã đủ hai người':'Ngồi nghỉ (E)';
+        return;
+    }
     if(currentMapId==='fountain'){
         const bench=FountainPhysics.benches.filter(b=>FountainPhysics.canUseBench(player,b.id)).sort((a,b)=>Math.hypot(player.x-a.x,player.y-a.y)-Math.hypot(player.x-b.x,player.y-b.y))[0];
         activeInteractionZoneId=bench?.id||'';
@@ -53,6 +66,18 @@ function updateInteractionZone(player) {
     }
     if (currentMapId === 'khu-a' || currentMapId === 'canteen') {
         updateInteriorInteraction(player);
+        return;
+    }
+    if(currentMapId==='khu-c'){
+        const target=Map3DLayouts.interactionTargets('khu-c',player)[0];
+        activeInteriorObjectId=target?.action||'';activeInteractionZoneId=target?'interior:'+target.action:'';
+        document.getElementById('interaction-hud').hidden=!target;
+        if(target){
+            document.getElementById('interaction-zone-name').textContent='Giảng đường · Khu C';
+            document.getElementById('interaction-zone-description').textContent='Giờ học: 07:00–11:30 và 13:00–17:00. Bảng xếp hạng ở góc màn hình.';
+            document.getElementById('farm-plot-list').hidden=true;document.getElementById('farm-seed-picker').hidden=true;
+            const button=document.getElementById('interaction-button');button.hidden=false;button.disabled=false;button.textContent='Thông tin giảng đường (E)';
+        }
         return;
     }
     if (currentMapId !== 'campus') return;
@@ -267,6 +292,15 @@ function updateInteriorInteraction(player) {
 }
 
 function interactWithCurrentZone() {
+    if(currentMapId.startsWith('bench-private:')){
+        const player=players[socket.id];if(!player)return;updateInteractionZone(player);
+        if(activeInteractionZoneId==='private-bench'&&socket.connected&&!document.getElementById('interaction-button').disabled){
+            // Flush the walking position first; a delayed stop packet must not cancel the seat.
+            socket.emit('playerMovement',{x:player.x,y:player.y});movementWasActive=false;lastMovementSentAt=performance.now();
+            socket.emit('sitAtPrivateBench');
+        }
+        return;
+    }
     if(currentMapId==='fountain'){
         const player=players[socket.id];if(!player)return;
         updateInteractionZone(player);
@@ -286,6 +320,10 @@ function interactWithCurrentZone() {
     }
     if (activeInteractionZoneId.startsWith('interior:')) {
         const objectId = activeInteriorObjectId;
+        if(currentMapId==='khu-c'&&objectId==='lecture-info'){
+            showToast('Giảng đường mở 07:00–11:30 và 13:00–17:00. Xem bảng xếp hạng toàn server hoặc phiên hiện tại ở góc màn hình.');
+            return;
+        }
         if(currentMapId==='khu-a'&&objectId==='locked-farm') {
             showToast('Nông trại hiện chưa mở. Bạn có thể vào vườn cộng đồng từ bản đồ chính.');
             return;

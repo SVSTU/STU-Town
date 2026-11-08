@@ -1,0 +1,958 @@
+{
+  "units": "metres",
+  "mapUnitsPerMetre": 34,
+  "origin": [
+    400,
+    300
+  ],
+  "placements": [
+    {
+      "id": "static-0",
+      "file": "lecture-v1/teacher-desk.glb",
+      "x": 287.8,
+      "y": 480,
+      "scale": 1,
+      "action": "lecture-info",
+      "rotation": 0,
+      "height": 0.28
+    },
+    {
+      "id": "static-1",
+      "file": "lecture-v1/bookshelf.glb",
+      "x": 605.7,
+      "y": 485.3,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0.28
+    },
+    {
+      "id": "static-2",
+      "file": "lecture-v1/student-desk.glb",
+      "x": 287.8,
+      "y": 181,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0
+    },
+    {
+      "id": "static-3",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 272.84000000000003,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-4",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 302.76,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-5",
+      "file": "lecture-v1/student-desk.glb",
+      "x": 287.8,
+      "y": 262.6,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0
+    },
+    {
+      "id": "static-6",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 272.84000000000003,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-7",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 302.76,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-8",
+      "file": "lecture-v1/student-desk.glb",
+      "x": 287.8,
+      "y": 344.2,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0
+    },
+    {
+      "id": "static-9",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 272.84000000000003,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-10",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 302.76,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-11",
+      "file": "lecture-v1/student-desk.glb",
+      "x": 512.2,
+      "y": 181,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0
+    },
+    {
+      "id": "static-12",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 497.24000000000007,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-13",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 527.1600000000001,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-14",
+      "file": "lecture-v1/student-desk.glb",
+      "x": 512.2,
+      "y": 262.6,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0
+    },
+    {
+      "id": "static-15",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 497.24000000000007,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-16",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 527.1600000000001,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-17",
+      "file": "lecture-v1/student-desk.glb",
+      "x": 512.2,
+      "y": 344.2,
+      "scale": 1,
+      "action": "",
+      "rotation": 0,
+      "height": 0
+    },
+    {
+      "id": "static-18",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 497.24000000000007,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "static-19",
+      "file": "lecture-v1/student-chair.glb",
+      "x": 527.1600000000001,
+      "y": 321.08,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": 0
+    },
+    {
+      "id": "lecture-floor-145-121.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 145,
+      "y": 121.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-145-240.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 145,
+      "y": 240.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-145-359.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 145,
+      "y": 359.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-145-478.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 145,
+      "y": 478.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-rear-145",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 145,
+      "y": 538,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-floor-247-121.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 247,
+      "y": 121.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-247-240.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 247,
+      "y": 240.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-247-359.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 247,
+      "y": 359.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-247-478.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 247,
+      "y": 478.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-rear-247",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 247,
+      "y": 538,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-floor-349-121.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 349,
+      "y": 121.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-349-240.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 349,
+      "y": 240.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-349-359.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 349,
+      "y": 359.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-349-478.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 349,
+      "y": 478.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-rear-349",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 349,
+      "y": 538,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-floor-451-121.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 451,
+      "y": 121.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-451-240.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 451,
+      "y": 240.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-451-359.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 451,
+      "y": 359.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-451-478.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 451,
+      "y": 478.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-rear-451",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 451,
+      "y": 538,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-floor-553-121.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 553,
+      "y": 121.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-553-240.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 553,
+      "y": 240.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-553-359.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 553,
+      "y": 359.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-553-478.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 553,
+      "y": 478.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-rear-553",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 553,
+      "y": 538,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-floor-655-121.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 655,
+      "y": 121.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-655-240.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 655,
+      "y": 240.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-655-359.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 655,
+      "y": 359.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-floor-655-478.5",
+      "file": "lecture-v1/floor-module.glb",
+      "x": 655,
+      "y": 478.5,
+      "scale": 1,
+      "action": "",
+      "castShadow": false
+    },
+    {
+      "id": "lecture-rear-655",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 655,
+      "y": 538,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-side-left-0",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 94,
+      "y": 96,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-0",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 706,
+      "y": 96,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-side-left-1",
+      "file": "lecture-v1/wall-window.glb",
+      "x": 94,
+      "y": 164,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-1",
+      "file": "lecture-v1/wall-window.glb",
+      "x": 706,
+      "y": 164,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-side-left-2",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 94,
+      "y": 232,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-2",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 706,
+      "y": 232,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-side-left-3",
+      "file": "lecture-v1/wall-window.glb",
+      "x": 94,
+      "y": 300,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-3",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 706,
+      "y": 300,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-side-left-4",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 94,
+      "y": 368,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-4",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 706,
+      "y": 368,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-side-left-5",
+      "file": "lecture-v1/wall-window.glb",
+      "x": 94,
+      "y": 436,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-5",
+      "file": "lecture-v1/wall-window.glb",
+      "x": 706,
+      "y": 436,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-side-left-6",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 94,
+      "y": 504,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": -1.5707963267948966
+    },
+    {
+      "id": "lecture-side-right-6",
+      "file": "lecture-v1/wall-plain.glb",
+      "x": 706,
+      "y": 504,
+      "scale": 1,
+      "action": "",
+      "scaleX": 0.6666666666666666,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-front-219.8",
+      "file": "lecture-v1/wall-low.glb",
+      "x": 219.8,
+      "y": 62,
+      "scale": 1,
+      "action": "",
+      "scaleX": 2.466666666666667
+    },
+    {
+      "id": "lecture-front-580.2",
+      "file": "lecture-v1/wall-low.glb",
+      "x": 580.2,
+      "y": 62,
+      "scale": 1,
+      "action": "",
+      "scaleX": 2.466666666666667
+    },
+    {
+      "id": "lecture-platform",
+      "file": "lecture-v1/teaching-platform.glb",
+      "x": 400,
+      "y": 478.5,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-board",
+      "file": "lecture-v1/chalkboard.glb",
+      "x": 400,
+      "y": 532,
+      "scale": 1,
+      "action": "",
+      "height": 1.55
+    },
+    {
+      "id": "lecture-screen",
+      "file": "lecture-v1/projection-screen.glb",
+      "x": 420.4,
+      "y": 526,
+      "scale": 1,
+      "action": "",
+      "height": 1.35
+    },
+    {
+      "id": "lecture-projector",
+      "file": "lecture-v1/projector.glb",
+      "x": 420.4,
+      "y": 459.8,
+      "scale": 1,
+      "action": "",
+      "height": 3.35,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-title",
+      "file": "lecture-v1/lecture-title.glb",
+      "x": 400,
+      "y": 532,
+      "scale": 1,
+      "action": "",
+      "height": 3.33
+    },
+    {
+      "id": "lecture-clock",
+      "file": "lecture-v1/wall-clock.glb",
+      "x": 620,
+      "y": 534,
+      "scale": 1,
+      "action": "",
+      "height": 2.87
+    },
+    {
+      "id": "lecture-notice",
+      "file": "lecture-v1/noticeboard.glb",
+      "x": 701,
+      "y": 300,
+      "scale": 1,
+      "action": "",
+      "height": 1.2,
+      "rotation": 1.5707963267948966
+    },
+    {
+      "id": "lecture-schedule-support",
+      "file": "lecture-v1/schedule-panel.glb",
+      "x": 610,
+      "y": 62,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-schedule",
+      "file": "lecture-v1/schedule-sign.glb",
+      "x": 610,
+      "y": 56.9,
+      "scale": 1,
+      "action": "",
+      "height": 0.3
+    },
+    {
+      "id": "lecture-book-desk-1",
+      "file": "lecture-v1/closed-book.glb",
+      "x": 299.8,
+      "y": 181,
+      "scale": 1,
+      "action": "",
+      "height": 0.765,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-book-desk-2",
+      "file": "lecture-v1/open-book.glb",
+      "x": 299.8,
+      "y": 262.6,
+      "scale": 1,
+      "action": "",
+      "height": 0.765,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-book-desk-3",
+      "file": "lecture-v1/open-book.glb",
+      "x": 299.8,
+      "y": 344.2,
+      "scale": 1,
+      "action": "",
+      "height": 0.765,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-book-desk-4",
+      "file": "lecture-v1/open-book.glb",
+      "x": 524.2,
+      "y": 181,
+      "scale": 1,
+      "action": "",
+      "height": 0.765,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-book-desk-5",
+      "file": "lecture-v1/open-book.glb",
+      "x": 524.2,
+      "y": 262.6,
+      "scale": 1,
+      "action": "",
+      "height": 0.765,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-book-desk-6",
+      "file": "lecture-v1/open-book.glb",
+      "x": 524.2,
+      "y": 344.2,
+      "scale": 1,
+      "action": "",
+      "height": 0.765,
+      "rotation": 3.141592653589793
+    },
+    {
+      "id": "lecture-teacher-laptop",
+      "file": "lecture-v1/laptop.glb",
+      "x": 302,
+      "y": 481,
+      "scale": 1,
+      "action": "",
+      "height": 1.24
+    },
+    {
+      "id": "lecture-teacher-books",
+      "file": "lecture-v1/closed-book.glb",
+      "x": 263,
+      "y": 481,
+      "scale": 1,
+      "action": "",
+      "height": 1.24
+    },
+    {
+      "id": "lecture-teacher-pens",
+      "file": "lecture-v1/pen-holder.glb",
+      "x": 275,
+      "y": 481,
+      "scale": 1,
+      "action": "",
+      "height": 1.24
+    },
+    {
+      "id": "lecture-back-left",
+      "file": "khu-a-coop-v1/potted-plant.glb",
+      "x": 185,
+      "y": 480,
+      "scale": 1.1,
+      "action": "",
+      "height": 0.28
+    },
+    {
+      "id": "lecture-back-right",
+      "file": "khu-a-coop-v1/potted-plant.glb",
+      "x": 550,
+      "y": 482,
+      "scale": 1.1,
+      "action": "",
+      "height": 0.28
+    },
+    {
+      "id": "lecture-front-left",
+      "file": "khu-a-coop-v1/potted-plant.glb",
+      "x": 124,
+      "y": 125,
+      "scale": 0.9,
+      "action": "",
+      "height": 0
+    },
+    {
+      "id": "lecture-front-right",
+      "file": "khu-a-coop-v1/potted-plant.glb",
+      "x": 676,
+      "y": 125,
+      "scale": 0.9,
+      "action": "",
+      "height": 0
+    },
+    {
+      "id": "lecture-flower-320",
+      "file": "khu-a-coop-v1/flower-planter.glb",
+      "x": 320,
+      "y": 80,
+      "scale": 0.85,
+      "action": ""
+    },
+    {
+      "id": "lecture-flower-480",
+      "file": "khu-a-coop-v1/flower-planter.glb",
+      "x": 480,
+      "y": 80,
+      "scale": 0.85,
+      "action": ""
+    },
+    {
+      "id": "lecture-trailing",
+      "file": "khu-a-coop-v1/hanging-plant.glb",
+      "x": 627,
+      "y": 481.5,
+      "scale": 0.7,
+      "action": "",
+      "height": 2.95
+    },
+    {
+      "id": "lecture-lamp-145",
+      "file": "khu-a-coop-v1/wall-lantern.glb",
+      "x": 145,
+      "y": 531,
+      "scale": 1,
+      "action": "",
+      "height": 2.65
+    },
+    {
+      "id": "lecture-lamp-655",
+      "file": "khu-a-coop-v1/wall-lantern.glb",
+      "x": 655,
+      "y": 531,
+      "scale": 1,
+      "action": "",
+      "height": 2.65
+    },
+    {
+      "id": "lecture-npc-professor",
+      "file": "characters/campus-v1/professor.glb",
+      "x": 287.8,
+      "y": 508,
+      "scale": 1,
+      "action": "",
+      "height": 0.28
+    },
+    {
+      "id": "lecture-npc-seat-0",
+      "file": "characters/campus-v1/student.glb",
+      "x": 272.84000000000003,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": -0.24,
+      "pose": "seated"
+    },
+    {
+      "id": "lecture-npc-seat-3",
+      "file": "characters/campus-v1/student-female.glb",
+      "x": 302.76,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": -0.24,
+      "pose": "seated"
+    },
+    {
+      "id": "lecture-npc-seat-6",
+      "file": "characters/campus-v1/student-female.glb",
+      "x": 497.24000000000007,
+      "y": 157.88,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": -0.24,
+      "pose": "seated"
+    },
+    {
+      "id": "lecture-npc-seat-9",
+      "file": "characters/campus-v1/student.glb",
+      "x": 527.1600000000001,
+      "y": 239.48000000000002,
+      "scale": 1,
+      "action": "",
+      "rotation": 3.141592653589793,
+      "height": -0.24,
+      "pose": "seated"
+    },
+    {
+      "id": "lecture-exit",
+      "file": "lecture-v1/exit-gate.glb",
+      "x": 400,
+      "y": 88,
+      "scale": 1,
+      "action": ""
+    },
+    {
+      "id": "lecture-exit-lamp-347.3",
+      "file": "khu-a-coop-v1/wall-lantern.glb",
+      "x": 347.3,
+      "y": 83,
+      "scale": 1,
+      "action": "",
+      "height": 2
+    },
+    {
+      "id": "lecture-exit-lamp-452.7",
+      "file": "khu-a-coop-v1/wall-lantern.glb",
+      "x": 452.7,
+      "y": 83,
+      "scale": 1,
+      "action": "",
+      "height": 2
+    }
+  ]
+}

@@ -389,6 +389,23 @@ function drawCanteenHallOfFame(scene) {
 }
 
 function drawBenchPrivateScene(scene, g) {
+    const layout=Map3DLayouts.get(currentMapId);
+    if(layout?.theme==='private-garden-v1'){
+        // The no-WebGL fallback follows the same authoritative footprints.
+        g.clear();g.fillStyle(0x799b57,1).fillRoundedRect(196,130,408,340,8);
+        g.fillStyle(0xd9c6a3,1).fillRect(375,138,50,300).fillRect(420,182,120,35);
+        g.lineStyle(14,0xd9c6a3,1).strokeCircle(400,289.8,48);
+        for(const p of layout.props){
+            if(p.file==='pergola')continue;
+            const color={'bench':0xa97542,'flowerbed':0xdfa6b5,'flower-urn':0xf0c9a2,'lamp':0x244c43,'tree':0x416d35}[p.file];
+            g.fillStyle(color,1);
+            if(p.file==='tree')g.fillCircle(p.x,p.y,24*p.scale);
+            else if(p.file==='flowerbed')g.fillCircle(p.x,p.y,29);
+            else g.fillRoundedRect(p.x-p.w,p.y-p.d,p.w*2,p.d*2,3);
+        }
+        for(const b of layout.barriers){g.fillStyle(b.id.startsWith('hedge')?0x40673b:0xd6cbb7,1).fillRect(b.x-b.w,b.y-b.d,b.w*2,b.d*2);}
+        return;
+    }
     // Sân vườn isometric giả lập 3D: nền nổi, bóng đổ, cây và bồn hoa.
     g.fillStyle(0x29402d, 0.28).fillEllipse(405, 410, 560, 46);
     g.fillStyle(0x5f8c54, 1).fillRoundedRect(120, 165, 560, 285, 22);

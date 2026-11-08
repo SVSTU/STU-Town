@@ -1,0 +1,78 @@
+{
+  "exactVietnameseStrings": 5,
+  "pngCount": 13,
+  "assetSubjects": 25,
+  "vectorSignFiles": 6,
+  "images": [
+    {
+      "width": 1672,
+      "file": "00-approved-concept.png",
+      "height": 941
+    },
+    {
+      "width": 1536,
+      "file": "01-map-six-views.png",
+      "height": 1024
+    },
+    {
+      "width": 1536,
+      "file": "02-shell-six-views.png",
+      "height": 1024
+    },
+    {
+      "width": 1774,
+      "file": "03-student-furniture-six-views.png",
+      "height": 887
+    },
+    {
+      "width": 1536,
+      "file": "04-teacher-desk-six-views.png",
+      "height": 1024
+    },
+    {
+      "width": 1774,
+      "file": "05-teaching-equipment-six-views.png",
+      "height": 887
+    },
+    {
+      "width": 1536,
+      "file": "06-main-exit-six-views.png",
+      "height": 1024
+    },
+    {
+      "width": 1536,
+      "file": "07-bookshelf-six-views.png",
+      "height": 1024
+    },
+    {
+      "width": 1774,
+      "file": "08-architecture-props-six-views.png",
+      "height": 887
+    },
+    {
+      "width": 1774,
+      "file": "09-signage-six-views.png",
+      "height": 887
+    },
+    {
+      "width": 1774,
+      "file": "10-plants-six-views.png",
+      "height": 887
+    },
+    {
+      "width": 1536,
+      "file": "11-study-props-six-views.png",
+      "height": 1024
+    },
+    {
+      "width": 1774,
+      "file": "12-characters-six-views.png",
+      "height": 887
+    }
+  ],
+  "layout": "6 paired desks, 12 separate chairs; main and side aisles",
+  "checks": "passed",
+  "scope": "Reference images only; no GLB, rig or runtime changes",
+  "visualReview": "All generated sheets inspected; top map panel corrected to directly overhead. Other hidden surfaces remain inferred and require reconciliation in DCC.",
+  "sixViewSheets": 12
+}

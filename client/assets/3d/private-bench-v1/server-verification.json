@@ -1,0 +1,13 @@
+{
+  "realSocketIO": true,
+  "persistenceDisabled": true,
+  "confirmationAfter30Seconds": true,
+  "twoAcceptances": true,
+  "pairRoom": true,
+  "outsiderDenied": true,
+  "twoSeats": true,
+  "roomChatIsolated": true,
+  "remoteExitDenied": true,
+  "walkToPortal": true,
+  "partnerRemains": true
+}

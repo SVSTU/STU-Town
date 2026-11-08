@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "units": "metres",
+  "reference": "source-assets/private-bench-v1/references/00-approved-perspective.png",
+  "assets": [
+    {
+      "file": "pergola.glb",
+      "bytes": 1001252,
+      "boundsBlender": {
+        "min": [
+          -2.1215615272521973,
+          -1.354698657989502,
+          0.0
+        ],
+        "max": [
+          2.1215615272521973,
+          1.356931209564209,
+          2.9242873191833496
+        ]
+      },
+      "id": "pergola",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "bench.glb",
+      "bytes": 639640,
+      "boundsBlender": {
+        "min": [
+          -1.1150000095367432,
+          -0.41499999165534973,
+          0.0
+        ],
+        "max": [
+          1.1150000095367432,
+          0.3850000202655792,
+          0.9755741953849792
+        ]
+      },
+      "id": "bench",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "tree.glb",
+      "bytes": 744044,
+      "boundsBlender": {
+        "min": [
+          -2.594367504119873,
+          -2.432630777359009,
+          -0.024495620280504227
+        ],
+        "max": [
+          2.5963730812072754,
+          2.376483678817749,
+          4.957671165466309
+        ]
+      },
+      "id": "tree",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "lamp.glb",
+      "bytes": 179136,
+      "boundsBlender": {
+        "min": [
+          -0.2150000035762787,
+          -0.2150000035762787,
+          0.0
+        ],
+        "max": [
+          0.2150000035762787,
+          0.2150000035762787,
+          2.945000171661377
+        ]
+      },
+      "id": "lamp",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "flower-urn.glb",
+      "bytes": 691664,
+      "boundsBlender": {
+        "min": [
+          -0.5518211722373962,
+          -0.5804741382598877,
+          0.0
+        ],
+        "max": [
+          0.5901741981506348,
+          0.573152482509613,
+          1.3016114234924316
+        ]
+      },
+      "id": "flower-urn",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "flowerbed.glb",
+      "bytes": 590460,
+      "boundsBlender": {
+        "min": [
+          -0.8799366354942322,
+          -0.8799999952316284,
+          0.0
+        ],
+        "max": [
+          0.8799366354942322,
+          0.8799999952316284,
+          0.5200047492980957
+        ]
+      },
+      "id": "flowerbed",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "hedge.glb",
+      "bytes": 225692,
+      "boundsBlender": {
+        "min": [
+          -1.1496106386184692,
+          -0.4396839141845703,
+          0.03999999165534973
+        ],
+        "max": [
+          1.1468064785003662,
+          0.43832501769065857,
+          0.8394419550895691
+        ]
+      },
+      "id": "hedge",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "exit-portal.glb",
+      "bytes": 183608,
+      "boundsBlender": {
+        "min": [
+          -0.8999999761581421,
+          -0.8999999761581421,
+          0.0
+        ],
+        "max": [
+          0.8999999761581421,
+          0.8999999761581421,
+          2.3081464767456055
+        ]
+      },
+      "id": "exit-portal",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "paving.glb",
+      "bytes": 603140,
+      "boundsBlender": {
+        "min": [
+          -0.7475000023841858,
+          -0.996999979019165,
+          -0.02500000037252903
+        ],
+        "max": [
+          0.7475000023841858,
+          0.9970000386238098,
+          0.029999999329447746
+        ]
+      },
+      "id": "paving",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    },
+    {
+      "file": "garden-ground.glb",
+      "bytes": 2375292,
+      "boundsBlender": {
+        "min": [
+          -6.0,
+          -5.0,
+          -0.14000000059604645
+        ],
+        "max": [
+          6.0,
+          5.0,
+          0.0429999977350235
+        ]
+      },
+      "id": "garden-ground",
+      "front": "Blender -Y",
+      "origin": "ground centre"
+    }
+  ]
+}

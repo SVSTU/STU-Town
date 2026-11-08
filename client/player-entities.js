@@ -14,12 +14,6 @@ function createPlayer(scene, info, id) {
     container.playerRadius = radius;
     container.borderColor = borderColor;
     const isPrivateBenchGuest = String(info.mapId || '').startsWith('bench-private:');
-    if (isPrivateBenchGuest) {
-        container.seatedShadow = scene.add.ellipse(0, 19, radius * 2.4, radius * 0.75, 0x1f3426, 0.42);
-        container.seatedBody = scene.add.ellipse(0, 10, radius * 1.45, radius * 1.8, isMe ? 0x3a83b8 : 0xb76a45, 0.95);
-        container.add(container.seatedShadow);
-        container.addAt(container.seatedBody, 1);
-    }
 
     // 1. Nhãn tên hiển thị trên đầu
     const shortId = id.substring(0, 4);
@@ -48,6 +42,7 @@ function createPlayer(scene, info, id) {
     container.playerId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
     container.playerSocketId = id;
     container.playerInfo = { ...info };
+    container.privateSeatIndex=info.privateSeatIndex;
     // 3. Avatar tùy chỉnh hoặc ảnh mặc định
     const avatar = info.avatar || (isMe ? profile.avatar : null);
     if (avatar && typeof avatar === 'string' && avatar.startsWith('data:image/')) {
@@ -62,9 +57,7 @@ function createPlayer(scene, info, id) {
     if (String(info.mapId || '') !== 'campus' && !isPrivateBenchGuest) {
         setPlayerHumanVisual(container, false);
     } else if (isPrivateBenchGuest) {
-        // Không gian riêng luôn dùng hình người ngồi phong cách 3D giả lập,
-        // không hiển thị avatar/vòng tròn; màu tên là dấu hiệu duy nhất.
-        setPlayerSeatedVisual(container, true);
+        setPlayerHumanVisual(container,Number.isInteger(info.privateSeatIndex));
     } else if (typeof campusBenchOccupants !== 'undefined') {
         const seated = Object.values(campusBenchOccupants).some((ids) => {
             const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);

@@ -1,0 +1,63 @@
+{
+  "assets": {
+    "character": "garden-modular-01",
+    "joints": 8,
+    "geometry": 6,
+    "spawnClear": true,
+    "vortex": true,
+    "vertices": 461392,
+    "state": {
+      "capacity": 2,
+      "recoveryMs": 300000,
+      "statDrain": false
+    }
+  },
+  "controls": {
+    "stopped": true,
+    "entered": true,
+    "same": true,
+    "cameraStable": true
+  },
+  "interactions": {
+    "remoteDenied": true,
+    "nearAccepted": true,
+    "disabled": true,
+    "correctHeight": true,
+    "spacing": true,
+    "nameCard": true
+  },
+  "names": {
+    "separate": true,
+    "colors": [
+      "#1c7d52",
+      "#9a4d2b"
+    ]
+  },
+  "modules": {
+    "sameModel": true,
+    "visible": [
+      "module__outfit__vest__torso",
+      "module__accessory__glasses__head",
+      "module__hair__braid__head",
+      "module__outfit__vest__shoulder_left",
+      "module__outfit__vest__shoulder_right"
+    ]
+  },
+  "overlays": {
+    "privateColor": true,
+    "noChatSend": true
+  },
+  "mobile": {
+    "viewport": true,
+    "canvas": true,
+    "pad": true,
+    "hud": true
+  },
+  "exit": {
+    "remote": true,
+    "near": true,
+    "positionFirst": true
+  },
+  "dayNight": true,
+  "errors": []
+}

@@ -232,6 +232,7 @@ function create() {
     socket.on('playerState', updatePlayerStats);
     socket.on('campusBenchOccupancy', (occupants) => {
         campusBenchOccupants = occupants && typeof occupants === 'object' ? occupants : {};
+        if(currentMapId.startsWith('bench-private:'))return;
         Object.values(campusBenchOccupants).forEach((ids) => {
             const list = Array.isArray(ids) ? ids : (ids ? [ids] : []);
             list.forEach((id) => setPlayerSeatedVisual(players[id], true));
@@ -274,6 +275,16 @@ function create() {
         }
     });
 
+    socket.on('privateBenchOccupancy', ({mapId,seats}={})=>{
+        if(mapId!==currentMapId||!Array.isArray(seats))return;
+        const wasSeated=Number.isInteger(players[socket.id]?.privateSeatIndex);
+        for(const [id,player]of Object.entries(players)){
+            const index=seats.indexOf(id);player.privateSeatIndex=index>=0&&index<2?index:undefined;
+            setPlayerHumanVisual(player,Number.isInteger(player.privateSeatIndex));
+        }
+        if(wasSeated&&!Number.isInteger(players[socket.id]?.privateSeatIndex))document.getElementById('interaction-feedback').textContent='Bạn đã đứng dậy.';
+    });
+    socket.on('privateBenchResult', result=>{document.getElementById('interaction-feedback').textContent=String(result?.message||'');});
     socket.on('benchPrivateSeatOffer', (offer) => {
         const partnerName = String(offer?.partnerName || 'người chơi');
         requestGameConfirmation({
@@ -292,6 +303,7 @@ function create() {
 
     socket.on('mapChangeDenied', (message) => {
         document.getElementById('interaction-feedback').textContent = String(message || 'Không thể vào khu vực này.');
+        if(babylonFountain)babylonFountain.exitPending=false;
     });
 
     socket.on('mapChanged', ({ mapId, players: mapPlayers }) => {
@@ -311,6 +323,7 @@ function create() {
         if (currentMapId === 'auditorium') loadAnnouncements();
         Object.entries(mapPlayers || {}).forEach(([id, info]) => createPlayer(sceneRef, info, id));
         updatePrivateRecipientList();
+        if(currentMapId.startsWith('bench-private:')){const peer=Object.keys(players).find(id=>id!==socket.id);if(peer)prioritizeBenchPrivateChat(peer);}
     });
     socket.on('movementCorrection',position=>{
         const player=players[socket.id];if(!player||!Number.isFinite(position?.x)||!Number.isFinite(position?.y))return;
@@ -334,7 +347,7 @@ function create() {
     });
 
     socket.on('playerMoved', (playerInfo) => {
-        if (players[playerInfo.id] && playerInfo.id !== socket.id) {
+        if (players[playerInfo.id] && (playerInfo.id !== socket.id||currentMapId.startsWith('bench-private:'))) {
             const p = players[playerInfo.id];
             p.x = playerInfo.x;
             p.y = playerInfo.y;

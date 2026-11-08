@@ -1,0 +1,235 @@
+{
+  "title": "Vườn ghế riêng",
+  "pack": "private-bench-v1",
+  "theme": "private-garden-v1",
+  "room": {
+    "width": 12,
+    "depth": 10
+  },
+  "floor": "#7c9855",
+  "playerRadius": 9,
+  "spawn": {
+    "x": 388,
+    "y": 355
+  },
+  "spawns": [
+    {
+      "x": 388,
+      "y": 355
+    },
+    {
+      "x": 412,
+      "y": 355
+    }
+  ],
+  "exit": {
+    "x": 536,
+    "y": 198
+  },
+  "exitRadius": 18,
+  "seat": {
+    "x": 400,
+    "y": 398.6,
+    "height": 0.46,
+    "rotation": 0,
+    "spacing": 0.7,
+    "approachY": 363
+  },
+  "bounds": {
+    "minX": 196,
+    "maxX": 604,
+    "minY": 130,
+    "maxY": 470
+  },
+  "props": [
+    {
+      "file": "pergola",
+      "x": 400,
+      "y": 393.5,
+      "scale": 1,
+      "action": "",
+      "w": 0,
+      "d": 0,
+      "front": false
+    },
+    {
+      "file": "bench",
+      "x": 400,
+      "y": 398.6,
+      "scale": 1,
+      "action": "private-bench",
+      "w": 38.1,
+      "d": 14.7,
+      "front": true
+    },
+    {
+      "file": "flowerbed",
+      "x": 400,
+      "y": 289.8,
+      "scale": 1,
+      "action": "",
+      "w": 30,
+      "d": 30,
+      "front": false
+    },
+    {
+      "file": "flower-urn",
+      "x": 277.6,
+      "y": 272.8,
+      "scale": 1,
+      "action": "",
+      "w": 17,
+      "d": 17,
+      "front": false
+    },
+    {
+      "file": "flower-urn",
+      "x": 522.4,
+      "y": 272.8,
+      "scale": 1,
+      "action": "",
+      "w": 17,
+      "d": 17,
+      "front": false
+    },
+    {
+      "file": "lamp",
+      "x": 284.4,
+      "y": 391.8,
+      "scale": 1,
+      "action": "",
+      "w": 7,
+      "d": 7,
+      "front": false
+    },
+    {
+      "file": "lamp",
+      "x": 515.6,
+      "y": 391.8,
+      "scale": 1,
+      "action": "",
+      "w": 7,
+      "d": 7,
+      "front": false
+    },
+    {
+      "file": "tree",
+      "x": 240.2,
+      "y": 415.6,
+      "scale": 1,
+      "action": "",
+      "w": 10,
+      "d": 10,
+      "front": false
+    },
+    {
+      "file": "tree",
+      "x": 559.8,
+      "y": 415.6,
+      "scale": 1,
+      "action": "",
+      "w": 10,
+      "d": 10,
+      "front": false
+    },
+    {
+      "file": "tree",
+      "x": 219.8,
+      "y": 249,
+      "scale": 0.64,
+      "action": "",
+      "w": 7,
+      "d": 7,
+      "front": false
+    },
+    {
+      "file": "tree",
+      "x": 580.2,
+      "y": 249,
+      "scale": 0.64,
+      "action": "",
+      "w": 7,
+      "d": 7,
+      "front": false
+    }
+  ],
+  "barriers": [
+    {
+      "id": "pergola-post--1.68--1.03",
+      "x": 342.88,
+      "y": 358.48,
+      "w": 6.5,
+      "d": 6.5
+    },
+    {
+      "id": "pergola-post--1.68-1.03",
+      "x": 342.88,
+      "y": 428.52,
+      "w": 6.5,
+      "d": 6.5
+    },
+    {
+      "id": "pergola-post-1.68--1.03",
+      "x": 457.12,
+      "y": 358.48,
+      "w": 6.5,
+      "d": 6.5
+    },
+    {
+      "id": "pergola-post-1.68-1.03",
+      "x": 457.12,
+      "y": 428.52,
+      "w": 6.5,
+      "d": 6.5
+    },
+    {
+      "id": "hedge-left",
+      "x": 206.2,
+      "y": 300,
+      "w": 10.2,
+      "d": 161.5
+    },
+    {
+      "id": "hedge-right",
+      "x": 593.8,
+      "y": 300,
+      "w": 10.2,
+      "d": 161.5
+    },
+    {
+      "id": "hedge-back",
+      "x": 400,
+      "y": 461.5,
+      "w": 193.8,
+      "d": 10.2
+    },
+    {
+      "id": "hedge-front-left",
+      "x": 287.8,
+      "y": 138.5,
+      "w": 81.6,
+      "d": 10.2
+    },
+    {
+      "id": "hedge-front-right",
+      "x": 512.2,
+      "y": 138.5,
+      "w": 81.6,
+      "d": 10.2
+    },
+    {
+      "id": "portal-left-support",
+      "x": 513.9,
+      "y": 198,
+      "w": 4.8,
+      "d": 4.8
+    },
+    {
+      "id": "portal-right-support",
+      "x": 558.1,
+      "y": 198,
+      "w": 4.8,
+      "d": 4.8
+    }
+  ]
+}
