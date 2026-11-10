@@ -242,13 +242,13 @@ function ensureCanteenRankingModal() {
     modal.hidden = true;
     modal.innerHTML = `
       <section class="canteen-ranking-dialog" role="dialog" aria-modal="true" aria-labelledby="canteen-ranking-title">
-        <header><strong id="canteen-ranking-title">🏆 BẢNG VINH DANH THÀNH VIÊN TOP</strong><button type="button" data-close-canteen-ranking aria-label="Đóng">×</button></header>
+        <header><h2 id="canteen-ranking-title">Bảng vinh danh</h2><button type="button" data-close-canteen-ranking aria-label="Đóng">×</button></header>
         <nav class="canteen-ranking-tabs" aria-label="Chọn hạng mục">
           <button type="button" data-canteen-ranking="reputation" aria-pressed="true">Danh tiếng</button>
           <button type="button" data-canteen-ranking="coins" aria-pressed="false">Tiền đồng</button>
         </nav>
-        <ol id="canteen-ranking-list"></ol>
-        <p>Thứ hạng lấy theo dữ liệu toàn server đã lưu.</p>
+        <ol id="canteen-ranking-list" role="list"></ol>
+        <p>Top 10 toàn máy chủ</p>
       </section>`;
     document.body.append(modal);
     const close = () => { modal.hidden = true; };
@@ -267,21 +267,27 @@ function ensureCanteenRankingModal() {
 function renderCanteenRankingModal(category = 'reputation') {
     const modal = ensureCanteenRankingModal();
     const list = modal.querySelector('#canteen-ranking-list');
+    modal.dataset.category = category;
     const rows = getServerRankingRows(category);
     list.replaceChildren();
     if (!rows.length) {
         const empty = document.createElement('li');
-        empty.textContent = 'Chưa có dữ liệu xếp hạng toàn server.';
+        empty.className = 'canteen-ranking-empty';
+        empty.textContent = 'Chưa có dữ liệu xếp hạng.';
         list.append(empty);
         return;
     }
     rows.slice(0, 10).forEach((entry, index) => {
         const item = document.createElement('li');
+        const rank = document.createElement('span');
+        rank.className = 'canteen-rank-number';
+        rank.textContent = String(index + 1);
         const name = document.createElement('span');
-        name.textContent = `${index + 1}. ${String(entry.nickname || 'Người chơi')}`;
+        name.className = 'canteen-rank-name';
+        name.textContent = String(entry.nickname || 'Người chơi');
         const score = document.createElement('strong');
-        score.textContent = `${(Number(entry.score) || 0).toLocaleString('vi-VN')} ${category === 'coins' ? 'tiền đồng' : 'danh tiếng'}`;
-        item.append(name, score);
+        score.textContent = (Number(entry.score) || 0).toLocaleString('vi-VN');
+        item.append(rank, name, score);
         list.append(item);
     });
 }

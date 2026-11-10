@@ -17,8 +17,14 @@ const Phaser={Math:{Clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),Distance:{Between:(
 function renderEnvironmentOverlay(){}function isBlockedPosition(x,y){return Map3DLayouts.blocked(currentMapId,x,y);}
 function showToast(text){console.log(text);}
 function updateInteractionZone(player){const action=Map3DLayouts.interactionTargets(currentMapId,player)[0]?.action||'';activeInteriorObjectId=action;activeFarmPlotId=action.startsWith('plot:')?action.slice(5):'';}
-function interactWithCurrentZone(){smokeInteractions.push(activeInteriorObjectId);}
-function getServerRankingRows(category){return [{nickname:category==='reputation'?'Sinh viên STU':'Khách STU',score:category==='reputation'?1250:25000},{nickname:'Minh Anh',score:900},{nickname:'Tuấn',score:800}];}
+function interactWithCurrentZone(){
+    smokeInteractions.push(activeInteriorObjectId);
+    if (activeInteriorObjectId.startsWith('ranking-')) openCanteenRanking(activeInteriorObjectId.slice(8));
+}
+const sessionLeaderboard = { server: {
+    reputation: [{nickname:'Sinh viên STU',score:1250},{nickname:'Minh Anh',score:900},{nickname:'Tuấn',score:800}],
+    coins: [{nickname:'Nguyễn Thị Minh Anh',score:25000},{nickname:'Khách STU',score:19000},{nickname:'Tuấn',score:15000}]
+}};
 </script>
 <script src="../client/map-3d-layouts.js"></script><script src="../client/game-config.js"></script>
 <script src="https://cdn.babylonjs.com/babylon.js"></script><script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script><script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -27,6 +33,7 @@ function getServerRankingRows(category){return [{nickname:category==='reputation
 <script src="../client/khu-a-coop-scene.js"></script>
 <script src="../client/lecture-scene.js"></script>
 <script src="../client/player-controller.js"></script>
+<script src="../client/map-renderers.js"></script>
 <script>
 players.demo={...players.demo,...Map3DLayouts.get(currentMapId).spawn};
 activateBabylonMapPack(currentMapId);
@@ -60,7 +67,7 @@ setTimeout(()=>{
     boardsFaceWalkway:world.scene.transformNodes.filter(n=>n.name.includes('portrait_slot_1')).every(n=>n.getAbsolutePosition().z<(455-300)/34),
     machineFacesWalkway:world.scene.meshes.filter(n=>n.name.includes('ticket_screen_frame')).every(n=>n.getAbsolutePosition().x<(640-400)/34),
     samplePortraitsHidden:world.scene.meshes.filter(n=>/portrait_(back|head|hair|shirt|eye)/.test(n.name)).every(n=>!n.isEnabled()),
-    rankPanels:world.scene.meshes.filter(n=>/^ranking-(coins|reputation)-name-/.test(n.name)).length
+    rankPanels:world.scene.meshes.filter(n=>/^ranking-(coins|reputation)-face$/.test(n.name)).length
  }:undefined;
  const result={map:currentMapId,meshes:loaded.length,portal:!!world.scene.getTransformNodeByName('fountain-exit-vortex'),boards,canteenChecks,occlusion:{blocked,hiddenSkipped},rig,errors:smokeErrors};
  window.smokeResult=result;document.getElementById('smoke-result').textContent=JSON.stringify(result);

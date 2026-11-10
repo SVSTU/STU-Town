@@ -692,17 +692,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 /* Canteen server-wide hall of fame modal */
 .canteen-ranking-modal[hidden] { display: none !important; }
 .canteen-ranking-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .72); }
-.canteen-ranking-dialog { width: min(440px, 100%); max-height: min(82vh, 680px); overflow: auto; padding: 14px; color: #edf4e8; background: #142219; border: 1px solid #75976a; border-radius: 12px; box-shadow: 0 18px 60px rgba(0,0,0,.55); font: 14px Arial, sans-serif; }
-.canteen-ranking-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 17px; }
-.canteen-ranking-dialog header button { color: #fff; background: #314b35; border: 1px solid #71916a; border-radius: 6px; font-size: 22px; line-height: 1; padding: 3px 9px; cursor: pointer; }
+.canteen-ranking-modal { --ranking-accent: #ffe098; }
+.canteen-ranking-modal[data-category="coins"] { --ranking-accent: #bcecf7; }
+.canteen-ranking-dialog { width: min(480px, 100%); max-height: min(86dvh, 680px); overflow: auto; padding: 16px; color: #fff7e3; background: #142b24; border: 1px solid var(--ranking-accent); border-radius: 14px; box-shadow: 0 18px 60px rgba(0,0,0,.55); font: 16px/1.4 Arial, sans-serif; }
+.canteen-ranking-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.canteen-ranking-dialog h2 { margin: 0; font-size: 22px; }
+.canteen-ranking-dialog header button { flex: none; width: 42px; height: 42px; color: #fff; background: #254238; border: 1px solid #7c9c8e; border-radius: 8px; font-size: 25px; line-height: 1; cursor: pointer; }
 .canteen-ranking-tabs { display: flex; gap: 6px; margin: 12px 0; }
-.canteen-ranking-tabs button { flex: 1; padding: 8px 6px; color: #e5efdf; background: #25372a; border: 1px solid #506c4d; border-radius: 6px; cursor: pointer; }
-.canteen-ranking-tabs button[aria-pressed="true"] { color: #fff; background: #477644; border-color: #a1ce87; font-weight: 700; }
-.canteen-ranking-dialog ol { margin: 0; padding-left: 28px; }
-.canteen-ranking-dialog li { padding: 9px 4px; border-bottom: 1px solid rgba(180,210,160,.18); }
-.canteen-ranking-dialog li span { margin-right: 8px; }
-.canteen-ranking-dialog li strong { float: right; color: #ffe08a; text-align: right; }
-.canteen-ranking-dialog p { margin: 12px 0 0; color: #b8c8b2; font-size: 12px; }
+.canteen-ranking-tabs button { flex: 1; min-height: 42px; padding: 8px 6px; color: #edf4e8; background: #254238; border: 1px solid #7c9c8e; border-radius: 8px; cursor: pointer; }
+.canteen-ranking-tabs button[aria-pressed="true"] { color: #172c24; background: var(--ranking-accent); border-color: var(--ranking-accent); font-weight: 700; }
+.canteen-ranking-dialog ol { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.canteen-ranking-dialog li { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(0, max-content); align-items: center; gap: 8px; padding: 8px; border-radius: 8px; background: #1d3a30; }
+.canteen-ranking-dialog li:first-child { background: #294b3e; }
+.canteen-rank-number { display: grid; place-items: center; min-height: 28px; border-radius: 6px; background: #102a23; color: var(--ranking-accent); font-weight: 700; }
+.canteen-rank-name { overflow-wrap: anywhere; }
+.canteen-ranking-dialog li strong { color: var(--ranking-accent); text-align: right; font-variant-numeric: tabular-nums; }
+.canteen-ranking-dialog li.canteen-ranking-empty { display: block; }
+.canteen-ranking-dialog p { margin: 12px 0 0; color: #c8dbce; font-size: 14px; }
 
 
 /* STU-Town visual polish: consistent glassy campus panels and softer controls. */
@@ -869,6 +875,16 @@ body.is-map-3d #mobile-movement-pad [data-move-direction="down"] {grid-column:2;
 body.is-map-3d #mobile-movement-pad [data-move-direction="right"] {grid-column:3;grid-row:2;}
 body.is-map-3d #mobile-movement-pad span {grid-column:1/4;grid-row:3;font-size:9px;text-align:center;color:#dcebd0;}
 .map-3d-title {position:fixed;z-index:3;max-width:calc(100vw - 30px);padding:6px 10px;border-radius:8px;background:#14281cce;color:#eff5e6;font-size:12px;pointer-events:none;}
+.canteen-view { position: fixed; z-index: 4; overflow: hidden; border-radius: 14px; pointer-events: none; }
+.canteen-view[hidden], .canteen-map-label[hidden], .canteen-zoom[hidden] { display: none; }
+.canteen-map-label { position: absolute; display: grid; justify-items: center; gap: 2px; transform: translate(-50%, -100%); padding: 5px 9px; border: 1px solid #8ca798; border-radius: 8px; background: #102e28; color: #fff6dc; box-shadow: 0 2px 7px #08191388; font-size: 14px; line-height: 1.15; white-space: nowrap; }
+.canteen-map-label[data-category="reputation"] { border-color: #ffe098; color: #ffe098; }
+.canteen-map-label[data-category="coins"] { border-color: #bcecf7; color: #bcecf7; }
+.canteen-map-label small { font-size: 11px; color: #fff6dc; }
+.canteen-zoom { position: fixed; z-index: 36; display: flex; gap: 4px; padding: 4px; transform: translateX(-50%); border: 1px solid #8ca798; border-radius: 10px; background: #102e28; }
+.canteen-zoom.is-compact { transform: none; }
+.canteen-zoom button { display: grid; place-items: center; width: 40px; height: 38px; padding: 0; border: 1px solid #7c9c8e; border-radius: 6px; background: #254238; color: #fff6dc; font-size: 21px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+.canteen-zoom button:disabled { opacity: .45; cursor: default; }
 .fountain-camera-toggle { position: fixed; z-index: 35; transform: translateX(-50%); padding: 7px 12px; border: 1px solid #9cbdba; border-radius: 18px; color: #f1fbff; background: #173b47e8; cursor: pointer; touch-action: manipulation; font-size: 13px; }
 @media (max-width: 600px) and (pointer: coarse) {
     #mobile-movement-pad {

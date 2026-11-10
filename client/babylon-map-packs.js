@@ -19,13 +19,27 @@ function activateBabylonMapPack(mapId) {
     const camera=new B.ArcRotateCamera('map-camera',-Math.PI/2,.72,27,new B.Vector3(0,0,0),scene);
     camera.lowerRadiusLimit=garden?8:16;camera.upperRadiusLimit=32;
     camera.lowerBetaLimit=.15;camera.upperBetaLimit=1.45;
-    if(canteen){camera.setTarget(new B.Vector3(0,.7,0));camera.beta=1.06;camera.radius=18.5;}
+    const canteenOverviewRadius=18.5;
+    if(canteen){
+        camera.setTarget(new B.Vector3(0,.7,0));
+        camera.beta=1.06;
+        camera.radius=canteenOverviewRadius;
+        camera.lowerRadiusLimit=7.5;
+    }
     if(garden){camera.setTarget(new B.Vector3(0,.7,0));camera.beta=.98;camera.radius=20;}
     if(coop){camera.setTarget(new B.Vector3(0,1,0));camera.beta=.93;camera.radius=21;camera.lowerRadiusLimit=10;}
     if(lecture){camera.setTarget(new B.Vector3(0,1,0));camera.beta=.94;camera.radius=23;camera.lowerRadiusLimit=10;}
     if(privateGarden){camera.setTarget(new B.Vector3(0,.8,0));camera.beta=.97;camera.radius=15;camera.lowerRadiusLimit=6;}
-    camera.panningSensibility=0;camera.wheelPrecision=70;
+    camera.panningSensibility=canteen?180:0;camera.wheelPrecision=70;
     camera.attachControl(canvas,true);camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
+    if(canteen){
+        camera.panningDistanceLimit=7;
+        camera.panningOriginTarget.copyFrom(camera.target);
+        camera.useNaturalPinchZoom=true;
+        const wheel=camera.inputs.attached.mousewheel;
+        wheel.wheelDeltaPercentage=.015;
+        wheel.zoomToMouseLocation=true;
+    }
     const ambient=new B.HemisphericLight('map-ambient',new B.Vector3(0,1,0),scene);
     ambient.intensity=halloween?.65:.85;
     if(canteen||coop||lecture){ambient.intensity=.80;ambient.groundColor=new B.Color3(.37,.31,.24);}
@@ -60,7 +74,9 @@ function activateBabylonMapPack(mapId) {
         engine.resize();const b=canvas.getBoundingClientRect();
         if(detailed&&b.width&&b.height){
             const factor=Math.max(1,(4/3)/(b.width/b.height));
-            camera.upperRadiusLimit=32*factor;camera.radius*=factor/framingFactor;framingFactor=factor;
+            camera.upperRadiusLimit=32*factor;
+            camera.radius=B.Scalar.Clamp(camera.radius*factor/framingFactor,camera.lowerRadiusLimit,camera.upperRadiusLimit);
+            framingFactor=factor;
         }
         title.style.left=`${b.left+12}px`;title.style.top=`${b.top+12}px`;
     };
@@ -120,12 +136,14 @@ function activateBabylonMapPack(mapId) {
         options.onReady?.(root);
     }
     function remove(id){const slot=slots.get(id);slot?.instance?.dispose();slot?.root?.dispose();slots.delete(id);}
-    layout.props.forEach((p,i)=>void place('static-'+i,`${layout.pack}/${p.file}.glb`,p.x,p.y,p.scale,p.action,'',{rotation:p.rotation||0,height:p.height||0}));
+    if(!canteen)layout.props.forEach((p,i)=>void place('static-'+i,`${layout.pack}/${p.file}.glb`,p.x,p.y,p.scale,p.action,'',{rotation:p.rotation||0,height:p.height||0}));
     if(privateGarden)createPrivateBenchScene(scene,world,{place,shadows});
     if(coop)createKhuACoopScene(scene,world,{place,interact,shadows});
     if(lecture)createLectureScene(scene,world,{place,interact,shadows});
     const updateGarden=garden?createCommunityGardenScene(scene,world,{place,remove,interact,shadows}):null;
-    const rankingBoards=canteen?createCanteenConceptScene(scene,world,{place,interact,shadows}):(layout.boards||[]).map(board=>{
+    const rankingBoards=canteen?createCanteenConceptScene(scene,world,{
+        place,interact,shadows,getOverviewRadius:()=>canteenOverviewRadius*framingFactor
+    }):(layout.boards||[]).map(board=>{
         const root=new B.TransformNode(board.id,scene),p=fountainWorldPosition(board.x,board.y);
         root.position.set(p.x,0,p.z);
         const category=board.id.slice(8),accent=category==='reputation'?'#ffd166':'#8bd9ff';
