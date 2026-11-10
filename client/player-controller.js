@@ -4,12 +4,25 @@ const mobileMoveState = { up: false, down: false, left: false, right: false };
 const keyboardMoveState = { up: false, down: false, left: false, right: false };
 const movementPointers = new Map();
 const movementButtonKeys = new Set();
+const movementInputSources = new Map();
+let movementInputSequence=0;
 let lastMovementSentAt=0, movementWasActive=false;
+
+function pressMovementSource(source,direction) {
+    // Repeated keydown from the OS must not take priority from a newer key.
+    if(movementInputSources.get(source)?.direction!==direction)movementInputSources.set(source,{direction,order:++movementInputSequence});
+}
+
+function releaseMovementButtons() {
+    movementButtonKeys.clear();
+    for(const source of movementInputSources.keys())if(source.startsWith('button:'))movementInputSources.delete(source);
+}
 
 function resetMovementInput() {
     Object.keys(mobileMoveState).forEach(direction=>mobileMoveState[direction]=false);
     Object.keys(keyboardMoveState).forEach(direction=>keyboardMoveState[direction]=false);
     movementPointers.clear();movementButtonKeys.clear();
+    movementInputSources.clear();movementInputSequence=0;
     sceneRef?.input?.keyboard?.resetKeys();
     movementWasActive=false;lastMovementSentAt=0;
     readMovementDirections();
@@ -21,6 +34,17 @@ function readMovementDirections() {
     for(const direction of Object.keys(mobileMoveState)) {
         const keyboard=typeof babylonFountain!=='undefined'&&babylonFountain?keyboardMoveState[direction]:cursors?.[direction]?.isDown;
         state[direction]=Boolean((enabled&&keyboard)||mobileMoveState[direction]);
+    }
+    const order=direction=>{
+        let latest=0;
+        for(const [source,press] of movementInputSources)if(press.direction===direction&&(enabled||!source.startsWith('key:')))latest=Math.max(latest,press.order);
+        return latest;
+    };
+    // Resolve opposing directions once for both keyboard and floating controls.
+    for(const [a,b] of [['up','down'],['left','right']])if(state[a]&&state[b]){
+        const ao=order(a),bo=order(b);state[a]=ao>bo;state[b]=bo>ao;
+    }
+    for(const direction of Object.keys(state)) {
         const button=document.querySelector(`[data-move-direction="${direction}"]`);
         button?.classList.toggle('is-pressed',state[direction]);
         button?.setAttribute('aria-pressed',String(state[direction]));
@@ -36,7 +60,7 @@ function bindMobileMovementControls() {
         for(const direction of Object.keys(mobileMoveState))mobileMoveState[direction]=[...movementPointers.values()].includes(direction)||movementButtonKeys.has(direction);
         readMovementDirections();
     };
-    const releasePointer=event=>{movementPointers.delete(event.pointerId);refreshPointers();};
+    const releasePointer=event=>{movementPointers.delete(event.pointerId);movementInputSources.delete('pointer:'+event.pointerId);refreshPointers();};
     window.addEventListener('pointerup',releasePointer,true);
     window.addEventListener('pointercancel',releasePointer,true);
     window.addEventListener('pointermove',event=>{
@@ -47,12 +71,13 @@ function bindMobileMovementControls() {
         const direction=keyDirections[event.code];if(!direction)return;
         if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]')||event.altKey||event.ctrlKey||event.metaKey)return;
         keyboardMoveState[direction]=true;
+        pressMovementSource('key:'+event.code,direction);
         if(babylonFountain)event.preventDefault();
         readMovementDirections();
     },true);
     window.addEventListener('keyup',event=>{
-        const direction=keyDirections[event.code];if(direction)keyboardMoveState[direction]=false;
-        if(event.code==='Space'||event.code==='Enter'){movementButtonKeys.clear();refreshPointers();}
+        const direction=keyDirections[event.code];if(direction){keyboardMoveState[direction]=false;movementInputSources.delete('key:'+event.code);}
+        if(event.code==='Space'||event.code==='Enter'){releaseMovementButtons();refreshPointers();}
         readMovementDirections();
     },true);
     document.addEventListener('focusin',event=>{
@@ -66,14 +91,14 @@ function bindMobileMovementControls() {
         const start = (event) => {
             event.preventDefault();
             if(event.pointerType==='mouse'&&event.button!==0)return;
-            movementPointers.set(event.pointerId,direction);refreshPointers();
+            movementPointers.set(event.pointerId,direction);pressMovementSource('pointer:'+event.pointerId,direction);refreshPointers();
             targetPosition = null;
             button.classList.add('is-pressed');
             try { button.setPointerCapture(event.pointerId); } catch {}
         };
         const stop = (event) => {
             if (event) event.preventDefault();
-            if(event&&movementPointers.get(event.pointerId)===direction)movementPointers.delete(event.pointerId);
+            if(event&&movementPointers.get(event.pointerId)===direction){movementPointers.delete(event.pointerId);movementInputSources.delete('pointer:'+event.pointerId);}
             refreshPointers();
         };
         button.addEventListener('pointerdown', start);
@@ -82,12 +107,12 @@ function bindMobileMovementControls() {
         button.addEventListener('lostpointercapture', stop);
         button.addEventListener('contextmenu', (event) => event.preventDefault());
         button.addEventListener('keydown',event=>{
-            if((event.code==='Space'||event.code==='Enter')&&!event.repeat){event.preventDefault();movementButtonKeys.add(direction);refreshPointers();}
+            if((event.code==='Space'||event.code==='Enter')&&!event.repeat){event.preventDefault();movementButtonKeys.add(direction);pressMovementSource('button:'+direction,direction);refreshPointers();}
         });
         button.addEventListener('keyup',event=>{
-            if(event.code==='Space'||event.code==='Enter'){event.preventDefault();movementButtonKeys.delete(direction);refreshPointers();}
+            if(event.code==='Space'||event.code==='Enter'){event.preventDefault();movementButtonKeys.delete(direction);movementInputSources.delete('button:'+direction);refreshPointers();}
         });
-        button.addEventListener('blur',()=>{movementButtonKeys.delete(direction);refreshPointers();});
+        button.addEventListener('blur',()=>{movementButtonKeys.delete(direction);movementInputSources.delete('button:'+direction);refreshPointers();});
     });
     window.addEventListener('blur', stopAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopAll(); });
