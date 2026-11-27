@@ -10,7 +10,7 @@
     <script src="map-3d-layouts.js?v=7-private-garden"></script>
     <script src="game-config.js?v=4-coop"></script>
     <!-- Nhúng file CSS riêng -->
-    <link rel="stylesheet" href="style.css?v=20261110-canteen-readability">
+    <link rel="stylesheet" href="style.css?v=20261127-modules">
 </head>
 <body>
 
@@ -33,6 +33,17 @@
                 <form id="profile-form" onsubmit="saveProfile(event)">
                     <input type="text" id="nickname-input" maxlength="24" placeholder="Nickname" aria-label="Nickname">
                     <input type="file" id="avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Chọn avatar">
+                    <fieldset id="character-customizer">
+                        <legend>Nhân vật 3D · Module có sẵn</legend>
+                        <label for="character-hair">Kiểu tóc</label>
+                        <select id="character-hair"><option value="wavy">Tóc gợn sóng</option><option value="braid">Tóc tết</option><option value="gray">Tóc bạc</option><option value="ponytail">Tóc đuôi ngựa</option></select>
+                        <label for="character-outfit">Trang phục</label>
+                        <select id="character-outfit"><option value="polo">Áo polo</option><option value="apron">Tạp dề</option><option value="vest">Áo ghi lê</option><option value="uniform">Đồng phục</option></select>
+                        <label><input type="checkbox" id="character-backpack"> Ba lô</label>
+                        <label><input type="checkbox" id="character-glasses"> Kính</label>
+                        <p>Áp dụng trên các bản đồ 3D khi lưu hồ sơ. Ảnh đại diện trò chuyện được giữ riêng.</p>
+                        <p id="character-save-status" role="status"></p>
+                    </fieldset>
                     <button type="submit" id="profile-submit">Lưu hồ sơ</button>
                 </form>
                 <div class="profile-recovery">
@@ -288,11 +299,12 @@
         <script src="ui-panels.js?v=20261030-merchant-typing2"></script>
         <script src="chat-ui.js?v=2-3d-overlays"></script>
         <script src="world-interactions.js?v=20261108-private-garden"></script>
-        <script src="profile.js?v=1"></script>
+        <script src="profile.js?v=2-modules"></script>
+        <script src="character-customizer.js?v=1"></script>
         <script src="player-entities.js?v=2-private-garden"></script>
         <script src="player-controller.js?v=20261108-arrow-priority"></script>
         <script src="farm-system.js?v=20261107-interaction-fix"></script>
         <script src="leaderboard.js?v=20261107-interaction-fix"></script>
-        <script src="game.js?v=20261108-private-garden"></script>
+        <script src="game.js?v=20261127-modules"></script>
 </body>
 </html>

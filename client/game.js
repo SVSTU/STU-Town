@@ -144,6 +144,7 @@ function create() {
     registerFarmSocketHandlers();
     registerLeaderboardSocketHandlers();
 
+    initialiseCharacterCustomizer();
     socket.on('connect', () => {
         console.log("Connected to server, my socket ID:", socket.id);
         const saveStatus = document.getElementById('player-save-status');

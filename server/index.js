@@ -73,6 +73,7 @@ if (!isSupabaseConfigured) {
   console.warn('Supabase chưa được cấu hình; hồ sơ người chơi hiện chỉ tồn tại trong phiên server này.');
 }
 const pendingProfileSaves = new Map();
+const { normaliseAppearance } = require('./character-appearance');
 const profileSaveTimers = new Map();
 
 function hashPlayerToken(token) {
@@ -352,7 +353,8 @@ function getPersistentPlayerSnapshot(id) {
     stats: {
       hunger: clampStat(player.stats.hunger),
       strength: clampStat(player.stats.strength),
-      fatigue: clampStat(player.stats.fatigue)
+      fatigue: clampStat(player.stats.fatigue),
+      characterAppearance: normaliseAppearance(player)
     },
     inventory,
     farm_plant_count: Math.max(0, Math.floor(Number(player.farmPlantCount) || 0)),
@@ -1060,6 +1062,7 @@ io.on('connection', (socket) => {
     x: Math.floor(Math.random() * 70) + 330,
     y: Math.floor(Math.random() * 70) + 320,
     avatar: null,
+    ...normaliseAppearance(savedStats.characterAppearance),
     nickname: String(savedProfile?.nickname || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 24),
     mapId: 'campus',
     stats: {
@@ -1087,7 +1090,7 @@ io.on('connection', (socket) => {
 
   // Gửi toàn bộ danh sách người chơi hiện tại (kèm avatar cũ nếu có) cho người mới
   socket.emit('currentPlayers', getMapPlayers('campus'));
-  socket.emit('playerIdentity', { token: socket.data.playerToken, nickname: players[socket.id].nickname });
+  socket.emit('playerIdentity', { token: socket.data.playerToken, nickname: players[socket.id].nickname, characterAppearance: normaliseAppearance(players[socket.id]) });
   socket.emit('playerPersistenceStatus', {
     enabled: isSupabaseConfigured,
     available: Boolean(socket.data.profilePersistenceReady),
@@ -1106,6 +1109,7 @@ io.on('connection', (socket) => {
     y: players[socket.id].y,
     avatar: players[socket.id].avatar,
     nickname: players[socket.id].nickname,
+    ...normaliseAppearance(players[socket.id]),
     mapId: 'campus'
   });
 
@@ -1688,6 +1692,18 @@ io.on('connection', (socket) => {
       reactedBy: [...users]
     });
     rewardReputation(socket.id);
+  });
+
+  socket.on('updateCharacterAppearance', (input, acknowledge) => {
+    const appearance = normaliseAppearance(input);
+    if (!players[socket.id] || !appearance) {
+      if (typeof acknowledge === 'function') acknowledge({ ok: false });
+      return;
+    }
+    Object.assign(players[socket.id], appearance);
+    schedulePlayerSave(socket.id);
+    io.to('map:' + players[socket.id].mapId).emit('playerAppearanceUpdated', { id: socket.id, ...appearance });
+    if (typeof acknowledge === 'function') acknowledge({ ok: true, ...appearance });
   });
 
   socket.on('updateProfile', (profile = {}) => {

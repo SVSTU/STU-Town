@@ -953,3 +953,5 @@ body.is-map-3d #mobile-movement-pad span {grid-column:1/4;grid-row:3;font-size:9
 .profile-recovery-row { display: flex; gap: 4px; margin-top: 4px; }
 .profile-recovery-row input { min-width: 0; flex: 1; }
 .profile-recovery-row button { flex: 0 0 auto; }
+
+#character-customizer{min-width:0;display:grid;gap:7px;border:1px solid #8092a4;border-radius:8px;padding:10px;margin:8px 0}#character-customizer select{width:100%;min-height:36px;color:#172b40;background:#fff;border:1px solid #8092a4;border-radius:5px;padding:5px}#character-customizer label{display:flex;align-items:center;gap:6px}#character-customizer input[type=checkbox]{width:auto;min-width:18px}#character-customizer p{margin:3px 0;font-size:12px;line-height:1.4}

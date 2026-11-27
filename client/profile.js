@@ -4,6 +4,7 @@ function loadProfile() {
     try {
         const stored = JSON.parse(localStorage.getItem(PROFILE_STORAGE_KEY) || '{}');
         return {
+            characterAppearance: stored.characterAppearance?.characterAssetId === 'campus-modular-01' ? {characterAssetId:'campus-modular-01', characterModules:CharacterAssets.normaliseModules(stored.characterAppearance.characterModules,CharacterAssets.campusSlots)} : null,
             nickname: typeof stored.nickname === 'string' ? stored.nickname.slice(0, 24) : '',
             avatar: typeof stored.avatar === 'string' && stored.avatar.startsWith('data:image/') ? stored.avatar : null
         };
@@ -47,7 +48,9 @@ function saveProfile(event) {
     const nicknameInput = document.getElementById('nickname-input');
     profile.nickname = nicknameInput.value.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 24);
 
+    const appearance = readCharacterAppearance();
     const applyProfile = () => {
+        if (appearance) { profile.characterAppearance = appearance; saveCharacterAppearance(appearance); }
         nicknameInput.value = profile.nickname;
         try {
             localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));

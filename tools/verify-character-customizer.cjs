@@ -1,0 +1,34 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const assets=require('../client/character-assets'),{normaliseAppearance}=require('../server/character-appearance');
+const a={characterAssetId:'campus-modular-01',characterModules:{hair:'ponytail',outfit:'uniform',accessories:['glasses','glasses','bad']}};
+const b={characterAssetId:'campus-modular-01',characterModules:{hair:'gray',outfit:'vest',accessories:['backpack']}};
+assert.equal(normaliseAppearance({characterAssetId:'../../bad.glb'}),null);
+assert.deepEqual(normaliseAppearance(a).characterModules.accessories,['glasses']);
+assert.equal(normaliseAppearance({...a,characterModules:null}).characterModules.hair,'wavy');
+const source=fs.readFileSync('server/index.js','utf8');
+const handler=source.slice(source.indexOf("  socket.on('updateCharacterAppearance'"),source.indexOf("  socket.on('updateProfile'"));
+const handlers={},events=[],saved=[],players={alice:{mapId:'khu-c'},bob:{mapId:'khu-a'}};
+const socket={id:'alice',on:(event,fn)=>handlers[event]=fn};
+const context={socket,players,normaliseAppearance,schedulePlayerSave:id=>saved.push(id),io:{to:room=>({emit:(event,data)=>events.push({room,event,data})})}};
+vm.runInNewContext(handler,context);
+let ack;handlers.updateCharacterAppearance(a,r=>ack=r);assert(ack.ok);assert(!players.bob.characterAssetId);
+socket.id='bob';handlers.updateCharacterAppearance(b,()=>{});assert.equal(players.alice.characterModules.hair,'ponytail');assert.equal(players.bob.characterModules.hair,'gray');
+handlers.updateCharacterAppearance({characterAssetId:'evil'},r=>ack=r);assert(!ack.ok);assert.equal(saved.length,2);assert.equal(events[0].room,'map:khu-c');
+// Execute the actual persistence snapshot and restore format, independently for each identity.
+context.playerInventories=new Map([['alice',{}],['bob',{}]]);context.clampStat=n=>n;context.io.sockets={sockets:new Map(['alice','bob'].map(id=>[id,{data:{playerTokenHash:id+'-hash',profilePersistenceReady:true}}]))};
+for(const p of Object.values(players))p.stats={hunger:100,strength:100,fatigue:0};
+vm.runInNewContext(source.slice(source.indexOf('function getPersistentPlayerSnapshot('),source.indexOf('function persistPlayer(')),context);
+const sa=context.getPersistentPlayerSnapshot('alice'),sb=context.getPersistentPlayerSnapshot('bob');
+assert.notEqual(sa.token_hash,sb.token_hash);assert.equal(normaliseAppearance(JSON.parse(JSON.stringify(sa)).stats.characterAppearance).characterModules.hair,'ponytail');assert.equal(sb.stats.characterAppearance.characterModules.hair,'gray');
+// UI state, local storage reload, remote updates and identity restoration.
+const fields={};for(const id of ['character-hair','character-outfit','character-backpack','character-glasses','character-save-status'])fields[id]={value:'',checked:false,textContent:''};
+const storage=new Map(),listeners={},emits=[];
+const ui={CharacterAssets:assets,players:{alice:{playerInfo:{}},bob:{playerInfo:{}}},profile:{},PROFILE_STORAGE_KEY:'profile',localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},document:{getElementById:id=>fields[id]},socket:{id:'alice',connected:true,on:(e,f)=>listeners[e]=f,timeout:()=>({emit:(e,data,cb)=>{emits.push({e,data});cb(null,{ok:true})}})}};
+vm.createContext(ui);vm.runInContext(fs.readFileSync('client/character-customizer.js','utf8')+'\n'+fs.readFileSync('client/profile.js','utf8'),ui);
+ui.initialiseCharacterCustomizer();ui.syncCharacterControls(a);const choice=ui.readCharacterAppearance();assert.equal(choice.characterModules.hair,'ponytail');ui.saveCharacterAppearance(choice);assert.equal(ui.players.alice.playerInfo.characterModules.outfit,'uniform');
+listeners.playerAppearanceUpdated({id:'bob',...b});assert.equal(ui.players.alice.playerInfo.characterModules.hair,'ponytail');assert.equal(ui.players.bob.playerInfo.characterModules.hair,'gray');
+listeners.playerIdentity({characterAppearance:b});assert.equal(ui.loadProfile().characterAppearance.characterModules.hair,'gray');assert.equal(fields['character-hair'].value,'gray');
+listeners.playerIdentity({characterAppearance:null});assert.equal(emits.at(-1).data.characterModules.hair,'gray');
+ui.socket.connected=false;ui.saveCharacterAppearance(a);assert.match(fields['character-save-status'].textContent,/trình duyệt/);
+for(const map of ['campus','khu-a','khu-c','bench-private:alice'])assert.equal(assets.forPlayer(ui.players.alice,map).id,'campus-modular-01');
+console.log('PASS: individual profiles, server allowlist, per-token persistence/restore, local reload, reconnect, remote sync, all-map selection.');
